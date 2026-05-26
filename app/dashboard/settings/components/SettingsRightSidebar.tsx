@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Building2, CheckCircle2, ArrowRight, BookOpen } from "lucide-react";
+import { Building2, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsRightSidebar() {

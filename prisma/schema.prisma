@@ -1,0 +1,129 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+  sources   Source[]
+  documents Document[]
+  chatSessions ChatSession[]
+  documentChunks DocumentChunk[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  email       String    @unique
+  name        String?
+  avatarUrl   String?   @map("avatar_url")
+  role        String    @default("member")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sources     Source[]
+
+  @@map("users")
+}
+
+model Source {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  type         String    // 'google_drive'
+  name         String
+  status       String    @default("idle") // 'idle' | 'syncing' | 'synced' | 'error'
+  errorMessage String?   @map("error_message")
+  accessToken  String?   @map("access_token")   // AES encrypted
+  refreshToken String?   @map("refresh_token")  // AES encrypted
+  tokenExpiry  DateTime? @map("token_expiry")
+  lastSyncedAt DateTime? @map("last_synced_at")
+  itemsIndexed Int       @default(0) @map("items_indexed")
+  config       Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+  documents    Document[]
+
+  @@map("sources")
+}
+
+model Document {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  sourceId    String    @map("source_id") @db.Uuid
+  externalId  String    @map("external_id")
+  title       String
+  fileType    String?   @map("file_type")
+  url         String?
+  rawContent  String?   @map("raw_content")
+  contentHash String?   @map("content_hash")
+  indexedAt   DateTime? @map("indexed_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source      Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunks      DocumentChunk[]
+
+  @@unique([sourceId, externalId])
+  @@map("documents")
+}
+
+model ChatSession {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String        @map("workspace_id") @db.Uuid
+  title       String
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages    ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId   String      @map("session_id") @db.Uuid
+  sender      String      // 'user' | 'corely'
+  text        String      @db.Text
+  sources     Json?
+  feedback    String?     // 'positive' | 'negative' | null
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model DocumentChunk {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  documentId  String   @map("document_id") @db.Uuid
+  sourceId    String   @map("source_id") @db.Uuid
+  content     String   @db.Text
+  chunkIndex  Int      @map("chunk_index")
+  tokenCount  Int?     @map("token_count")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_chunks")
+}

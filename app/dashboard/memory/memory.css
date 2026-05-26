@@ -1,0 +1,801 @@
+/* ── Corely Memory Page CSS ──────────────────────────────────────── */
+
+.mem-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  padding-bottom: 40px;
+}
+
+/* Header Row styling */
+.mem-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.mem-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mem-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mem-title-icon {
+  color: #ff6b00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mem-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.mem-subtitle {
+  font-size: 13.5px;
+  color: #71717a;
+  margin: 0;
+}
+
+.mem-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Input Search bar */
+.mem-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 8px 14px;
+  width: 220px;
+  transition: all 0.2s ease;
+}
+
+.mem-search-bar:focus-within {
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.mem-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #111;
+  width: 100%;
+}
+
+.mem-search-input::placeholder {
+  color: #a1a1aa;
+}
+
+/* Primary Button */
+.mem-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111111;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.mem-add-btn:hover {
+  background: #222222;
+  transform: translateY(-1px);
+}
+
+/* Stats Cards styling */
+.mem-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.mem-stat-card {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.mem-stat-icon-wrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mem-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.mem-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.mem-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717a;
+}
+
+.mem-stat-trend {
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+/* Main Grid Layout */
+.mem-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.mem-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mem-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Tabs Bar */
+.mem-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid #e4e4e7;
+  padding-bottom: 4px;
+  width: 100%;
+}
+
+.mem-tabs-list {
+  display: flex;
+  gap: 24px;
+}
+
+.mem-tab-item {
+  background: transparent;
+  border: none;
+  padding: 8px 0 12px 0;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: #71717a;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.mem-tab-item:hover {
+  color: #111;
+}
+
+.mem-tab-item.active {
+  color: #ff6b00;
+  font-weight: 600;
+}
+
+.mem-tab-active-line {
+  position: absolute;
+  bottom: -5.5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ff6b00;
+  border-radius: 2px;
+}
+
+.mem-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3f3f46;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mem-filter-btn:hover {
+  background: #fafafa;
+  border-color: #d4d4d8;
+}
+
+/* Timeline Area Header */
+.mem-timeline-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mem-timeline-title {
+  font-size: 16px;
+  font-weight: 750;
+  color: #111;
+  margin: 0;
+}
+
+.mem-timeline-sub {
+  font-size: 12.5px;
+  color: #71717a;
+  margin: 0;
+}
+
+/* Timeline List */
+.mem-timeline-list {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* The vertical connector line */
+.mem-timeline-line {
+  position: absolute;
+  left: 105px;
+  top: 10px;
+  bottom: 24px;
+  width: 2px;
+  background: #e4e4e7;
+  z-index: 1;
+}
+
+.mem-timeline-group-header {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #71717a;
+  margin: 20px 0 16px 128px;
+  position: relative;
+  z-index: 2;
+}
+
+/* A single item row in the timeline */
+.mem-timeline-row {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.mem-timeline-time {
+  width: 85px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+  padding-top: 12px;
+}
+
+.mem-timeline-node-container {
+  width: 42px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.mem-timeline-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  margin-top: 4px;
+}
+
+/* The actual timeline item card */
+.mem-timeline-card {
+  flex: 1;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.015);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mem-timeline-card:hover {
+  border-color: #d4d4d8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.mem-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mem-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111;
+}
+
+.mem-card-content {
+  font-size: 13px;
+  color: #3f3f46;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mem-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mem-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 100px;
+}
+
+/* Card Actions / Participants Row */
+.mem-card-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.mem-source-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #27272a;
+}
+
+.mem-source-icon-wrap {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mem-participant-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #e4e4e7;
+  object-fit: cover;
+}
+
+.mem-card-action-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.mem-card-action-btn:hover {
+  color: #111;
+  background: #f4f4f5;
+}
+
+/* Load More button */
+.mem-load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.mem-load-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3f3f46;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+  transition: all 0.2s ease;
+  margin-left: 128px;
+}
+
+.mem-load-more-btn:hover {
+  background: #fafafa;
+  border-color: #d4d4d8;
+}
+
+/* Sidebar Panels (Right Column) */
+.mem-sidebar-card {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.mem-sidebar-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mem-sidebar-card-title {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #111;
+}
+
+.mem-sidebar-view-all {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ff6b00;
+  text-decoration: none;
+}
+
+.mem-sidebar-view-all:hover {
+  text-decoration: underline;
+}
+
+/* Memory Insights Card */
+.mem-insights-banner {
+  background: linear-gradient(135deg, #fff5f1, #fff9f6);
+  border: 1px solid #ffe3d5;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mem-insights-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff6b00;
+}
+
+.mem-insights-banner-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7f3200;
+}
+
+.mem-insights-banner-desc {
+  font-size: 12px;
+  color: #9a4811;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mem-insights-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #ffd0b8;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #ff6b00;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mem-insights-btn:hover {
+  background: #fffdfc;
+  border-color: #ff6b00;
+}
+
+/* Category Progress Rows */
+.mem-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mem-category-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mem-category-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.mem-category-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #3f3f46;
+}
+
+.mem-category-value {
+  font-weight: 700;
+  color: #18181b;
+}
+
+.mem-category-bar-bg {
+  height: 6px;
+  background: #f4f4f5;
+  border-radius: 100px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.mem-category-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+}
+
+/* Recent Snapshots */
+.mem-snapshot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mem-snapshot-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mem-snapshot-item-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.mem-snapshot-icon-wrapper {
+  color: #3f82f6;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.mem-snapshot-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.mem-snapshot-title {
+  font-size: 12px;
+  font-weight: 650;
+  color: #18181b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mem-snapshot-date {
+  font-size: 10px;
+  color: #a1a1aa;
+}
+
+.mem-snapshot-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  padding: 1px 6px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+
+.mem-snapshot-create-btn {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #ff6b00;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.mem-snapshot-create-btn:hover {
+  border-color: #ff6b00;
+  background: #fffaf7;
+}
+
+/* Custom Modal Add to Memory Form */
+.mem-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mem-modal-card {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 14px;
+  width: 480px;
+  max-width: 90%;
+  padding: 24px;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mem-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  margin: 0;
+}
+
+.mem-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mem-form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3f3f46;
+}
+
+.mem-form-input, .mem-form-select, .mem-form-textarea {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #111;
+  outline: none;
+}
+
+.mem-form-input:focus, .mem-form-select:focus, .mem-form-textarea:focus {
+  border-color: #ff6b00;
+}
+
+.mem-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.mem-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mem-cancel-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #71717a;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.mem-cancel-btn:hover {
+  background: #f4f4f5;
+  color: #111;
+}
+
+.mem-submit-btn {
+  background: #ff6b00;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.mem-submit-btn:hover {
+  background: #e05e00;
+  transform: translateY(-1px);
+}

@@ -20,7 +20,7 @@ import {
 const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
   { icon: MessageSquare, label: "Ask Corely", href: "/dashboard/ask-corely" },
-  { icon: Brain, label: "Memory", href: "#" },
+  { icon: Brain, label: "Memory", href: "/dashboard/memory" },
   { icon: BarChart2, label: "Insights", href: "#" },
   { icon: Zap, label: "Actions", href: "#" },
   { icon: Link2, label: "Sources", href: "/dashboard/sources" },

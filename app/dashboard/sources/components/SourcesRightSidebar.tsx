@@ -1,12 +1,109 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Database } from "lucide-react";
+
+// ── Temporary MVP workspace ID ───────────────────────────────────────────────
+const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
+
+interface Source {
+  id: string;
+  name: string;
+  type: string;
+  status: "idle" | "syncing" | "synced" | "error";
+  itemsIndexed: number;
+  lastSyncedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+// ── Google Drive Mini Icon ───────────────────────────────────────────────────
+const GoogleDriveIcon = ({ size = 16 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size}>
+    <path d="M4.93 17.57L3 21l5.25-.02 1.93-3.41H4.93z" fill="#0066DA" />
+    <path d="M12 3L6.75 12h10.5L12 3z" fill="#00AC47" />
+    <path d="M19.07 17.57H12l1.93 3.41L19.25 21l-2.18-3.43z" fill="#EA4335" />
+    <path d="M6.75 12L3 17.57h5.93L12 12H6.75z" fill="#00832D" />
+    <path d="M17.25 12L19.07 17.57 21 14.14l-3.75-6.14H12l5.25 4z" fill="#FFBA00" />
+  </svg>
+);
 
 export default function SourcesRightSidebar() {
+  const [sources, setSources] = useState<Source[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ── Fetch all sources ──────────────────────────────────────────────────────
+  const fetchSources = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sources?workspaceId=${WORKSPACE_ID}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { sources: Source[] };
+      setSources(data.sources ?? []);
+    } catch (err) {
+      console.error("Sidebar failed to fetch sources:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchSources();
+    const interval = setInterval(fetchSources, 5000);
+    return () => clearInterval(interval);
+  }, [fetchSources]);
+
+  // ── Stats Calculations ─────────────────────────────────────────────────────
+  const totalCount = sources.length;
+  const syncedCount = sources.filter((s) => s.status === "synced").length;
+  const syncingCount = sources.filter((s) => s.status === "syncing").length;
+  const errorCount = sources.filter((s) => s.status === "error").length;
+  const idleCount = sources.filter((s) => s.status === "idle").length;
+
+  const totalIndexed = sources.reduce((sum, s) => sum + s.itemsIndexed, 0);
+
+  // Donut chart circumferences based on radius = 40 (circumference ≈ 251.2)
+  const calculateStroke = () => {
+    if (totalCount === 0) {
+      return {
+        syncedDash: "0 251.2",
+        syncingDash: "0 251.2",
+        errorDash: "0 251.2",
+        idleDash: "251.2 251.2",
+        syncedOffset: 0,
+        syncingOffset: 0,
+        errorOffset: 0,
+        idleOffset: 0,
+      };
+    }
+
+    const syncedPct = syncedCount / totalCount;
+    const syncingPct = syncingCount / totalCount;
+    const errorPct = errorCount / totalCount;
+    const idlePct = idleCount / totalCount;
+
+    const syncedLen = syncedPct * 251.2;
+    const syncingLen = syncingPct * 251.2;
+    const errorLen = errorPct * 251.2;
+    const idleLen = idlePct * 251.2;
+
+    return {
+      syncedDash: `${syncedLen} 251.2`,
+      syncingDash: `${syncingLen} 251.2`,
+      errorDash: `${errorLen} 251.2`,
+      idleDash: `${idleLen} 251.2`,
+      syncedOffset: 0,
+      syncingOffset: -syncedLen,
+      errorOffset: -(syncedLen + syncingLen),
+      idleOffset: -(syncedLen + syncingLen + errorLen),
+    };
+  };
+
+  const chartInfo = calculateStroke();
+
   return (
-    <div style={{ flexShrink: 0 }}>
+    <div style={{ flexShrink: 0, width: 280, display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Source Overview (Donut Chart) */}
       <motion.div
         className="src-sidebar-card"
@@ -16,40 +113,90 @@ export default function SourcesRightSidebar() {
       >
         <div className="src-card-header">
           <div className="src-card-title">Source Overview</div>
-          <Link href="#" className="src-card-view-all">View details</Link>
         </div>
         <div className="src-overview-body">
           <div className="src-donut-wrap">
             <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
-              {/* Purple (Disabled) - 2/9 = 22.2% = 70.3 circumference */}
-              {/* Yellow (Warning) - 1/9 = 11.1% = 35.1 circumference */}
-              {/* Green (Healthy) - 6/9 = 66.7% = 211.2 circumference */}
-              {/* Total circumference of r=40 is ~251.2 */}
-              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8b5cf6" strokeWidth="12" strokeDasharray="70.3 251.2" strokeDashoffset="0" />
-              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#eab308" strokeWidth="12" strokeDasharray="35.1 251.2" strokeDashoffset="-70.3" />
-              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#22c55e" strokeWidth="12" strokeDasharray="145.8 251.2" strokeDashoffset="-105.4" />
+              {/* Idle / Empty grey circle */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#e4e4e7"
+                strokeWidth="11"
+              />
+              {/* Synced (Green) */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#22c55e"
+                strokeWidth="11"
+                strokeDasharray={chartInfo.syncedDash}
+                strokeDashoffset={chartInfo.syncedOffset}
+                style={{ transition: "stroke-dasharray 0.3s ease" }}
+              />
+              {/* Syncing (Blue) */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#2563eb"
+                strokeWidth="11"
+                strokeDasharray={chartInfo.syncingDash}
+                strokeDashoffset={chartInfo.syncingOffset}
+                style={{ transition: "stroke-dasharray 0.3s ease" }}
+              />
+              {/* Error (Red) */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#ef4444"
+                strokeWidth="11"
+                strokeDasharray={chartInfo.errorDash}
+                strokeDashoffset={chartInfo.errorOffset}
+                style={{ transition: "stroke-dasharray 0.3s ease" }}
+              />
+              {/* Idle with items (Orange) */}
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#ff6b00"
+                strokeWidth="11"
+                strokeDasharray={chartInfo.idleDash}
+                strokeDashoffset={chartInfo.idleOffset}
+                style={{ transition: "stroke-dasharray 0.3s ease" }}
+              />
             </svg>
             <div className="src-donut-text">
-              <div className="src-donut-num">9</div>
+              <div className="src-donut-num">{totalCount}</div>
               <div className="src-donut-label">Total</div>
             </div>
           </div>
+          
           <div className="src-legend">
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#22c55e" }} />
-              <span style={{ width: 14 }}>6</span> <span style={{ color: "#3f3f46" }}>Healthy</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{syncedCount}</span> <span style={{ color: "#71717a" }}>Synced</span>
             </div>
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#eab308" }} />
-              <span style={{ width: 14 }}>1</span> <span style={{ color: "#3f3f46" }}>Warning</span>
+              <div className="src-legend-dot" style={{ background: "#2563eb" }} />
+              <span style={{ width: 14, fontWeight: 700 }}>{syncingCount}</span> <span style={{ color: "#71717a" }}>Syncing</span>
             </div>
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#ef4444" }} />
-              <span style={{ width: 14 }}>0</span> <span style={{ color: "#3f3f46" }}>Error</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{errorCount}</span> <span style={{ color: "#71717a" }}>Error</span>
             </div>
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#8b5cf6" }} />
-              <span style={{ width: 14 }}>2</span> <span style={{ color: "#3f3f46" }}>Disabled</span>
+              <div className="src-legend-dot" style={{ background: "#ff6b00" }} />
+              <span style={{ width: 14, fontWeight: 700 }}>{idleCount}</span> <span style={{ color: "#71717a" }}>Idle</span>
             </div>
           </div>
         </div>
@@ -63,36 +210,34 @@ export default function SourcesRightSidebar() {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className="src-card-header">
-          <div className="src-card-title">Data Ingestion <span style={{ color: "#71717a", fontWeight: 500 }}>(Last 7 Days)</span></div>
-          <Link href="#" className="src-card-view-all">View analytics</Link>
+          <div className="src-card-title">Data Ingestion <span style={{ color: "#71717a", fontWeight: 500 }}>(Aggregated)</span></div>
         </div>
         
-        <div className="src-chart-main-val">2.4 <span style={{ fontSize: 18 }}>TB</span></div>
-        <div className="src-chart-sub">Total Data Ingested</div>
-        <div className="src-chart-trend">
+        <div className="src-chart-main-val">
+          {totalIndexed.toLocaleString()} <span style={{ fontSize: 13, color: "#71717a", fontWeight: 500 }}>Files</span>
+        </div>
+        <div className="src-chart-sub">Total Documents Indexed</div>
+        <div className="src-chart-trend" style={{ color: "#16a34a" }}>
           <ArrowUpRightIcon size={12} strokeWidth={3} />
-          +18% vs previous 7 days
+          Active Ingestion Operational
         </div>
 
         <div className="src-chart-area">
-          {/* Y Axis */}
           <div className="src-chart-y-axis">
-            <span>750 GB</span>
-            <span>500 GB</span>
-            <span>250 GB</span>
+            <span>Peak</span>
+            <span>Mid</span>
+            <span>Low</span>
             <span>0</span>
           </div>
-          {/* X Axis */}
           <div className="src-chart-x-axis">
-            <span>May 5</span>
-            <span>May 8</span>
-            <span>May 10</span>
-            <span>May 12</span>
+            <span>Mon</span>
+            <span>Wed</span>
+            <span>Fri</span>
+            <span>Sun</span>
           </div>
-          {/* Chart SVG */}
           <svg className="src-chart-svg" viewBox="0 0 250 100" preserveAspectRatio="none">
             <path
-              d="M 0,80 L 30,85 L 60,65 L 90,80 L 120,40 L 150,60 L 180,30 L 210,45 L 240,10 L 250,5"
+              d="M 0,80 L 30,75 L 60,85 L 90,60 L 120,40 L 150,70 L 180,30 L 210,45 L 240,15 L 250,5"
               fill="none"
               stroke="#ff6b00"
               strokeWidth="2.5"
@@ -112,58 +257,48 @@ export default function SourcesRightSidebar() {
       >
         <div className="src-card-header">
           <div className="src-card-title">Recently Added</div>
-          <Link href="#" className="src-card-view-all">View all</Link>
         </div>
         <div className="src-recent-list">
-          <div className="src-recent-item">
-            <div className="src-recent-left">
-              <div className="src-recent-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke="#29b5e8" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+          {loading && (
+            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px" }}>
+              Loading recently added...
+            </div>
+          )}
+          {!loading && sources.length === 0 && (
+            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px" }}>
+              No sources connected.
+            </div>
+          )}
+          {sources.slice(0, 3).map((source) => (
+            <div key={source.id} className="src-recent-item">
+              <div className="src-recent-left">
+                <div
+                  className="src-recent-icon"
+                  style={{
+                    background: "#fdfdfd",
+                    border: "1px solid #e4e4e7",
+                    borderRadius: 6,
+                    width: 30,
+                    height: 30,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {source.type === "google_drive" ? <GoogleDriveIcon size={15} /> : <Database size={15} color="#a1a1aa" />}
+                </div>
+                <div>
+                  <div className="src-recent-name" style={{ fontSize: 13, fontWeight: 700, color: "#18181b" }}>{source.name}</div>
+                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "#71717a" }}>
+                    {source.type === "google_drive" ? "Google Drive" : source.type}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="src-recent-name">Snowflake</div>
-                <div className="src-recent-type">Data Warehouse</div>
+              <div className="src-recent-time" style={{ fontSize: 11, color: "#a1a1aa" }}>
+                {source.lastSyncedAt ? "Active" : "New"}
               </div>
             </div>
-            <div className="src-recent-time">20 min ago</div>
-          </div>
-          <div className="src-recent-item">
-            <div className="src-recent-left">
-              <div className="src-recent-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <circle cx="12" cy="12" r="5" fill="#ff7a59" />
-                  <circle cx="19" cy="6" r="3" fill="#ff7a59" />
-                  <circle cx="5" cy="18" r="3" fill="#ff7a59" />
-                  <circle cx="5" cy="6" r="3" fill="#ff7a59" />
-                  <path d="M16.5 8L15 9.5M7.5 16l1.5-1.5M7.5 8l1.5 1.5" stroke="#ff7a59" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div>
-                <div className="src-recent-name">HubSpot</div>
-                <div className="src-recent-type">Marketing</div>
-              </div>
-            </div>
-            <div className="src-recent-time">25 min ago</div>
-          </div>
-          <div className="src-recent-item">
-            <div className="src-recent-left">
-              <div className="src-recent-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <path d="M15 2H9v5h6V2zM15 17H9v5h6v-5zM22 9h-5v6h5V9zM7 9H2v6h5V9z" fill="#4285f4" />
-                  <path d="M9 2v5H4V2h5zm0 15v5H4v-5h5zm11-15v5h-5V2h5zm0 15v5h-5v-5h5z" fill="#ea4335" />
-                  <path d="M15 7h2v2h-2V7zm0 8h2v2h-2v-2zM7 7h2v2H7V7zm0 8h2v2H7v-2z" fill="#fbbc04" />
-                  <path d="M10 10h4v4h-4v-4z" fill="#34a853" />
-                </svg>
-              </div>
-              <div>
-                <div className="src-recent-name">Google Calendar</div>
-                <div className="src-recent-type">Calendar</div>
-              </div>
-            </div>
-            <div className="src-recent-time">2 days ago</div>
-          </div>
+          ))}
         </div>
       </motion.div>
 
