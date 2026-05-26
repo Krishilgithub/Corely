@@ -1,4 +1,5 @@
 import "../globals.css";
+import "./dashboard.css";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 
@@ -13,20 +14,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white flex w-full relative">
-      {/* Fixed Sidebar */}
+    <div className="db-layout">
       <Sidebar />
-      
-      {/* Content offsets */}
-      <div className="flex-1 flex flex-col min-w-0 pl-[240px]">
-        {/* Fixed Topbar */}
-        <Topbar />
-        
-        {/* Page Content area */}
-        <div className="flex-1 mt-[64px]">
-          {children}
-        </div>
-      </div>
+      <Topbar />
+      <div className="db-page-wrapper">{children}</div>
     </div>
   );
 }
