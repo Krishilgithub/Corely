@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home,
   MessageSquare,
@@ -16,43 +18,56 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { icon: Home, label: "Home", active: true },
-  { icon: MessageSquare, label: "Ask Corely", active: false },
-  { icon: Brain, label: "Memory", active: false },
-  { icon: BarChart2, label: "Insights", active: false },
-  { icon: Zap, label: "Actions", active: false },
-  { icon: Link2, label: "Sources", active: false },
-  { icon: Users, label: "Teams", active: false },
-  { icon: GitBranch, label: "Workflows", active: false },
-  { icon: Shield, label: "Security", active: false },
-  { icon: Settings, label: "Settings", active: false },
+  { icon: Home, label: "Home", href: "/dashboard" },
+  { icon: MessageSquare, label: "Ask Corely", href: "/dashboard/ask-corely" },
+  { icon: Brain, label: "Memory", href: "#" },
+  { icon: BarChart2, label: "Insights", href: "#" },
+  { icon: Zap, label: "Actions", href: "#" },
+  { icon: Link2, label: "Sources", href: "/dashboard/sources" },
+  { icon: Users, label: "Teams", href: "#" },
+  { icon: GitBranch, label: "Workflows", href: "/dashboard/workflows" },
+  { icon: Shield, label: "Security", href: "#" },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="db-sidebar">
       <div className="db-sidebar-inner">
         {/* Top: Logo + Nav */}
         <div>
-          <a href="/" className="db-logo-link">
+          <Link href="/dashboard" className="db-logo-link">
             <div className="db-logo-icon">C</div>
             <span className="db-logo-text">Corely</span>
-          </a>
+          </Link>
 
           <nav className="db-nav" aria-label="Dashboard navigation">
-            {navItems.map((item, i) => (
-              <motion.button
-                key={item.label}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.03 * i, duration: 0.25, ease: "easeOut" }}
-                className={`db-nav-item${item.active ? " active" : ""}`}
-                aria-current={item.active ? "page" : undefined}
-              >
-                <item.icon size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
-                {item.label}
-              </motion.button>
-            ))}
+            {navItems.map((item, i) => {
+              // Match active state either exactly, or if it's the home dashboard
+              const isActive = 
+                item.href !== "#" && 
+                (pathname === item.href || (item.href === "/dashboard" && pathname === "/dashboard"));
+
+              return (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.03 * i, duration: 0.25, ease: "easeOut" }}
+                >
+                  <Link
+                    href={item.href}
+                    className={`db-nav-item${isActive ? " active" : ""}`}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <item.icon size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
+                    {item.label}
+                  </Link>
+                </motion.div>
+              );
+            })}
           </nav>
         </div>
 
