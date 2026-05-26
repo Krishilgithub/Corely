@@ -148,30 +148,6 @@ function FeatureItem({
   );
 }
 
-// ─── Section Heading underline ─────────────────────────────────────────────────
-function HowUnderline() {
-  return (
-    <svg
-      viewBox="0 0 380 16"
-      fill="none"
-      style={{ width: "380px", maxWidth: "100%", height: "14px", display: "block" }}
-      aria-hidden="true"
-    >
-      <path
-        d="M4 10 C60 3, 140 14, 220 8 C300 3, 350 13, 376 9"
-        stroke="#ff5c00"
-        strokeWidth="3"
-        strokeLinecap="round"
-        style={{
-          strokeDasharray: 480,
-          strokeDashoffset: 480,
-          animation: "draw-underline 1.2s cubic-bezier(0.4,0,0.2,1) 0.5s forwards",
-        }}
-      />
-    </svg>
-  );
-}
-
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function HowItWorksSection() {
   return (
@@ -196,9 +172,6 @@ export default function HowItWorksSection() {
               Infinite Intelligence.
             </span>
           </h2>
-          <div className="how-heading-underline-wrap">
-            <HowUnderline />
-          </div>
         </div>
 
         {/* ── SUBTEXT ── */}

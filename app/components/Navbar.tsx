@@ -20,13 +20,13 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="navbar-actions">
-          <a href="#" className="btn-ghost">Login</a>
-          <a href="#" className="btn-primary">
+          <Link href="/dashboard" className="btn-ghost">Login</Link>
+          <Link href="/dashboard" className="btn-primary">
             See Corely in Action
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M1 7h12M7.5 1.5L13 7l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </nav>

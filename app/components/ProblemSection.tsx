@@ -42,31 +42,6 @@ function StatItem({
   );
 }
 
-// Hand-drawn underline for "Your Intelligence Is Nowhere."
-function ProblemUnderline() {
-  return (
-    <svg
-      viewBox="0 0 490 18"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ width: "100%", maxWidth: "490px", height: "16px", display: "block" }}
-      aria-hidden="true"
-    >
-      <path
-        d="M4 11 C70 3, 160 16, 250 9 C340 3, 420 15, 486 10"
-        stroke="#ff5c00"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        style={{
-          strokeDasharray: 560,
-          strokeDashoffset: 560,
-          animation: "draw-underline 1.3s cubic-bezier(0.4,0,0.2,1) 0.4s forwards",
-        }}
-      />
-    </svg>
-  );
-}
-
 export default function ProblemSection() {
   return (
     <section className="prob-section" id="problem" aria-label="The Problem">
@@ -84,7 +59,6 @@ export default function ProblemSection() {
             <span className="prob-heading-black">Your Knowledge Is Everywhere.</span>
             <span className="prob-heading-orange">
               Your Intelligence Is Nowhere.
-              <ProblemUnderline />
             </span>
           </h2>
 

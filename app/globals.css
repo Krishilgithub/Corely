@@ -10,7 +10,7 @@
   --gray-soft: #f5f5f5;
   --gray-border: #f1f1f1;
   --gray-muted: #6b7280;
-  --font-display: var(--font-inter), sans-serif;
+  --font-display: var(--font-outfit), sans-serif;
   --font-body: var(--font-inter), sans-serif;
 }
 
@@ -312,7 +312,7 @@ body {
 
 .hero-heading-line.orange-italic {
   font-size: 68px;
-  font-style: italic;
+  font-style: normal;
   color: var(--orange-primary);
   letter-spacing: -2px;
   position: relative;
@@ -320,11 +320,6 @@ body {
   flex-direction: column;
   line-height: 1.1;
   margin-top: 2px;
-}
-
-.hero-heading-underline {
-  display: block;
-  margin-top: -4px;
 }
 
 .hero-desc {
@@ -723,7 +718,7 @@ body {
   font-family: var(--font-display);
   font-size: 52px;
   font-weight: 700;
-  font-style: italic;
+  font-style: normal;
   color: var(--orange-primary);
   letter-spacing: -1.5px;
   line-height: 1.1;
@@ -1039,7 +1034,7 @@ body {
   font-family: var(--font-display);
   font-size: 60px;
   font-weight: 700;
-  font-style: italic;
+  font-style: normal;
   color: var(--orange-primary);
   letter-spacing: -2px;
 }

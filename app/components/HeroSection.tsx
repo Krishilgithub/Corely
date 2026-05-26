@@ -1,3 +1,4 @@
+import Link from "next/link";
 
 // ─── Stat item ────────────────────────────────────────────────────────────────
 interface StatProps {
@@ -33,38 +34,6 @@ function TrustLogo({ icon, name }: TrustLogoProps) {
   );
 }
 
-// ─── Hand-drawn underline SVG ─────────────────────────────────────────────────
-function Underline() {
-  return (
-    <svg
-      viewBox="0 0 520 18"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="hero-heading-underline"
-      style={{ width: "100%", maxWidth: "520px", height: "18px" }}
-      aria-hidden="true"
-    >
-      <path
-        d="M4 12 C60 4, 140 16, 220 10 C300 4, 380 16, 460 8 C490 5, 510 12, 516 11"
-        stroke="#ff5c00"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{
-          strokeDasharray: 600,
-          strokeDashoffset: 600,
-          animation: "draw-underline 1.2s cubic-bezier(0.4,0,0.2,1) 0.7s forwards",
-        }}
-      />
-      <style>{`
-        @keyframes draw-underline {
-          to { stroke-dashoffset: 0; }
-        }
-      `}</style>
-    </svg>
-  );
-}
-
 // ─── Main Hero Section ────────────────────────────────────────────────────────
 export default function HeroSection() {
   return (
@@ -86,7 +55,6 @@ export default function HeroSection() {
             <span className="hero-heading-line">Now Give It</span>
             <span className="hero-heading-line orange-italic">
               INTELLIGENCE.
-              <Underline />
             </span>
           </h1>
 
@@ -99,12 +67,12 @@ export default function HeroSection() {
 
           {/* CTAs */}
           <div className="hero-ctas animate-fade-up-delay-3">
-            <a href="#" className="btn-primary" id="hero-cta-primary">
+            <Link href="/dashboard" className="btn-primary" id="hero-cta-primary">
               See Corely in Action
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
                 <path d="M1 7.5h13M8 2l6 5.5L8 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </a>
+            </Link>
             <a href="#architecture" className="btn-secondary" id="hero-cta-secondary">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" />
