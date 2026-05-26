@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { openai, generateEmbedding } from "@/lib/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+
 
 interface ChatCompletionMessageParam {
   role: "system" | "user" | "assistant";
@@ -156,7 +156,9 @@ Always cite which sources your answer is based on.`,
                 sessionId,
                 sender: "corely",
                 text: accumulatedText,
-                sources: sources as unknown as Prisma.InputJsonValue,
+                // JSON.parse(JSON.stringify(...)) produces a plain value that
+                // satisfies Prisma's InputJsonValue without importing the Prisma namespace
+                sources: JSON.parse(JSON.stringify(sources)),
               },
             });
 
