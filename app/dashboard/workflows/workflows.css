@@ -1,0 +1,384 @@
+/* ── Workflows CSS Additions ── */
+
+/* Filter Bar Panel */
+.wf-filter-bar {
+  background: #fbfbfb;
+  border-bottom: 1.5px solid #e4e4e7;
+  width: 100%;
+  overflow: hidden;
+}
+
+.wf-filter-row-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 20px;
+}
+
+.wf-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wf-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wf-filter-select {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: #3f3f46;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wf-filter-select:hover {
+  border-color: #d4d4d8;
+}
+
+.wf-filter-select:focus {
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
+}
+
+.wf-filter-clear-btn {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff6b00;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.wf-filter-clear-btn:hover {
+  background: #fff3ee;
+}
+
+/* Grid Cards Layout */
+.wf-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.wf-grid-card {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+  transition: all 0.2s ease;
+}
+
+.wf-grid-card:hover {
+  border-color: #d4d4d8;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+  transform: translateY(-2px);
+}
+
+.wf-grid-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wf-grid-card-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wf-grid-card-title {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #111111;
+}
+
+.wf-grid-card-desc {
+  font-size: 12px;
+  color: #71717a;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.wf-grid-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed #f4f4f5;
+  padding-top: 12px;
+  font-size: 11.5px;
+}
+
+.wf-grid-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #52525b;
+}
+
+.wf-grid-card-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.wf-more-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.wf-more-btn:hover {
+  color: #111111;
+  background: #f4f4f5;
+}
+
+/* Actions Dropdown Menu */
+.wf-actions-container {
+  position: relative;
+}
+
+.wf-actions-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  width: 140px;
+  z-index: 1000;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-actions-dropdown-item {
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3f3f46;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.wf-actions-dropdown-item:hover {
+  background: #f4f4f5;
+  color: #111111;
+}
+
+.wf-actions-dropdown-item.delete {
+  color: #ef4444;
+}
+
+.wf-actions-dropdown-item.delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* Modal Form Styles */
+.wf-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wf-modal-card {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 14px;
+  width: 480px;
+  max-width: 90%;
+  padding: 24px;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wf-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111111;
+  margin: 0;
+}
+
+.wf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3f3f46;
+}
+
+.wf-form-input, .wf-form-select, .wf-form-textarea {
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #111111;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.wf-form-input:focus, .wf-form-select:focus, .wf-form-textarea:focus {
+  border-color: #ff6b00;
+}
+
+.wf-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.wf-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.wf-cancel-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #71717a;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.wf-cancel-btn:hover {
+  background: #f4f4f5;
+  color: #111111;
+}
+
+.wf-submit-btn {
+  background: #ff6b00;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.wf-submit-btn:hover {
+  background: #e05e00;
+  transform: translateY(-1px);
+}
+
+/* Toast Notification Overlay */
+.wf-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 11000;
+}
+
+.wf-toast {
+  background: #111111;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Cascade Confirmation Modal */
+.wf-cascade-modal {
+  border-top: 4px solid #ef4444;
+}
+
+.wf-cascade-modal-title {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wf-delete-confirm-btn {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.wf-delete-confirm-btn:hover {
+  background: #dc2626;
+}
+
+/* Interactive bottom banners */
+.wf-flow-step {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.wf-flow-step:hover {
+  transform: translateY(-4px);
+}
+
+.wf-flow-step:hover .wf-flow-icon {
+  border-color: #ff6b00;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.1);
+}

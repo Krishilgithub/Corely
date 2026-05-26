@@ -1,5 +1,4 @@
-import WorkflowsMain from "./components/WorkflowsMain";
-import WorkflowsRightSidebar from "./components/WorkflowsRightSidebar";
+import WorkflowsLayout from "./components/WorkflowsLayout";
 
 export const metadata = {
   title: "Workflows — Corely Enterprise",
@@ -9,10 +8,7 @@ export const metadata = {
 export default function WorkflowsPage() {
   return (
     <main className="db-content">
-      <div className="wf-page-grid">
-        <WorkflowsMain />
-        <WorkflowsRightSidebar />
-      </div>
+      <WorkflowsLayout />
     </main>
   );
 }

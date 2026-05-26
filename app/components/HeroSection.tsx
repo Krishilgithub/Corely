@@ -1,4 +1,3 @@
-import CorelyDiagram from "./CorelyDiagram";
 
 // ─── Stat item ────────────────────────────────────────────────────────────────
 interface StatProps {
@@ -217,12 +216,6 @@ export default function HeroSection() {
             />
           </div>
         </div>
-
-        {/* ── RIGHT DIAGRAM ── */}
-        <div className="hero-right animate-fade-in-right">
-          <CorelyDiagram />
-        </div>
-
       </div>
     </section>
   );

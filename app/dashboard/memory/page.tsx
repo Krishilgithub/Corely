@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -106,6 +106,8 @@ const INITIAL_SNAPSHOTS: SnapshotItem[] = [
   { id: "s3", title: "Q2 Business Context", date: "May 10, 2025 • 7:15 PM" },
 ];
 
+const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
+
 export default function MemoryPage() {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>(INITIAL_TIMELINE_ITEMS);
   const [snapshots, setSnapshots] = useState<SnapshotItem[]>(INITIAL_SNAPSHOTS);
@@ -113,12 +115,190 @@ export default function MemoryPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
 
+  // ── Filter Bar states ──────────────────────────────────────────────────────
+  const [showFilterBar, setShowFilterBar] = useState<boolean>(false);
+  const [selectedSource, setSelectedSource] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
   // ── Form State for New Memory ──────────────────────────────────────────────
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<TimelineItem["category"]>("decision");
   const [newBadge, setNewBadge] = useState("");
   const [newSource, setNewSource] = useState("Notion");
+
+  // ── Hydration from localStorage ────────────────────────────────────────────
+  useEffect(() => {
+    // 1. Hydrate Timeline Items
+    try {
+      const rawMemories = localStorage.getItem("corely-memories");
+      if (rawMemories) {
+        const parsed = JSON.parse(rawMemories);
+        if (Array.isArray(parsed)) {
+          const mappedList: TimelineItem[] = parsed.map((item: {
+            id?: string;
+            time?: string;
+            category?: "decision" | "discussion" | "document" | "insight" | "knowledge";
+            title?: string;
+            content?: string;
+            badges?: string[];
+            sourceName?: string;
+            avatarUrl?: string;
+            date?: string;
+            text?: string;
+            createdAt?: string;
+          }) => {
+            if (item.content && item.title) {
+              return item as TimelineItem;
+            }
+            // Item from Ask Corely has { id, text, createdAt }
+            const dateObj = item.createdAt ? new Date(item.createdAt) : new Date();
+            const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            let prefix = "";
+            if (dateObj.toDateString() === today.toDateString()) {
+              prefix = "Today • ";
+            } else if (dateObj.toDateString() === yesterday.toDateString()) {
+              prefix = "Yesterday • ";
+            }
+            
+            return {
+              id: item.id || `mem-${Date.now()}-${Math.random()}`,
+              time: timeStr,
+              category: "insight",
+              title: "Saved from Ask Corely",
+              content: item.text || "",
+              badges: ["Corely AI", "Workspace"],
+              sourceName: "Corely AI",
+              avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+              date: `${prefix}${dateStr}`
+            };
+          });
+
+          // Merge with initial timeline items, keeping order and avoiding duplicates
+          const merged = [...mappedList];
+          INITIAL_TIMELINE_ITEMS.forEach((initItem) => {
+            if (!merged.some((m) => m.id === initItem.id)) {
+              merged.push(initItem);
+            }
+          });
+
+          setTimelineItems(merged);
+          localStorage.setItem("corely-memories", JSON.stringify(merged));
+        }
+      } else {
+        localStorage.setItem("corely-memories", JSON.stringify(INITIAL_TIMELINE_ITEMS));
+        setTimelineItems(INITIAL_TIMELINE_ITEMS);
+      }
+    } catch (e) {
+      console.error("Failed to hydrate timeline memories:", e);
+    }
+
+    // 2. Hydrate Snapshots
+    try {
+      const rawSnapshots = localStorage.getItem("corely-snapshots");
+      if (rawSnapshots) {
+        const parsed = JSON.parse(rawSnapshots);
+        if (Array.isArray(parsed)) {
+          setSnapshots(parsed);
+        }
+      } else {
+        localStorage.setItem("corely-snapshots", JSON.stringify(INITIAL_SNAPSHOTS));
+        setSnapshots(INITIAL_SNAPSHOTS);
+      }
+    } catch (e) {
+      console.error("Failed to hydrate snapshots:", e);
+    }
+
+    // 3. Fetch synced documents from connected sources
+    const fetchDbDocuments = async () => {
+      try {
+        const res = await fetch(`/api/documents?workspaceId=${WORKSPACE_ID}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.documents)) {
+            // Read deleted document list from localstorage
+            let deletedList: string[] = [];
+            try {
+              const deletedRaw = localStorage.getItem("corely-deleted-documents");
+              deletedList = deletedRaw ? JSON.parse(deletedRaw) : [];
+            } catch (e) {
+              console.error("Failed to parse deleted documents list:", e);
+            }
+
+            interface DbDocument {
+              id: string;
+              title: string;
+              fileType?: string;
+              updatedAt?: string;
+              source?: {
+                name: string;
+                type: string;
+              };
+            }
+
+            const mappedDocs: TimelineItem[] = data.documents
+              .map((doc: DbDocument) => {
+                const dateObj = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
+                const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                let prefix = "";
+                if (dateObj.toDateString() === today.toDateString()) {
+                  prefix = "Today • ";
+                } else if (dateObj.toDateString() === yesterday.toDateString()) {
+                  prefix = "Yesterday • ";
+                }
+
+                // Determine source name
+                let sourceName = "Google Drive";
+                if (doc.source) {
+                  if (doc.source.type === "google_drive") sourceName = "Google Drive";
+                  else if (doc.source.type === "notion") sourceName = "Notion";
+                  else if (doc.source.type === "slack") sourceName = "Slack";
+                  else sourceName = doc.source.name || "Connected Source";
+                }
+
+                return {
+                  id: `db-doc-${doc.id}`,
+                  time: timeStr,
+                  category: "document",
+                  title: "Document Synced",
+                  content: `${doc.title} (${doc.fileType || "File"})`,
+                  badges: [doc.fileType || "Synced"],
+                  sourceName: sourceName,
+                  avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+                  date: `${prefix}${dateStr}`
+                };
+              })
+              .filter((item: TimelineItem) => !deletedList.includes(item.id));
+
+            setTimelineItems((prev) => {
+              // Retain all items in previous state that are not db-docs
+              const nonDbItems = prev.filter(
+                (item) => !item.id.startsWith("db-doc-")
+              );
+              
+              return [...nonDbItems, ...mappedDocs];
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch synced documents:", e);
+      }
+    };
+    
+    fetchDbDocuments();
+  }, []);
 
   // ── Filters & Category Mapper ──────────────────────────────────────────────
   const getCategoryDetails = (category: TimelineItem["category"]) => {
@@ -186,23 +366,54 @@ export default function MemoryPage() {
     }
   };
 
+  // ── Sync Active Tab and Category Dropdown ──────────────────────────────────
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const tabCategoryMap: Record<string, string> = {
+      timeline: "all",
+      decisions: "decision",
+      discussions: "discussion",
+      documents: "document",
+      "knowledge sets": "knowledge",
+      snapshots: "insight",
+    };
+    setSelectedCategory(tabCategoryMap[tab] || "all");
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    const categoryTabMap: Record<string, string> = {
+      all: "timeline",
+      decision: "decisions",
+      discussion: "discussions",
+      document: "documents",
+      knowledge: "knowledge sets",
+      insight: "snapshots",
+    };
+    setActiveTab(categoryTabMap[category] || "timeline");
+  };
+
   // ── Filtered Items Logic ───────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
     return timelineItems.filter((item) => {
-      // 1. Tab filter
+      // 1. Tab / Category filter
       if (activeTab !== "timeline") {
-        // Map tab plural name to item categories
         const tabCategoryMap: Record<string, string> = {
           decisions: "decision",
           discussions: "discussion",
           documents: "document",
           "knowledge sets": "knowledge",
-          snapshots: "insight", // Insights fall under snapshots tab view for simplicity in MVP
+          snapshots: "insight",
         };
         if (item.category !== tabCategoryMap[activeTab]) return false;
       }
 
-      // 2. Search filter
+      // 2. Source filter
+      if (selectedSource !== "all") {
+        if (item.sourceName.toLowerCase() !== selectedSource.toLowerCase()) return false;
+      }
+
+      // 3. Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         return (
@@ -215,7 +426,7 @@ export default function MemoryPage() {
 
       return true;
     });
-  }, [timelineItems, activeTab, searchQuery]);
+  }, [timelineItems, activeTab, selectedSource, searchQuery]);
 
   // Group filtered items by date
   const groupedItems = useMemo(() => {
@@ -229,6 +440,43 @@ export default function MemoryPage() {
     return groups;
   }, [filteredItems]);
 
+  // ── Dynamic Stats Calculation ──────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const totalMemories = 248392 + (timelineItems.length - INITIAL_TIMELINE_ITEMS.length);
+    
+    const decisionsCount = timelineItems.filter(item => item.category === "decision").length;
+    const initialDecisionsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "decision").length;
+    const totalDecisions = 1842 + (decisionsCount - initialDecisionsCount);
+
+    const discussionsCount = timelineItems.filter(item => item.category === "discussion").length;
+    const initialDiscussionsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "discussion").length;
+    const totalDiscussions = 3421 + (discussionsCount - initialDiscussionsCount);
+
+    const documentsCount = timelineItems.filter(item => item.category === "document").length;
+    const initialDocumentsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "document").length;
+    const totalDocuments = 12842 + (documentsCount - initialDocumentsCount);
+
+    const knowledgeCount = timelineItems.filter(item => item.category === "knowledge").length;
+    const initialKnowledgeCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "knowledge").length;
+    const totalKnowledge = 2153 + (knowledgeCount - initialKnowledgeCount);
+
+    const insightCount = timelineItems.filter(item => item.category === "insight").length;
+    const initialInsightCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "insight").length;
+    const totalInsight = 1284 + (insightCount - initialInsightCount);
+
+    const totalActiveKnowledgeSets = 128 + (knowledgeCount - initialKnowledgeCount);
+
+    return {
+      totalMemories,
+      totalDecisions,
+      totalDiscussions,
+      totalDocuments,
+      totalKnowledge,
+      totalInsight,
+      totalActiveKnowledgeSets
+    };
+  }, [timelineItems]);
+
   // ── Form Handlers ──────────────────────────────────────────────────────────
   const handleAddMemorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,6 +485,13 @@ export default function MemoryPage() {
     const timeStr = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+    });
+    
+    const today = new Date();
+    const dateStr = today.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
 
     const newItem: TimelineItem = {
@@ -248,10 +503,14 @@ export default function MemoryPage() {
       badges: newBadge.trim() ? [newBadge.trim()] : ["Custom"],
       sourceName: newSource,
       avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80", // Admin face
-      date: "Today • May 12, 2025",
+      date: `Today • ${dateStr}`,
     };
 
-    setTimelineItems((prev) => [newItem, ...prev]);
+    setTimelineItems((prev) => {
+      const updated = [newItem, ...prev];
+      localStorage.setItem("corely-memories", JSON.stringify(updated));
+      return updated;
+    });
     
     // Reset Form
     setNewTitle("");
@@ -263,7 +522,28 @@ export default function MemoryPage() {
   };
 
   const handleDeleteItem = (id: string) => {
-    setTimelineItems((prev) => prev.filter((item) => item.id !== id));
+    setTimelineItems((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      
+      // If it's a DB document, save its ID to the deleted list in localstorage
+      if (id.startsWith("db-doc-")) {
+        try {
+          const deletedRaw = localStorage.getItem("corely-deleted-documents");
+          const deletedList = deletedRaw ? JSON.parse(deletedRaw) : [];
+          if (!deletedList.includes(id)) {
+            deletedList.push(id);
+            localStorage.setItem("corely-deleted-documents", JSON.stringify(deletedList));
+          }
+        } catch (e) {
+          console.error("Failed to update deleted documents list:", e);
+        }
+      }
+
+      // Save only custom/saved items back to localstorage corely-memories (excluding the db-doc ones)
+      const customOnly = updated.filter((item) => !item.id.startsWith("db-doc-"));
+      localStorage.setItem("corely-memories", JSON.stringify(customOnly));
+      return updated;
+    });
   };
 
   const handleCreateSnapshot = () => {
@@ -271,22 +551,33 @@ export default function MemoryPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const dateStr = new Date().toLocaleDateString([], {
+    const dateStr = new Date().toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
 
-    // Clear previous latest markers
-    setSnapshots((prev) => [
-      {
-        id: `snap-${Date.now()}`,
-        title: `${filteredItems[0]?.title || "Workspace"} Snapshot`,
-        date: `${dateStr} • ${timeStr}`,
-        isLatest: true,
-      },
-      ...prev.map((s) => ({ ...s, isLatest: false })),
-    ]);
+    setSnapshots((prev) => {
+      const updated = [
+        {
+          id: `snap-${Date.now()}`,
+          title: `${filteredItems[0]?.title || "Workspace"} Snapshot`,
+          date: `${dateStr} • ${timeStr}`,
+          isLatest: true,
+        },
+        ...prev.map((s) => ({ ...s, isLatest: false })),
+      ];
+      localStorage.setItem("corely-snapshots", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDeleteSnapshot = (id: string) => {
+    setSnapshots((prev) => {
+      const updated = prev.filter((snap) => snap.id !== id);
+      localStorage.setItem("corely-snapshots", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (
@@ -333,7 +624,7 @@ export default function MemoryPage() {
               <Brain size={20} strokeWidth={2.5} />
             </div>
             <div className="mem-stat-info">
-              <span className="mem-stat-value">2,48,392</span>
+              <span className="mem-stat-value">{stats.totalMemories.toLocaleString()}</span>
               <span className="mem-stat-label">Memory Items</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
                 ↑ 18% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
@@ -346,7 +637,7 @@ export default function MemoryPage() {
               <Sparkles size={20} strokeWidth={2.5} />
             </div>
             <div className="mem-stat-info">
-              <span className="mem-stat-value">1,842</span>
+              <span className="mem-stat-value">{stats.totalDecisions.toLocaleString()}</span>
               <span className="mem-stat-label">Decisions Captured</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
                 ↑ 23% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
@@ -372,7 +663,7 @@ export default function MemoryPage() {
               <ShieldAlert size={20} strokeWidth={2.5} />
             </div>
             <div className="mem-stat-info">
-              <span className="mem-stat-value">128</span>
+              <span className="mem-stat-value">{stats.totalActiveKnowledgeSets.toLocaleString()}</span>
               <span className="mem-stat-label">Active Knowledge Sets</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
                 ↑ 11% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
@@ -394,7 +685,7 @@ export default function MemoryPage() {
                   <button
                     key={tab}
                     className={`mem-tab-item ${activeTab === tab ? "active" : ""}`}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => handleTabChange(tab)}
                     style={{ textTransform: "capitalize" }}
                   >
                     {tab}
@@ -405,11 +696,74 @@ export default function MemoryPage() {
                 ))}
               </div>
               
-              <button className="mem-filter-btn">
+              <button
+                className={`mem-filter-btn ${showFilterBar ? "active" : ""}`}
+                onClick={() => setShowFilterBar((prev) => !prev)}
+              >
                 <SlidersHorizontal size={13} />
                 <span>Filters</span>
               </button>
             </div>
+
+            {/* Filter Bar */}
+            <AnimatePresence>
+              {showFilterBar && (
+                <motion.div
+                  className="mem-filter-bar"
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 12 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <div className="mem-filter-row-inner">
+                    <div className="mem-filter-group">
+                      <label className="mem-filter-label">Source</label>
+                      <select
+                        className="mem-filter-select"
+                        value={selectedSource}
+                        onChange={(e) => setSelectedSource(e.target.value)}
+                      >
+                        <option value="all">All Sources</option>
+                        <option value="Notion">Notion</option>
+                        <option value="Slack">Slack</option>
+                        <option value="Google Drive">Google Drive</option>
+                        <option value="Corely AI">Corely AI</option>
+                        <option value="HR System">HR System</option>
+                      </select>
+                    </div>
+
+                    <div className="mem-filter-group">
+                      <label className="mem-filter-label">Category</label>
+                      <select
+                        className="mem-filter-select"
+                        value={selectedCategory}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                      >
+                        <option value="all">All Categories</option>
+                        <option value="decision">Decision Captured</option>
+                        <option value="discussion">Discussion Summary</option>
+                        <option value="document">Document Added</option>
+                        <option value="insight">Insight Generated</option>
+                        <option value="knowledge">Knowledge Update</option>
+                      </select>
+                    </div>
+
+                    {(selectedSource !== "all" || selectedCategory !== "all") && (
+                      <button
+                        className="mem-filter-clear-btn"
+                        onClick={() => {
+                          setSelectedSource("all");
+                          handleCategoryChange("all");
+                        }}
+                      >
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Timeline Header Info */}
             <div className="mem-timeline-header">
@@ -562,10 +916,10 @@ export default function MemoryPage() {
                       <CheckCircle2 size={12} style={{ color: "#ff6b00" }} />
                       <span>Decisions</span>
                     </div>
-                    <span className="mem-category-value">1,842</span>
+                    <span className="mem-category-value">{stats.totalDecisions.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#ff6b00", width: "45%" }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#ff6b00", width: `${Math.min(95, Math.max(10, 45 + (stats.totalDecisions - 1842) * 5))}%` }} />
                   </div>
                 </div>
 
@@ -576,10 +930,10 @@ export default function MemoryPage() {
                       <MessageSquare size={12} style={{ color: "#8b5cf6" }} />
                       <span>Discussions</span>
                     </div>
-                    <span className="mem-category-value">3,421</span>
+                    <span className="mem-category-value">{stats.totalDiscussions.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#8b5cf6", width: "65%" }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#8b5cf6", width: `${Math.min(95, Math.max(10, 65 + (stats.totalDiscussions - 3421) * 5))}%` }} />
                   </div>
                 </div>
 
@@ -590,10 +944,10 @@ export default function MemoryPage() {
                       <FileText size={12} style={{ color: "#3b82f6" }} />
                       <span>Documents</span>
                     </div>
-                    <span className="mem-category-value">12,842</span>
+                    <span className="mem-category-value">{stats.totalDocuments.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#3b82f6", width: "88%" }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#3b82f6", width: `${Math.min(95, Math.max(10, 88 + (stats.totalDocuments - 12842) * 5))}%` }} />
                   </div>
                 </div>
 
@@ -604,10 +958,10 @@ export default function MemoryPage() {
                       <Users size={12} style={{ color: "#10b981" }} />
                       <span>People</span>
                     </div>
-                    <span className="mem-category-value">2,153</span>
+                    <span className="mem-category-value">{stats.totalKnowledge.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#10b981", width: "55%" }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#10b981", width: `${Math.min(95, Math.max(10, 55 + (stats.totalKnowledge - 2153) * 5))}%` }} />
                   </div>
                 </div>
 
@@ -618,10 +972,10 @@ export default function MemoryPage() {
                       <FileText size={12} style={{ color: "#f59e0b" }} />
                       <span>Projects</span>
                     </div>
-                    <span className="mem-category-value">1,284</span>
+                    <span className="mem-category-value">{stats.totalInsight.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#f59e0b", width: "35%" }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#f59e0b", width: `${Math.min(95, Math.max(10, 35 + (stats.totalInsight - 1284) * 5))}%` }} />
                   </div>
                 </div>
 
@@ -650,7 +1004,7 @@ export default function MemoryPage() {
 
               <div className="mem-snapshot-list">
                 {snapshots.map((snap) => (
-                  <div key={snap.id} className="mem-snapshot-item">
+                  <div key={snap.id} className="mem-snapshot-item" style={{ position: "relative" }}>
                     <div className="mem-snapshot-item-left">
                       <div className="mem-snapshot-icon-wrapper">
                         <FileText size={16} />
@@ -660,7 +1014,16 @@ export default function MemoryPage() {
                         <span className="mem-snapshot-date">{snap.date}</span>
                       </div>
                     </div>
-                    {snap.isLatest && <span className="mem-snapshot-badge">Latest</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {snap.isLatest && <span className="mem-snapshot-badge">Latest</span>}
+                      <button
+                        className="mem-snapshot-delete-btn"
+                        onClick={() => handleDeleteSnapshot(snap.id)}
+                        title="Delete snapshot"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
