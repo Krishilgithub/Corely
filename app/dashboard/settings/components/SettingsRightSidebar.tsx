@@ -3,8 +3,29 @@
 import { motion } from "framer-motion";
 import { Building2, CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 export default function SettingsRightSidebar() {
+  const [workspaceData, setWorkspaceData] = useState<{name: string, plan: string} | null>(null);
+
+  useEffect(() => {
+    const fetchWorkspace = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        if (data.workspace) {
+          setWorkspaceData({
+            name: data.workspace.name,
+            plan: data.workspace.plan
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidebar workspace data", error);
+      }
+    };
+    fetchWorkspace();
+  }, []);
+
   return (
     <div style={{ flexShrink: 0 }}>
       {/* Account Card */}
@@ -20,8 +41,8 @@ export default function SettingsRightSidebar() {
             <Building2 size={24} />
           </div>
           <div>
-            <div className="set-account-name">Corely Enterprise</div>
-            <div className="set-account-type">Enterprise Workspace</div>
+            <div className="set-account-name">{workspaceData?.name || "Loading..."}</div>
+            <div className="set-account-type">Workspace</div>
           </div>
         </div>
         <button className="set-btn-outline">
@@ -37,7 +58,9 @@ export default function SettingsRightSidebar() {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className="set-card-header">Your Plan</div>
-        <div className="set-plan-title">Enterprise Plan</div>
+        <div className="set-plan-title" style={{ textTransform: 'capitalize' }}>
+          {workspaceData?.plan ? `${workspaceData.plan} Plan` : "Loading..."}
+        </div>
         <div className="set-plan-desc">Unlimited insights and advanced capabilities.</div>
         <button className="set-btn-outline">
           Manage Plan
