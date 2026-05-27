@@ -90,6 +90,12 @@ async function startRealWorker() {
             await syncGmail(sourceId);
             break;
           }
+          case "sync-github": {
+            const { sourceId } = job.data as { sourceId: string; workspaceId: string };
+            const { syncGitHub } = await import("../modules/sources/connectors/github");
+            await syncGitHub(sourceId);
+            break;
+          }
           default:
             console.warn(`[Worker] ⚠️ Unknown job name: ${job.name}`);
         }
