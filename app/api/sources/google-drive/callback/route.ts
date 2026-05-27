@@ -12,9 +12,9 @@ import { decrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function GET(request: NextRequest) {
+  const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const stateRaw = searchParams.get("state");
@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.warn("[OAuth Callback] User denied access:", error);
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=access_denied`
+      `${origin}/dashboard/sources?error=access_denied`
     );
   }
 
   if (!code || !stateRaw) {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=missing_params`
+      `${origin}/dashboard/sources?error=missing_params`
     );
   }
 
@@ -44,15 +44,16 @@ export async function GET(request: NextRequest) {
     // (Optional: We could store the nonce in Redis before redirect and verify here)
   } catch {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=invalid_state`
+      `${origin}/dashboard/sources?error=invalid_state`
     );
   }
 
   // ── Exchange code for tokens ──────────────────────────────────
+  const redirectUri = `${origin}/api/sources/google-drive/callback`;
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    redirectUri
   );
 
   let tokens;
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[OAuth Callback] Token exchange failed:", error);
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=token_exchange_failed`
+      `${origin}/dashboard/sources?error=token_exchange_failed`
     );
   }
 
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Revoke and re-auth: https://myaccount.google.com/permissions
     console.error("[OAuth Callback] No refresh token received.");
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=no_refresh_token`
+      `${origin}/dashboard/sources?error=no_refresh_token`
     );
   }
 
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
 
   if (!userExists || userExists.workspaceId !== workspaceId) {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=user_not_found`
+      `${origin}/dashboard/sources?error=user_not_found`
     );
   }
 
@@ -122,6 +123,6 @@ export async function GET(request: NextRequest) {
   console.log(`[OAuth Callback] ✅ Source created: ${source.id} — pending configuration`);
 
   return NextResponse.redirect(
-    `${BASE_URL}/dashboard/sources?connected=google_drive&sourceId=${source.id}`
+    `${origin}/dashboard/sources?connected=google_drive&sourceId=${source.id}`
   );
 }

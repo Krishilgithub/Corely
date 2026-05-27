@@ -24,6 +24,7 @@ model Workspace {
   dashboardInsights DashboardInsight[]
   dashboardActions  DashboardAction[]
   orgMemories       OrgMemory[]
+  memorySnapshots   MemorySnapshot[]
 
   @@map("workspaces")
 }
@@ -171,4 +172,15 @@ model OrgMemory {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("org_memories")
+}
+
+model MemorySnapshot {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  title       String
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("memory_snapshots")
 }

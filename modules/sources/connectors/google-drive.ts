@@ -124,21 +124,31 @@ export async function syncGoogleDrive(sourceId: string): Promise<void> {
   try {
     // ── 4. Build restricted folder query if configured ─────────
     const config = (source.config as Record<string, unknown>) || {};
-    const folderId = config.folderId as string | undefined;
+    // Support both folderIds array and legacy folderId string
+    let folderIds: string[] = [];
+    if (Array.isArray(config.folderIds)) folderIds = config.folderIds;
+    else if (typeof config.folderId === "string") folderIds = [config.folderId];
+
     let query = `trashed = false and (${mimeQuery})`;
 
-    if (folderId) {
-      console.log(`[Google Drive] Restricted to folder: ${folderId}`);
-      const allowedFolderIds = await getAllSubfolderIds(driveClient, folderId);
-      const parentConditions = allowedFolderIds
+    if (folderIds.length > 0) {
+      console.log(`[Google Drive] Restricted to folders: ${folderIds.join(', ')}`);
+      
+      const allAllowedFolderIds = new Set<string>();
+      for (const fId of folderIds) {
+        const allowed = await getAllSubfolderIds(driveClient, fId);
+        allowed.forEach(id => allAllowedFolderIds.add(id));
+      }
+
+      const parentConditions = Array.from(allAllowedFolderIds)
         .map((id) => `'${id}' in parents`)
         .join(" or ");
       
-      // If we have parents, query them. If not, only matching the root folder.
       if (parentConditions) {
         query = `trashed = false and (${parentConditions}) and (${mimeQuery})`;
       } else {
-        query = `trashed = false and '${folderId}' in parents and (${mimeQuery})`;
+        const roots = folderIds.map(id => `'${id}' in parents`).join(" or ");
+        query = `trashed = false and (${roots}) and (${mimeQuery})`;
       }
     }
 

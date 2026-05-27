@@ -35,7 +35,7 @@ export async function rateLimit(
       success: current <= limit,
       remaining: Math.max(0, limit - current),
     };
-  } catch (error) {
+  } catch {
     // Graceful fallback if Redis throws an error (e.g. connection refused)
     return { success: true, remaining: limit };
   }

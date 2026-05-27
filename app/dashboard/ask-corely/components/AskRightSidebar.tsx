@@ -50,8 +50,8 @@ export default function AskRightSidebar({
         if (!response.ok) {
           throw new Error("Failed to load chat sessions");
         }
-        const responseData = (await response.json()) as { data: ChatSessionInfo[] };
-        setSessions(responseData.data || []);
+        const responseData = await response.json();
+        setSessions(responseData.data?.sessions || []);
       } catch (err) {
         console.error("Error fetching sessions:", err);
       } finally {

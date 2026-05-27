@@ -41,75 +41,9 @@ interface SnapshotItem {
   isLatest?: boolean;
 }
 
-// ── Initial Timeline Data from Screenshot ────────────────────────────────────
-const INITIAL_TIMELINE_ITEMS: TimelineItem[] = [
-  {
-    id: "1",
-    time: "9:41 AM",
-    category: "decision",
-    title: "Decision Captured",
-    content: "Approved Q2 marketing budget increase of 15% focusing on paid acquisition and brand.",
-    badges: ["Marketing Strategy"],
-    sourceName: "Notion",
-    avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-    date: "Today • May 12, 2025",
-  },
-  {
-    id: "2",
-    time: "8:15 AM",
-    category: "discussion",
-    title: "Discussion Summary",
-    content: "Product roadmap review meeting. Aligned on shipping AI Search in June.",
-    badges: ["Product", "Roadmap"],
-    sourceName: "Slack",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    date: "Today • May 12, 2025",
-  },
-  {
-    id: "3",
-    time: "7:02 AM",
-    category: "document",
-    title: "Document Added",
-    content: "Q2 Sales Deck v3 uploaded and added to Sales Knowledge Set.",
-    badges: ["Sales"],
-    sourceName: "Google Drive",
-    avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-    date: "Today • May 12, 2025",
-  },
-  {
-    id: "4",
-    time: "6:28 PM",
-    category: "insight",
-    title: "Insight Generated",
-    content: "Customer churn risk increased by 18% among users on legacy pricing plans.",
-    badges: ["Customer Success"],
-    sourceName: "Corely AI",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    date: "Yesterday • May 11, 2025",
-  },
-  {
-    id: "5",
-    time: "3:45 PM",
-    category: "knowledge",
-    title: "Knowledge Update",
-    content: "Updated organization chart: 3 new hires added to Engineering team.",
-    badges: ["People"],
-    sourceName: "HR System",
-    avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
-    date: "Yesterday • May 11, 2025",
-  },
-];
-
-// ── Initial Snapshot Data ────────────────────────────────────────────────────
-const INITIAL_SNAPSHOTS: SnapshotItem[] = [
-  { id: "s1", title: "Organization Snapshot", date: "May 12, 2025 • 8:00 AM", isLatest: true },
-  { id: "s2", title: "Product Knowledge Base", date: "May 11, 2025 • 10:30 PM" },
-  { id: "s3", title: "Q2 Business Context", date: "May 10, 2025 • 7:15 PM" },
-];
-
 export default function MemoryPage() {
-  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>(INITIAL_TIMELINE_ITEMS);
-  const [snapshots, setSnapshots] = useState<SnapshotItem[]>(INITIAL_SNAPSHOTS);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [snapshots, setSnapshots] = useState<SnapshotItem[]>([]);
   const [activeTab, setActiveTab] = useState<string>("timeline");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -179,6 +113,29 @@ export default function MemoryPage() {
         }
       } catch (e) {
         console.error("Failed to fetch memories:", e);
+      }
+
+      try {
+        const snapRes = await fetch("/api/memory/snapshots");
+        if (snapRes.ok) {
+          const snapData = await snapRes.json();
+          if (snapData.data?.snapshots) {
+            const mappedSnapshots = snapData.data.snapshots.map((item: { id: string; title: string; createdAt: string }, index: number) => {
+              const dateObj = new Date(item.createdAt);
+              const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              return {
+                id: item.id,
+                title: item.title,
+                date: `${dateStr} • ${timeStr}`,
+                isLatest: index === 0
+              };
+            });
+            setSnapshots(mappedSnapshots);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch snapshots:", e);
       } finally {
         setIsLoading(false);
       }
@@ -279,6 +236,15 @@ export default function MemoryPage() {
     setActiveTab(categoryTabMap[category] || "timeline");
   };
 
+  // ── Dynamic Source Filter ──────────────────────────────────────────────────
+  const uniqueSources = useMemo(() => {
+    const sources = new Set<string>();
+    timelineItems.forEach(item => {
+      if (item.sourceName) sources.add(item.sourceName);
+    });
+    return Array.from(sources).sort();
+  }, [timelineItems]);
+
   // ── Filtered Items Logic ───────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
     return timelineItems.filter((item) => {
@@ -328,29 +294,13 @@ export default function MemoryPage() {
 
   // ── Dynamic Stats Calculation ──────────────────────────────────────────────
   const stats = useMemo(() => {
-    const totalMemories = 248392 + (timelineItems.length - INITIAL_TIMELINE_ITEMS.length);
-    
-    const decisionsCount = timelineItems.filter(item => item.category === "decision").length;
-    const initialDecisionsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "decision").length;
-    const totalDecisions = 1842 + (decisionsCount - initialDecisionsCount);
-
-    const discussionsCount = timelineItems.filter(item => item.category === "discussion").length;
-    const initialDiscussionsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "discussion").length;
-    const totalDiscussions = 3421 + (discussionsCount - initialDiscussionsCount);
-
-    const documentsCount = timelineItems.filter(item => item.category === "document").length;
-    const initialDocumentsCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "document").length;
-    const totalDocuments = 12842 + (documentsCount - initialDocumentsCount);
-
-    const knowledgeCount = timelineItems.filter(item => item.category === "knowledge").length;
-    const initialKnowledgeCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "knowledge").length;
-    const totalKnowledge = 2153 + (knowledgeCount - initialKnowledgeCount);
-
-    const insightCount = timelineItems.filter(item => item.category === "insight").length;
-    const initialInsightCount = INITIAL_TIMELINE_ITEMS.filter(item => item.category === "insight").length;
-    const totalInsight = 1284 + (insightCount - initialInsightCount);
-
-    const totalActiveKnowledgeSets = 128 + (knowledgeCount - initialKnowledgeCount);
+    const totalMemories = timelineItems.length;
+    const totalDecisions = timelineItems.filter(item => item.category === "decision").length;
+    const totalDiscussions = timelineItems.filter(item => item.category === "discussion").length;
+    const totalDocuments = timelineItems.filter(item => item.category === "document").length;
+    const totalKnowledge = timelineItems.filter(item => item.category === "knowledge").length;
+    const totalInsight = timelineItems.filter(item => item.category === "insight").length;
+    const totalActiveKnowledgeSets = totalKnowledge;
 
     return {
       totalMemories,
@@ -439,38 +389,47 @@ export default function MemoryPage() {
     }
   };
 
-  const handleCreateSnapshot = () => {
-    const timeStr = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const dateStr = new Date().toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
-    setSnapshots((prev) => {
-      const updated = [
-        {
-          id: `snap-${Date.now()}`,
+  const handleCreateSnapshot = async () => {
+    try {
+      const res = await fetch("/api/memory/snapshots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           title: `${filteredItems[0]?.title || "Workspace"} Snapshot`,
-          date: `${dateStr} • ${timeStr}`,
-          isLatest: true,
-        },
-        ...prev.map((s) => ({ ...s, isLatest: false })),
-      ];
-      localStorage.setItem("corely-snapshots", JSON.stringify(updated));
-      return updated;
-    });
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.data?.snapshot) {
+          const item = data.data.snapshot;
+          const dateObj = new Date(item.createdAt);
+          const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          
+          setSnapshots((prev) => [
+            {
+              id: item.id,
+              title: item.title,
+              date: `${dateStr} • ${timeStr}`,
+              isLatest: true,
+            },
+            ...prev.map((s) => ({ ...s, isLatest: false })),
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to create snapshot", err);
+    }
   };
 
-  const handleDeleteSnapshot = (id: string) => {
-    setSnapshots((prev) => {
-      const updated = prev.filter((snap) => snap.id !== id);
-      localStorage.setItem("corely-snapshots", JSON.stringify(updated));
-      return updated;
-    });
+  const handleDeleteSnapshot = async (id: string) => {
+    try {
+      await fetch(`/api/memory/snapshots?id=${id}`, { method: "DELETE" });
+      setSnapshots((prev) => prev.filter((snap) => snap.id !== id));
+    } catch (err) {
+      console.error("Failed to delete snapshot", err);
+    }
   };
 
   return (
@@ -618,11 +577,9 @@ export default function MemoryPage() {
                         onChange={(e) => setSelectedSource(e.target.value)}
                       >
                         <option value="all">All Sources</option>
-                        <option value="Notion">Notion</option>
-                        <option value="Slack">Slack</option>
-                        <option value="Google Drive">Google Drive</option>
-                        <option value="Corely AI">Corely AI</option>
-                        <option value="HR System">HR System</option>
+                        {uniqueSources.map(source => (
+                          <option key={source} value={source}>{source}</option>
+                        ))}
                       </select>
                     </div>
 

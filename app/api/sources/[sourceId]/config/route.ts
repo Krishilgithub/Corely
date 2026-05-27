@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { folderId, folderName } = body as { folderId: string | null; folderName: string | null };
+    const { folderIds, folderNames } = body as { folderIds?: string[]; folderNames?: string[] };
 
     const source = await prisma.source.findUnique({
       where: { id: sourceId },
@@ -27,14 +28,17 @@ export async function POST(
     }
 
     const currentConfig = (source.config as Record<string, unknown>) || {};
-    const updatedConfig = {
+    const updatedConfig: Record<string, unknown> = {
       ...currentConfig,
-      folderId: folderId || undefined,
-      folderName: folderName || undefined,
+      folderIds: folderIds || undefined,
+      folderNames: folderNames || undefined,
     };
 
-    // If folderId is null/empty, clear it from configuration to sync entire drive
-    if (!folderId) {
+    // If folderIds is null/empty, clear it from configuration to sync entire drive
+    if (!folderIds || folderIds.length === 0) {
+      delete updatedConfig.folderIds;
+      delete updatedConfig.folderNames;
+      // also clear legacy fields just in case
       delete updatedConfig.folderId;
       delete updatedConfig.folderName;
     }
@@ -42,7 +46,7 @@ export async function POST(
     const updatedSource = await prisma.source.update({
       where: { id: sourceId },
       data: {
-        config: updatedConfig,
+        config: updatedConfig as Prisma.InputJsonObject,
         status: "idle", // Reset to idle so the user can review and manual sync with the new config
         errorMessage: null,
       },

@@ -84,6 +84,12 @@ async function startRealWorker() {
             await syncNotion(sourceId);
             break;
           }
+          case "sync-gmail": {
+            const { sourceId } = job.data as { sourceId: string; workspaceId: string };
+            const { syncGmail } = await import("../modules/sources/connectors/gmail");
+            await syncGmail(sourceId);
+            break;
+          }
           default:
             console.warn(`[Worker] ⚠️ Unknown job name: ${job.name}`);
         }
@@ -123,4 +129,3 @@ async function startRealWorker() {
     console.error("[Worker] ❌ Failed to start real worker:", err);
   }
 }
-

@@ -12,7 +12,6 @@ import { decrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 interface NotionTokenResponse {
   access_token: string;
@@ -31,6 +30,7 @@ interface NotionTokenResponse {
 }
 
 export async function GET(request: NextRequest) {
+  const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const stateRaw = searchParams.get("state");
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.warn("[Notion Callback] User denied access:", error);
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=access_denied`
+      `${origin}/dashboard/sources?error=access_denied`
     );
   }
 
   if (!code || !stateRaw) {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=missing_params`
+      `${origin}/dashboard/sources?error=missing_params`
     );
   }
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     userId = payload.userId as string;
   } catch {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=invalid_state`
+      `${origin}/dashboard/sources?error=invalid_state`
     );
   }
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   // Notion uses HTTP Basic Auth: Base64("clientId:clientSecret")
   const clientId = process.env.NOTION_CLIENT_ID!;
   const clientSecret = process.env.NOTION_CLIENT_SECRET!;
-  const redirectUri = process.env.NOTION_REDIRECT_URI!;
+  const redirectUri = `${origin}/api/sources/notion/callback`;
   const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
   let tokenData: NotionTokenResponse;
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Notion Callback] Token exchange failed:", error);
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=token_exchange_failed`
+      `${origin}/dashboard/sources?error=token_exchange_failed`
     );
   }
 
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
 
   if (!userExists || userExists.workspaceId !== workspaceId) {
     return NextResponse.redirect(
-      `${BASE_URL}/dashboard/sources?error=user_not_found`
+      `${origin}/dashboard/sources?error=user_not_found`
     );
   }
 
@@ -153,6 +153,6 @@ export async function GET(request: NextRequest) {
   console.log(`[Notion Callback] ✅ Source created: ${source.id} — sync triggered`);
 
   return NextResponse.redirect(
-    `${BASE_URL}/dashboard/sources?connected=notion&sourceId=${source.id}`
+    `${origin}/dashboard/sources?connected=notion&sourceId=${source.id}`
   );
 }

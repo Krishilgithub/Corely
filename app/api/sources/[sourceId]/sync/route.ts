@@ -56,6 +56,16 @@ export async function POST(
         .catch((err) => {
           console.error("[Manual Sync] Failed to dynamically load Notion sync module:", err);
         });
+    } else if (source.type === "gmail") {
+      import("@/modules/sources/connectors/gmail")
+        .then(({ syncGmail }) => {
+          syncGmail(source.id).catch((err) => {
+            console.error(`[Manual Sync] Direct background sync failed for Gmail ${source.id}:`, err);
+          });
+        })
+        .catch((err) => {
+          console.error("[Manual Sync] Failed to dynamically load Gmail sync module:", err);
+        });
     } else {
       console.warn(`[Manual Sync] ⚠️ Ingestion sync for type "${source.type}" is not supported yet.`);
       await prisma.source.update({

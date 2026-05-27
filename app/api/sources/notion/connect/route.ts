@@ -1,18 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth, encrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { user, workspace } = await auth();
 
     const clientId = process.env.NOTION_CLIENT_ID;
-    const redirectUri = process.env.NOTION_REDIRECT_URI;
+    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const redirectUri = `${origin}/api/sources/notion/callback`;
 
-    if (!clientId || !redirectUri) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: "Notion OAuth not configured. Check NOTION_CLIENT_ID and NOTION_REDIRECT_URI." },
+        { error: "Notion OAuth not configured. Check NOTION_CLIENT_ID." },
         { status: 500 }
       );
     }
