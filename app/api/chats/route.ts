@@ -1,25 +1,21 @@
-/**
- * GET /api/chats?workspaceId=...
- * POST /api/chats
- */
-
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth-server";
+import { successResponse, errorResponse } from "@/lib/api-response";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-// List all chat sessions
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const workspaceId = searchParams.get("workspaceId");
+const createChatSchema = z.object({
+  title: z.string().optional(),
+});
 
-  if (!workspaceId) {
-    return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 });
-  }
-
+export async function GET() {
   try {
+    const { workspace } = await auth();
+
     const sessions = await prisma.chatSession.findMany({
-      where: { workspaceId },
+      where: { workspaceId: workspace.id },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -29,46 +25,36 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ sessions });
-  } catch (err) {
-    const msg = (err as Error)?.message || "Failed to fetch conversations";
-    console.error("[GET /api/chats] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return successResponse({ sessions });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("[GET /api/chats] Error:", error);
+    return errorResponse("Failed to fetch conversations", 500);
   }
 }
 
-// Create a new session
 export async function POST(request: NextRequest) {
   try {
+    const { workspace } = await auth();
+
     const body = await request.json();
-    const { workspaceId, title } = body as { workspaceId: string; title?: string };
+    const result = createChatSchema.safeParse(body);
 
-    if (!workspaceId) {
-      return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 });
+    if (!result.success) {
+      return errorResponse("Invalid payload", 400);
     }
-
-    // Ensure default workspace exists
-    await prisma.workspace.upsert({
-      where: { id: workspaceId },
-      create: {
-        id: workspaceId,
-        name: "My Workspace",
-        slug: `workspace-${workspaceId.slice(0, 8)}`,
-      },
-      update: {},
-    });
 
     const session = await prisma.chatSession.create({
       data: {
-        workspaceId,
-        title: title || "New Conversation",
+        workspaceId: workspace.id,
+        title: result.data.title || "New Conversation",
       },
     });
 
-    return NextResponse.json(session);
-  } catch (err) {
-    const msg = (err as Error)?.message || "Failed to create conversation";
-    console.error("[POST /api/chats] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return successResponse(session);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("[POST /api/chats] Error:", error);
+    return errorResponse("Failed to create conversation", 500);
   }
 }

@@ -1,9 +1,23 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Building2, Sparkles, Bell, ChevronDown, Command } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Building2, Sparkles, Bell, ChevronDown, Command, Search, X, Menu } from "lucide-react";
 
 export default function Topbar() {
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   return (
     <motion.header
       className="db-topbar"
@@ -11,15 +25,34 @@ export default function Topbar() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* Workspace Switcher */}
-      <button className="db-ws-btn" aria-label="Switch workspace">
-        <Building2 size={13} style={{ color: "#71717a" }} />
-        <span>Corely Enterprise</span>
-        <ChevronDown size={12} style={{ color: "#a1a1aa" }} />
-      </button>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <button 
+          className="db-hamburger-btn" 
+          aria-label="Toggle menu"
+          onClick={() => {
+            if (typeof document !== "undefined") {
+              document.body.classList.toggle("mobile-sidebar-open");
+            }
+          }}
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Workspace Switcher */}
+        <button className="db-ws-btn" aria-label="Switch workspace">
+          <Building2 size={13} style={{ color: "#71717a" }} />
+          <span>Corely Enterprise</span>
+          <ChevronDown size={12} style={{ color: "#a1a1aa" }} />
+        </button>
+      </div>
 
       {/* AI Search */}
-      <div className="db-search-bar" role="search">
+      <button 
+        className="db-search-bar" 
+        onClick={() => setShowSearch(true)}
+        aria-label="Global search"
+        style={{ border: "none", cursor: "pointer", background: "white" }}
+      >
         <div className="db-search-inner">
           <Sparkles size={14} style={{ color: "#ff6b00", flexShrink: 0 }} />
           <span className="db-search-text">Ask anything about your company...</span>
@@ -28,7 +61,7 @@ export default function Topbar() {
           <Command size={9} />
           <span>K</span>
         </div>
-      </div>
+      </button>
 
       {/* Right Actions */}
       <div className="db-topbar-right">
@@ -61,6 +94,55 @@ export default function Topbar() {
           K
         </div>
       </div>
+
+      <AnimatePresence>
+        {showSearch && (
+          <div className="global-search-overlay" onClick={() => setShowSearch(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '10vh' }}>
+            <motion.div 
+              className="global-search-modal"
+              initial={{ scale: 0.95, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: -20 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 640, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #f4f4f5' }}>
+                <Search size={20} color="#a1a1aa" style={{ marginRight: 16 }} />
+                <input 
+                  autoFocus
+                  type="text" 
+                  placeholder="Ask anything about your company..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, background: 'transparent', color: "#18181b" }} 
+                />
+                <button onClick={() => setShowSearch(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6 }}>
+                  <X size={20} color="#a1a1aa" />
+                </button>
+              </div>
+              <div style={{ padding: 24, minHeight: 200, color: '#71717a', fontSize: 14 }}>
+                {searchQuery.trim() ? (
+                  <div style={{ textAlign: 'center', paddingTop: 32 }}>
+                    <Sparkles size={24} color="#ff6b00" style={{ margin: '0 auto 12px' }} />
+                    <p>Searching for &quot;{searchQuery}&quot;...</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#3f3f46', marginBottom: 12, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suggested Searches</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {['What was the decision on Q3 marketing budget?', 'Find onboarding documents for new engineers', 'Who is the owner of the CRM Update Assistant workflow?'].map(q => (
+                        <button key={q} onClick={() => setSearchQuery(q)} style={{ textAlign: 'left', padding: '8px 12px', background: '#f4f4f5', border: 'none', borderRadius: 8, color: '#3f3f46', cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#e4e4e7'} onMouseOut={e => e.currentTarget.style.background = '#f4f4f5'}>
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

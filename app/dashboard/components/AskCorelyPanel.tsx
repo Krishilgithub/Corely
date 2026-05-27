@@ -10,6 +10,7 @@ import {
   SendHorizontal,
 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const prompts = [
   "What changed across product teams this week?",
@@ -19,16 +20,12 @@ const prompts = [
 
 export default function AskCorelyPanel() {
   const [input, setInput] = useState("");
-  const [userMsg, setUserMsg] = useState("");
+  const router = useRouter();
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    setUserMsg(input);
-    setInput("");
-  };
-
-  const handlePrompt = (p: string) => {
-    setUserMsg(p);
+  const handleSend = (query?: string) => {
+    const q = query || input;
+    if (!q.trim()) return;
+    router.push(`/dashboard/ask-corely?q=${encodeURIComponent(q)}`);
   };
 
   return (
@@ -65,7 +62,7 @@ export default function AskCorelyPanel() {
         >
           <div className="db-chat-ai-icon">C</div>
           <div className="db-chat-bubble">
-            Hi Krishil! I&apos;m Corely.
+            Hi! I&apos;m Corely.
             <br />
             Your enterprise intelligence layer.
             <br />
@@ -73,37 +70,24 @@ export default function AskCorelyPanel() {
           </div>
         </motion.div>
 
-        {/* User message */}
-        {userMsg && (
-          <motion.div
-            className="db-chat-user-row"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="db-chat-user-bubble">{userMsg}</div>
-          </motion.div>
-        )}
-
         {/* Suggested prompts */}
-        {!userMsg && (
-          <motion.div
-            className="db-chat-prompts"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.65 }}
-          >
-            {prompts.map((prompt) => (
-              <button
-                key={prompt}
-                className="db-prompt-btn"
-                onClick={() => handlePrompt(prompt)}
-              >
-                <Search size={11} style={{ color: "#a1a1aa", flexShrink: 0 }} />
-                <span>{prompt}</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
+        <motion.div
+          className="db-chat-prompts"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.65 }}
+        >
+          {prompts.map((prompt) => (
+            <button
+              key={prompt}
+              className="db-prompt-btn"
+              onClick={() => handleSend(prompt)}
+            >
+              <Search size={11} style={{ color: "#a1a1aa", flexShrink: 0 }} />
+              <span>{prompt}</span>
+            </button>
+          ))}
+        </motion.div>
       </div>
 
       {/* Input Footer */}
@@ -111,13 +95,13 @@ export default function AskCorelyPanel() {
         <Paperclip size={13} style={{ color: "#d4d4d4", flexShrink: 0 }} />
         <input
           className="db-chat-input"
-          placeholder="Ask a follow-up..."
+          placeholder="Ask a question to start..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           aria-label="Ask Corely a question"
         />
-        <button className="db-chat-send-btn" onClick={handleSend} aria-label="Send message">
+        <button className="db-chat-send-btn" onClick={() => handleSend()} aria-label="Send message">
           <SendHorizontal size={13} />
         </button>
       </div>

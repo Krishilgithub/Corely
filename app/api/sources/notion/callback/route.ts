@@ -5,9 +5,10 @@
  * source to the database, then trigger a background sync.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
+import { decrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +54,9 @@ export async function GET(request: NextRequest) {
   let workspaceId: string;
   let userId: string;
   try {
-    ({ workspaceId, userId } = JSON.parse(
-      Buffer.from(stateRaw, "base64").toString("utf-8")
-    ));
+    const payload = await decrypt(stateRaw);
+    workspaceId = payload.workspaceId as string;
+    userId = payload.userId as string;
   } catch {
     return NextResponse.redirect(
       `${BASE_URL}/dashboard/sources?error=invalid_state`
@@ -90,43 +91,30 @@ export async function GET(request: NextRequest) {
     }
 
     tokenData = (await tokenResponse.json()) as NotionTokenResponse;
-  } catch (err) {
-    console.error("[Notion Callback] Token exchange failed:", err);
+  } catch (error) {
+    console.error("[Notion Callback] Token exchange failed:", error);
     return NextResponse.redirect(
       `${BASE_URL}/dashboard/sources?error=token_exchange_failed`
     );
   }
 
   // ── Extract owner info ────────────────────────────────────────
-  let ownerName = tokenData.workspace_name ?? "Notion Workspace";
   let ownerEmail = "";
   if (tokenData.owner?.type === "user" && tokenData.owner.user) {
-    ownerName = tokenData.owner.user.name ?? ownerName;
     ownerEmail = tokenData.owner.user.person?.email ?? "";
   }
 
-  // ── Ensure workspace & user exist ────────────────────────────
-  await prisma.workspace.upsert({
-    where: { id: workspaceId },
-    create: {
-      id: workspaceId,
-      name: "My Workspace",
-      slug: `workspace-${workspaceId.slice(0, 8)}`,
-    },
-    update: {},
+  // ── Verify workspace & user exist ────────────────────────────
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { workspace: true }
   });
 
-  await prisma.user.upsert({
-    where: { id: userId },
-    create: {
-      id: userId,
-      workspaceId,
-      email: ownerEmail || `user-${userId.slice(0, 8)}@corely.local`,
-      name: ownerName || "Workspace Admin",
-      role: "admin",
-    },
-    update: {},
-  });
+  if (!userExists || userExists.workspaceId !== workspaceId) {
+    return NextResponse.redirect(
+      `${BASE_URL}/dashboard/sources?error=user_not_found`
+    );
+  }
 
   // ── Save source with encrypted access token ───────────────────
   // Notion access tokens do NOT expire — no refresh token needed.

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import WorkflowsMain from "./WorkflowsMain";
 import WorkflowsRightSidebar from "./WorkflowsRightSidebar";
+import { Skeleton } from "../../components/Skeleton";
 import "../workflows.css";
 
 // ── Types and Interfaces ────────────────────────────────────────────────────
@@ -191,9 +192,10 @@ const INITIAL_ACTIVITIES: ActivityItem[] = [
 ];
 
 export default function WorkflowsLayout() {
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>(INITIAL_WORKFLOWS);
-  const [activityLogs, setActivityLogs] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // ── Hydrate State on Mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -224,6 +226,11 @@ export default function WorkflowsLayout() {
     } catch (e) {
       console.error("Failed to hydrate workflow activity logs:", e);
     }
+    
+    // Simulate network delay
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -397,19 +404,36 @@ export default function WorkflowsLayout() {
 
   return (
     <div className="wf-page-grid" style={{ width: "100%" }}>
-      <WorkflowsMain
-        workflows={workflows}
-        onRun={handleRunWorkflow}
-        onToggleStatus={handleToggleStatus}
-        onDelete={handleDeleteWorkflow}
-        onAdd={handleAddWorkflow}
-        onEdit={handleEditWorkflow}
-        onImport={handleImportWorkflow}
-      />
-      <WorkflowsRightSidebar
-        activityLogs={activityLogs}
-        onUseTemplate={handleUseTemplate}
-      />
+      {isLoading ? (
+        <div style={{ display: 'flex', gap: 24, padding: 32, width: '100%' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <Skeleton height={100} borderRadius={16} />
+            <Skeleton height={100} borderRadius={16} />
+            <Skeleton height={100} borderRadius={16} />
+            <Skeleton height={100} borderRadius={16} />
+          </div>
+          <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <Skeleton height={200} borderRadius={16} />
+            <Skeleton height={300} borderRadius={16} />
+          </div>
+        </div>
+      ) : (
+        <>
+          <WorkflowsMain
+            workflows={workflows}
+            onRun={handleRunWorkflow}
+            onToggleStatus={handleToggleStatus}
+            onDelete={handleDeleteWorkflow}
+            onAdd={handleAddWorkflow}
+            onEdit={handleEditWorkflow}
+            onImport={handleImportWorkflow}
+          />
+          <WorkflowsRightSidebar
+            activityLogs={activityLogs}
+            onUseTemplate={handleUseTemplate}
+          />
+        </>
+      )}
 
       {/* Floating System Toasts */}
       <AnimatePresence>

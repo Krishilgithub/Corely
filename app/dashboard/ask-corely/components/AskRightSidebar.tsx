@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "../../../lib/auth-context";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -13,8 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// ── Temporary MVP workspace ID ───────────────────────────────────────────────
-const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
+
 
 interface ChatSessionInfo {
   id: string;
@@ -36,6 +36,7 @@ export default function AskRightSidebar({
   refreshTrigger,
   setSharedPrompt,
 }: AskRightSidebarProps) {
+  const { workspaceId } = useAuth();
   const [sessions, setSessions] = useState<ChatSessionInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -44,12 +45,13 @@ export default function AskRightSidebar({
     const fetchSessions = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/chats?workspaceId=${WORKSPACE_ID}`);
+        if (!workspaceId) return;
+        const response = await fetch(`/api/chats?workspaceId=${workspaceId}`);
         if (!response.ok) {
           throw new Error("Failed to load chat sessions");
         }
-        const data = (await response.json()) as { sessions: ChatSessionInfo[] };
-        setSessions(data.sessions || []);
+        const responseData = (await response.json()) as { data: ChatSessionInfo[] };
+        setSessions(responseData.data || []);
       } catch (err) {
         console.error("Error fetching sessions:", err);
       } finally {
@@ -58,7 +60,7 @@ export default function AskRightSidebar({
     };
 
     void fetchSessions();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, workspaceId]);
 
   // ── Delete a conversation session ────────────────────────────────────────────
   const handleDeleteSession = async (sessionId: string) => {

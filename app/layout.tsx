@@ -3,6 +3,7 @@ import { Inter, Geist, Outfit } from "next/font/google";
 import "./globals.css";
 import { ReactLenis } from "lenis/react";
 import "lenis/dist/lenis.css";
+import { AuthProvider } from "./lib/auth-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -42,9 +43,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${geistSans.variable} ${outfit.variable} h-full`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col antialiased bg-white text-[#111111]">
-        <ReactLenis root>
-          {children}
-        </ReactLenis>
+        <AuthProvider>
+          <ReactLenis root>
+            {children}
+          </ReactLenis>
+        </AuthProvider>
       </body>
     </html>
   );

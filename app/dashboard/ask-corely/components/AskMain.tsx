@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../../lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -23,8 +24,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-// ── Temporary MVP workspace ID ───────────────────────────────────────────────
-const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
+
 
 interface SourceInfo {
   title: string;
@@ -181,6 +181,7 @@ export default function AskMain({
   sharedPrompt,
   setSharedPrompt,
 }: AskMainProps) {
+  const { workspaceId } = useAuth();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -350,7 +351,7 @@ export default function AskMain({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            workspaceId: WORKSPACE_ID,
+            workspaceId,
             title: promptText.slice(0, 40) + (promptText.length > 40 ? "..." : ""),
           }),
         });
@@ -359,8 +360,8 @@ export default function AskMain({
           throw new Error("Failed to initialize conversation session.");
         }
 
-        const newSession = (await createRes.json()) as { id: string };
-        currentSessionId = newSession.id;
+        const newSessionRes = (await createRes.json()) as { data: { id: string } };
+        currentSessionId = newSessionRes.data.id;
         setActiveSessionId(currentSessionId);
         onNewMessage();
       }
@@ -370,7 +371,7 @@ export default function AskMain({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: promptText,
-          workspaceId: WORKSPACE_ID,
+          workspaceId,
           sessionId: currentSessionId,
         }),
       });

@@ -21,6 +21,9 @@ model Workspace {
   documents      Document[]
   sources        Source[]
   users          User[]
+  dashboardInsights DashboardInsight[]
+  dashboardActions  DashboardAction[]
+  orgMemories       OrgMemory[]
 
   @@map("workspaces")
 }
@@ -124,4 +127,48 @@ model DocumentChunk {
 
   @@index([embedding], map: "idx_chunks_embedding")
   @@map("document_chunks")
+}
+
+model DashboardInsight {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  priority    String    // 'HIGH', 'MEDIUM', 'LOW'
+  title       String
+  description String
+  source      String
+  iconType    String    @default("TrendingDown") // lucide icon name
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_insights")
+}
+
+model DashboardAction {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  description String
+  source      String
+  iconType    String    @default("Cloud") // lucide icon name
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_actions")
+}
+
+model OrgMemory {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  category    String    // 'decision', 'discussion', 'document', 'insight', 'knowledge'
+  title       String
+  content     String
+  badges      Json      @default("[]") // Array of strings
+  sourceName  String    @map("source_name")
+  avatarUrl   String?   @map("avatar_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("org_memories")
 }

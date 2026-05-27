@@ -21,10 +21,10 @@ const navItems = [
   { icon: Home, label: "Home", href: "/dashboard" },
   { icon: MessageSquare, label: "Ask Corely", href: "/dashboard/ask-corely" },
   { icon: Brain, label: "Memory", href: "/dashboard/memory" },
-  { icon: BarChart2, label: "Insights", href: "#" },
-  { icon: Zap, label: "Actions", href: "#" },
+  { icon: BarChart2, label: "Insights", href: "/dashboard/insights" },
+  { icon: Zap, label: "Actions", href: "/dashboard/workflows" },
   { icon: Link2, label: "Sources", href: "/dashboard/sources" },
-  { icon: Users, label: "Teams", href: "#" },
+  { icon: Users, label: "Teams", href: "/dashboard/teams" },
   { icon: GitBranch, label: "Workflows", href: "/dashboard/workflows" },
   { icon: Shield, label: "Security", href: "#" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
@@ -34,7 +34,8 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="db-sidebar">
+    <>
+      <aside className="db-sidebar">
       <div className="db-sidebar-inner">
         {/* Top: Logo + Nav */}
         <div>
@@ -61,6 +62,12 @@ export default function Sidebar() {
                     href={item.href}
                     className={`db-nav-item${isActive ? " active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
+                    aria-label={item.label}
+                    onClick={() => {
+                      if (typeof document !== "undefined") {
+                        document.body.classList.remove("mobile-sidebar-open");
+                      }
+                    }}
                   >
                     <item.icon size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
                     {item.label}
@@ -128,6 +135,16 @@ export default function Sidebar() {
           </motion.div>
         </div>
       </div>
-    </aside>
+      </aside>
+      <div 
+        className="db-mobile-overlay" 
+        onClick={() => {
+          if (typeof document !== "undefined") {
+            document.body.classList.remove("mobile-sidebar-open");
+          }
+        }}
+        aria-hidden="true"
+      />
+    </>
   );
 }

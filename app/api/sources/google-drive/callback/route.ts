@@ -4,10 +4,11 @@
  * We exchange the code for tokens, save the source to DB, and enqueue a sync job.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse , NextRequest} from 'next/server';
 import { google } from "googleapis";
 import { prisma } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
+import { decrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,10 @@ export async function GET(request: NextRequest) {
   let workspaceId: string;
   let userId: string;
   try {
-    ({ workspaceId, userId } = JSON.parse(stateRaw));
+    const payload = await decrypt(stateRaw);
+    workspaceId = payload.workspaceId as string;
+    userId = payload.userId as string;
+    // (Optional: We could store the nonce in Redis before redirect and verify here)
   } catch {
     return NextResponse.redirect(
       `${BASE_URL}/dashboard/sources?error=invalid_state`
@@ -55,8 +59,8 @@ export async function GET(request: NextRequest) {
   try {
     const tokenResponse = await oauth2Client.getToken(code);
     tokens = tokenResponse.tokens;
-  } catch (err) {
-    console.error("[OAuth Callback] Token exchange failed:", err);
+  } catch (error) {
+    console.error("[OAuth Callback] Token exchange failed:", error);
     return NextResponse.redirect(
       `${BASE_URL}/dashboard/sources?error=token_exchange_failed`
     );
@@ -88,30 +92,17 @@ export async function GET(request: NextRequest) {
     console.warn("[OAuth Callback] Could not fetch Drive info:", err);
   }
 
-  // ── Ensure workspace & user exist (create dev defaults if needed) ─
-  // In production, these come from your auth session.
-  // For MVP, we upsert a dev workspace so you can test without full auth.
-  await prisma.workspace.upsert({
-    where: { id: workspaceId },
-    create: {
-      id: workspaceId,
-      name: "My Workspace",
-      slug: `workspace-${workspaceId.slice(0, 8)}`,
-    },
-    update: {},
+  // ── Verify workspace & user exist ─────────────────────────────
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { workspace: true }
   });
 
-  await prisma.user.upsert({
-    where: { id: userId },
-    create: {
-      id: userId,
-      workspaceId,
-      email: driveEmail || `user-${userId.slice(0, 8)}@corely.local`,
-      name: "Workspace Admin",
-      role: "admin",
-    },
-    update: {},
-  });
+  if (!userExists || userExists.workspaceId !== workspaceId) {
+    return NextResponse.redirect(
+      `${BASE_URL}/dashboard/sources?error=user_not_found`
+    );
+  }
 
   // ── Save source with encrypted tokens ────────────────────────
   const source = await prisma.source.create({
@@ -128,18 +119,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // ── Trigger direct background sync dynamically (returns redirect immediately) ─
-  import("@/modules/sources/connectors/google-drive")
-    .then(({ syncGoogleDrive }) => {
-      syncGoogleDrive(source.id).catch((err) => {
-        console.error(`[OAuth Callback] Background sync failed for ${source.id}:`, err);
-      });
-    })
-    .catch((err) => {
-      console.error("[OAuth Callback] Failed to dynamically load sync module:", err);
-    });
-
-  console.log(`[OAuth Callback] ✅ Source created: ${source.id} — sync triggered in background`);
+  console.log(`[OAuth Callback] ✅ Source created: ${source.id} — pending configuration`);
 
   return NextResponse.redirect(
     `${BASE_URL}/dashboard/sources?connected=google_drive&sourceId=${source.id}`

@@ -23,10 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-// ── Temporary MVP workspace/user IDs ─────────────────────────────────────────
-// In production these come from your auth session.
-const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
-const USER_ID = "00000000-0000-0000-0000-000000000002";
+import { useAuth } from "../../../lib/auth-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Source {
@@ -107,6 +104,9 @@ function StatusBadge({ status }: { status: Source["status"] }) {
 
 // ── Connect Modal ─────────────────────────────────────────────────────────────
 function ConnectModal({ onClose }: { onClose: () => void }) {
+  const { workspaceId, user } = useAuth();
+  const WORKSPACE_ID = workspaceId || "00000000-0000-0000-0000-000000000001";
+  const USER_ID = user?.id || "00000000-0000-0000-0000-000000000002";
   return (
     <AnimatePresence>
       <motion.div
@@ -366,6 +366,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function SourcesMain() {
+  const { workspaceId } = useAuth();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -402,7 +403,8 @@ export default function SourcesMain() {
   // ── Fetch sources from API ─────────────────────────────────────
   const fetchSources = useCallback(async () => {
     try {
-      const res = await fetch(`/api/sources?workspaceId=${WORKSPACE_ID}`);
+      if (!workspaceId) return;
+      const res = await fetch(`/api/sources?workspaceId=${workspaceId}`);
       if (!res.ok) return;
       const data = await res.json();
       setSources(data.sources ?? []);
@@ -411,7 +413,7 @@ export default function SourcesMain() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [workspaceId]);
 
   // ── Poll for sync progress ─────────────────────────────────────
   useEffect(() => {
@@ -693,12 +695,14 @@ export default function SourcesMain() {
               <div style={{ fontSize: 13.5, color: "#71717a", marginBottom: 20 }}>
                 Connect Google Drive to start indexing your company data.
               </div>
-              <button
-                className="src-btn-primary"
-                onClick={() => setShowModal(true)}
-              >
-                <Plus size={16} strokeWidth={2.5} /> Add your first source
-              </button>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  className="src-btn-primary"
+                  onClick={() => setShowModal(true)}
+                >
+                  <Plus size={16} strokeWidth={2.5} /> Add your first source
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -2,8 +2,10 @@ import { NextRequest } from "next/server";
 import { openai, generateEmbedding } from "@/lib/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { prisma } from "@/lib/db";
-
-
+import { auth } from "@/lib/auth-server";
+import { errorResponse } from "@/lib/api-response";
+import { rateLimit } from "@/lib/rate-limit";
+import { z } from "zod";
 interface ChatCompletionMessageParam {
   role: "system" | "user" | "assistant";
   content: string;
@@ -24,13 +26,31 @@ interface ChunkResult {
   similarity: number;
 }
 
+const askSchema = z.object({
+  question: z.string().min(1, "Question cannot be empty"),
+  workspaceId: z.string().optional(),
+  sessionId: z.string().optional(),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const { question, workspaceId, sessionId } = await request.json();
+    const { user, workspace } = await auth();
 
-    if (!question || !workspaceId) {
-      return new Response("Missing question or workspaceId", { status: 400 });
+    // Rate Limiting (5 requests per minute)
+    const rl = await rateLimit(user.id, 5, 60);
+    if (!rl.success) {
+      return errorResponse("Too many requests", 429);
     }
+
+    const body = await request.json();
+    const result = askSchema.safeParse(body);
+
+    if (!result.success) {
+      return errorResponse("Invalid payload", 400);
+    }
+
+    const { question, sessionId } = result.data;
+    const workspaceId = workspace.id;
 
     // 1. If sessionId is active, save the user message to database
     if (sessionId) {
@@ -77,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("pgvector search error:", error);
-      return new Response(`Search failed: ${error.message}`, { status: 500 });
+      return errorResponse("Search failed internally", 500);
     }
 
     const chunkResults = (chunks ?? []) as ChunkResult[];
@@ -184,8 +204,8 @@ Always cite which sources your answer is based on.`,
           }
 
           safeEnqueue("data: [DONE]\n\n");
-        } catch (err) {
-          console.error("Streaming error:", err);
+        } catch (error) {
+    console.error("Streaming error:", error);
         } finally {
           try {
             controller.close();

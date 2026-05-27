@@ -2215,3 +2215,56 @@
   .db-actions-grid { grid-template-columns: repeat(2, 1fr); }
   .db-greeting-title { font-size: 34px; }
 }
+
+@media (max-width: 768px) {
+  .db-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+  }
+  body.mobile-sidebar-open .db-sidebar {
+    transform: translateX(0);
+  }
+  body.mobile-sidebar-open {
+    overflow: hidden;
+  }
+  .db-mobile-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 45;
+    display: none;
+  }
+  body.mobile-sidebar-open .db-mobile-overlay {
+    display: block;
+  }
+  .db-topbar {
+    left: 0;
+    padding: 0 16px;
+  }
+  .db-page-wrapper {
+    margin-left: 0;
+  }
+  .db-content {
+    padding: 16px;
+  }
+  .db-search-bar {
+    display: none;
+  }
+  .db-hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #111;
+    margin-right: 12px;
+  }
+}
+
+@media (min-width: 769px) {
+  .db-hamburger-btn, .db-mobile-overlay {
+    display: none !important;
+  }
+}

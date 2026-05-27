@@ -38,6 +38,10 @@ const SUPPORTED_MIME_TYPES: Record<string, { exportMime: string; fileType: strin
     exportMime: "text/plain",
     fileType: "markdown",
   },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+    exportMime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fileType: "docx",
+  },
 };
 
 /**
@@ -248,6 +252,16 @@ async function processFile(
     const parsed = await parser.getText();
     rawContent = parsed.text;
     await parser.destroy();
+  } else if (file.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    // Binary download → parse DOCX using mammoth
+    const res = await driveClient.files.get(
+      { fileId: file.id, alt: "media" },
+      { responseType: "arraybuffer" }
+    );
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mammoth = require("mammoth");
+    const result = await mammoth.extractRawText({ buffer: Buffer.from(res.data as ArrayBuffer) });
+    rawContent = result.value;
   } else {
     // Plain text / markdown
     const res = await driveClient.files.get(

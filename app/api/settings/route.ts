@@ -1,55 +1,51 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from 'next/server';
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth-server";
+import { successResponse, errorResponse } from "@/lib/api-response";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
+const settingsSchema = z.object({
+  preferences: z.record(z.string(), z.unknown()).optional(),
+  workspaceSettings: z.record(z.string(), z.unknown()).optional(),
+  workspaceName: z.string().min(1).optional(),
+  workspaceSlug: z.string().min(1).optional(),
+});
+
 export async function GET() {
   try {
-    // We are simulating a logged-in user with a hardcoded workspace for now
-    // In a real app, you would use getServerSession or similar auth mechanism
-    
-    // First let's find the first user in the db, since we don't have auth
-    const user = await prisma.user.findFirst({
-      include: {
-        workspace: true
-      }
-    });
+    const { user, workspace } = await auth();
 
-    if (!user) {
-      return NextResponse.json({ error: "No user found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
+    return successResponse({
       preferences: user.preferences,
       workspace: {
-        id: user.workspace.id,
-        name: user.workspace.name,
-        slug: user.workspace.slug,
-        plan: user.workspace.plan,
-        logoUrl: user.workspace.logoUrl,
-        settings: user.workspace.settings
+        id: workspace.id,
+        name: workspace.name,
+        slug: workspace.slug,
+        plan: workspace.plan,
+        logoUrl: workspace.logoUrl,
+        settings: workspace.settings
       }
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/settings error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorResponse("Internal Server Error", 500);
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
+    const { user, workspace } = await auth();
+    
     const body = await req.json();
-    const { preferences, workspaceSettings, workspaceName, workspaceSlug } = body;
-
-    const user = await prisma.user.findFirst({
-      include: {
-        workspace: true
-      }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "No user found" }, { status: 404 });
+    const result = settingsSchema.safeParse(body);
+    if (!result.success) {
+      return errorResponse("Invalid payload", 400);
     }
+
+    const { preferences, workspaceSettings, workspaceName, workspaceSlug } = result.data;
 
     // Update User preferences if provided
     if (preferences) {
@@ -57,9 +53,9 @@ export async function PATCH(req: Request) {
         where: { id: user.id },
         data: {
           preferences: {
-            ...(user.preferences as object),
+            ...(typeof user.preferences === 'object' && user.preferences !== null ? user.preferences : {}),
             ...preferences
-          }
+          } as import("@prisma/client").Prisma.InputJsonValue
         }
       });
     }
@@ -70,23 +66,24 @@ export async function PATCH(req: Request) {
       
       if (workspaceSettings) {
         workspaceUpdateData.settings = {
-          ...(user.workspace.settings as object),
+          ...(typeof workspace.settings === 'object' && workspace.settings !== null ? workspace.settings : {}),
           ...workspaceSettings
-        };
+        } as import("@prisma/client").Prisma.InputJsonValue;
       }
       
       if (workspaceName) workspaceUpdateData.name = workspaceName;
       if (workspaceSlug) workspaceUpdateData.slug = workspaceSlug;
 
       await prisma.workspace.update({
-        where: { id: user.workspace.id },
+        where: { id: workspace.id },
         data: workspaceUpdateData
       });
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("PATCH /api/settings error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return errorResponse("Internal Server Error", 500);
   }
 }

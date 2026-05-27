@@ -1,11 +1,6 @@
-/**
- * GET /api/sources/google-drive/connect
- * Redirects the user to Google's OAuth consent page.
- * After the user approves, Google redirects back to /api/sources/google-drive/callback
- */
-
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { google } from "googleapis";
+import { auth, encrypt } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,25 +12,33 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
-export async function GET(request: NextRequest) {
-  // In a real app, get workspaceId + userId from the user's session
-  // For MVP, we use query params passed from the UI
-  const { searchParams } = request.nextUrl;
-  const workspaceId = searchParams.get("workspaceId") ?? "default";
-  const userId = searchParams.get("userId") ?? "default";
+export async function GET() {
+  try {
+    const { user, workspace } = await auth();
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
 
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: "offline",  // Ensures we get a refresh_token
-    prompt: "consent",        // Forces the consent screen to always appear (needed for refresh_token)
-    scope: SCOPES,
-    state: JSON.stringify({ workspaceId, userId }),
-  });
+    // Use JWT encryption to create a secure, tamper-proof state with a CSRF nonce
+    const nonce = Math.random().toString(36).substring(2);
+    const secureState = await encrypt({
+      workspaceId: workspace.id,
+      userId: user.id,
+      nonce
+    });
 
-  return NextResponse.redirect(authUrl);
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",  
+      prompt: "consent",       
+      scope: SCOPES,
+      state: secureState,
+    });
+
+    return NextResponse.redirect(authUrl);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 }

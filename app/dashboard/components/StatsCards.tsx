@@ -13,13 +13,6 @@ interface StatCard {
   delay: number;
 }
 
-const stats: StatCard[] = [
-  { icon: Brain, value: 12, label: "Critical Insights", trend: "↑ 3 vs yesterday", delay: 0.05 },
-  { icon: Zap, value: 8, label: "Pending Actions", trend: "↑ 2 vs yesterday", delay: 0.1 },
-  { icon: PieChart, value: 94, suffix: "%", label: "Knowledge Coverage", trend: "↑ 5% vs last week", delay: 0.15 },
-  { icon: ShieldAlert, value: 3, label: "Emerging Risks", trend: "↑ 1 vs yesterday", delay: 0.2 },
-];
-
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [current, setCurrent] = useState(0);
 
@@ -44,9 +37,36 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
 }
 
 export default function StatsCards() {
+  const [statsData, setStatsData] = useState<StatCard[]>([]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/dashboard");
+        if (res.ok) {
+          const data = await res.json();
+          const { stats } = data;
+          setStatsData([
+            { icon: Brain, value: stats.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05 },
+            { icon: Zap, value: stats.recentChats, label: "Recent Interactions", trend: "↑ 24h Activity", delay: 0.1 },
+            { icon: PieChart, value: stats.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15 },
+            { icon: ShieldAlert, value: stats.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2 },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (statsData.length === 0) {
+    return <div className="db-stats-grid">Loading stats...</div>;
+  }
+
   return (
     <div className="db-stats-grid">
-      {stats.map((stat) => (
+      {statsData.map((stat) => (
         <motion.div
           key={stat.label}
           className="db-stat-card"

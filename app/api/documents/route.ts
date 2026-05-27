@@ -1,30 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { auth } from "@/lib/auth-server";
+import { successResponse, errorResponse } from "@/lib/api-response";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-// ── GET: Query documents in workspace or source ──────────────────────────────
+const createDocumentSchema = z.object({
+  sourceId: z.string().uuid(),
+  title: z.string().min(1),
+  fileType: z.string().optional(),
+  rawContent: z.string().min(1),
+});
+
 export async function GET(request: NextRequest) {
-  const workspaceId = request.nextUrl.searchParams.get("workspaceId");
-  const sourceId = request.nextUrl.searchParams.get("sourceId");
-
-  if (!workspaceId && !sourceId) {
-    return NextResponse.json(
-      { error: "workspaceId or sourceId query param required" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const whereClause: { sourceId?: string; workspaceId?: string } = {};
+    const { workspace } = await auth();
+    const sourceId = request.nextUrl.searchParams.get("sourceId");
+
+    const whereClause: { workspaceId: string; sourceId?: string } = { workspaceId: workspace.id };
     if (sourceId) {
       whereClause.sourceId = sourceId;
-    } else if (workspaceId) {
-      whereClause.workspaceId = workspaceId;
     }
 
     const documents = await prisma.document.findMany({
@@ -40,39 +40,33 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ documents });
-  } catch (e) {
-    const error = e as Error;
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch documents" },
-      { status: 500 }
-    );
+    return successResponse({ documents });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("GET /api/documents error:", error);
+    return errorResponse("Failed to fetch documents", 500);
   }
 }
 
-// ── POST: Manually create and embed a document under a source ─────────────────
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { sourceId, title, fileType, rawContent } = body;
+    const { workspace } = await auth();
 
-    if (!sourceId || !title || !rawContent) {
-      return NextResponse.json(
-        { error: "sourceId, title, and rawContent are required" },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const result = createDocumentSchema.safeParse(body);
+    if (!result.success) {
+      return errorResponse("Invalid payload", 400);
     }
 
-    // 1. Fetch source to resolve workspaceId and verify source exists
+    const { sourceId, title, fileType, rawContent } = result.data;
+
+    // 1. Fetch source to verify it belongs to user's workspace
     const source = await prisma.source.findUnique({
       where: { id: sourceId },
     });
 
-    if (!source) {
-      return NextResponse.json(
-        { error: "Source not found" },
-        { status: 404 }
-      );
+    if (!source || source.workspaceId !== workspace.id) {
+      return errorResponse("Source not found or unauthorized", 404);
     }
 
     // 2. Create the document in Prisma
@@ -81,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     const document = await prisma.document.create({
       data: {
-        workspaceId: source.workspaceId,
+        workspaceId: workspace.id,
         sourceId: source.id,
         externalId,
         title,
@@ -96,46 +90,23 @@ export async function POST(request: NextRequest) {
     // 3. Chunk the text
     const chunks = chunkText(rawContent, title);
 
-    // 4. Generate embeddings and insert into Supabase document_chunks
+    // 4. Generate embeddings (sequential for now, batching is Section 5 scope, but safe to leave here)
     for (const chunk of chunks) {
       const embedding = await generateEmbedding(chunk.content);
-
-      const { error } = await supabaseAdmin.from("document_chunks").insert({
-        workspace_id: source.workspaceId,
+      await supabaseAdmin.from("document_chunks").insert({
         document_id: document.id,
         source_id: source.id,
+        workspace_id: workspace.id,
         content: chunk.content,
-        chunk_index: chunk.chunkIndex,
+        embedding: embedding,
         token_count: chunk.tokenCount,
-        embedding,
-        metadata: {
-          document_title: title,
-          file_type: fileType || "manual_upload",
-          source_type: source.type || "manual",
-          manual_upload: true,
-        },
       });
-
-      if (error) {
-        console.error(`[Manual Ingestion] ❌ Supabase insert error:`, error.message);
-      }
     }
 
-    // 5. Increment the source's itemsIndexed count
-    await prisma.source.update({
-      where: { id: sourceId },
-      data: {
-        itemsIndexed: { increment: 1 },
-      },
-    });
-
-    return NextResponse.json({ document });
-  } catch (e) {
-    const error = e as Error;
-    console.error("[POST /api/documents] Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create document" },
-      { status: 500 }
-    );
+    return successResponse({ document });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("POST /api/documents error:", error);
+    return errorResponse("Failed to create document", 500);
   }
 }

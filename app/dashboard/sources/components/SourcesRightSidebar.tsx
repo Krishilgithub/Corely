@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, Database } from "lucide-react";
 
-// ── Temporary MVP workspace ID ───────────────────────────────────────────────
-const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "../../../lib/auth-context";
 
 interface Source {
   id: string;
@@ -31,13 +30,15 @@ const GoogleDriveIcon = ({ size = 16 }: { size?: number }) => (
 );
 
 export default function SourcesRightSidebar() {
+  const { workspaceId } = useAuth();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ── Fetch all sources ──────────────────────────────────────────────────────
   const fetchSources = useCallback(async () => {
     try {
-      const res = await fetch(`/api/sources?workspaceId=${WORKSPACE_ID}`);
+      if (!workspaceId) return;
+      const res = await fetch(`/api/sources?workspaceId=${workspaceId}`);
       if (!res.ok) return;
       const data = (await res.json()) as { sources: Source[] };
       setSources(data.sources ?? []);
@@ -46,7 +47,7 @@ export default function SourcesRightSidebar() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     void fetchSources();

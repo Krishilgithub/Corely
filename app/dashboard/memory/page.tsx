@@ -18,6 +18,7 @@ import {
   Users,
   CheckCircle2,
 } from "lucide-react";
+import { Skeleton } from "../components/Skeleton";
 import "./memory.css";
 
 // ── Types and Interfaces ────────────────────────────────────────────────────
@@ -106,14 +107,13 @@ const INITIAL_SNAPSHOTS: SnapshotItem[] = [
   { id: "s3", title: "Q2 Business Context", date: "May 10, 2025 • 7:15 PM" },
 ];
 
-const WORKSPACE_ID = "00000000-0000-0000-0000-000000000001";
-
 export default function MemoryPage() {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>(INITIAL_TIMELINE_ITEMS);
   const [snapshots, setSnapshots] = useState<SnapshotItem[]>(INITIAL_SNAPSHOTS);
   const [activeTab, setActiveTab] = useState<string>("timeline");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // ── Filter Bar states ──────────────────────────────────────────────────────
   const [showFilterBar, setShowFilterBar] = useState<boolean>(false);
@@ -126,178 +126,64 @@ export default function MemoryPage() {
   const [newCategory, setNewCategory] = useState<TimelineItem["category"]>("decision");
   const [newBadge, setNewBadge] = useState("");
   const [newSource, setNewSource] = useState("Notion");
+  const [formErrors, setFormErrors] = useState<{ title?: string; content?: string }>({});
 
-  // ── Hydration from localStorage ────────────────────────────────────────────
+  // ── Hydration from Database ────────────────────────────────────────────────
   useEffect(() => {
-    // 1. Hydrate Timeline Items
-    try {
-      const rawMemories = localStorage.getItem("corely-memories");
-      if (rawMemories) {
-        const parsed = JSON.parse(rawMemories);
-        if (Array.isArray(parsed)) {
-          const mappedList: TimelineItem[] = parsed.map((item: {
-            id?: string;
-            time?: string;
-            category?: "decision" | "discussion" | "document" | "insight" | "knowledge";
-            title?: string;
-            content?: string;
-            badges?: string[];
-            sourceName?: string;
-            avatarUrl?: string;
-            date?: string;
-            text?: string;
-            createdAt?: string;
-          }) => {
-            if (item.content && item.title) {
-              return item as TimelineItem;
-            }
-            // Item from Ask Corely has { id, text, createdAt }
-            const dateObj = item.createdAt ? new Date(item.createdAt) : new Date();
-            const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            let prefix = "";
-            if (dateObj.toDateString() === today.toDateString()) {
-              prefix = "Today • ";
-            } else if (dateObj.toDateString() === yesterday.toDateString()) {
-              prefix = "Yesterday • ";
-            }
-            
-            return {
-              id: item.id || `mem-${Date.now()}-${Math.random()}`,
-              time: timeStr,
-              category: "insight",
-              title: "Saved from Ask Corely",
-              content: item.text || "",
-              badges: ["Corely AI", "Workspace"],
-              sourceName: "Corely AI",
-              avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-              date: `${prefix}${dateStr}`
-            };
-          });
-
-          // Merge with initial timeline items, keeping order and avoiding duplicates
-          const merged = [...mappedList];
-          INITIAL_TIMELINE_ITEMS.forEach((initItem) => {
-            if (!merged.some((m) => m.id === initItem.id)) {
-              merged.push(initItem);
-            }
-          });
-
-          setTimelineItems(merged);
-          localStorage.setItem("corely-memories", JSON.stringify(merged));
-        }
-      } else {
-        localStorage.setItem("corely-memories", JSON.stringify(INITIAL_TIMELINE_ITEMS));
-        setTimelineItems(INITIAL_TIMELINE_ITEMS);
-      }
-    } catch (e) {
-      console.error("Failed to hydrate timeline memories:", e);
-    }
-
-    // 2. Hydrate Snapshots
-    try {
-      const rawSnapshots = localStorage.getItem("corely-snapshots");
-      if (rawSnapshots) {
-        const parsed = JSON.parse(rawSnapshots);
-        if (Array.isArray(parsed)) {
-          setSnapshots(parsed);
-        }
-      } else {
-        localStorage.setItem("corely-snapshots", JSON.stringify(INITIAL_SNAPSHOTS));
-        setSnapshots(INITIAL_SNAPSHOTS);
-      }
-    } catch (e) {
-      console.error("Failed to hydrate snapshots:", e);
-    }
-
-    // 3. Fetch synced documents from connected sources
-    const fetchDbDocuments = async () => {
+    const fetchMemories = async () => {
       try {
-        const res = await fetch(`/api/documents?workspaceId=${WORKSPACE_ID}`);
+        const res = await fetch("/api/memory");
         if (res.ok) {
           const data = await res.json();
-          if (data && Array.isArray(data.documents)) {
-            // Read deleted document list from localstorage
-            let deletedList: string[] = [];
-            try {
-              const deletedRaw = localStorage.getItem("corely-deleted-documents");
-              deletedList = deletedRaw ? JSON.parse(deletedRaw) : [];
-            } catch (e) {
-              console.error("Failed to parse deleted documents list:", e);
-            }
-
-            interface DbDocument {
+          if (data.memories) {
+            interface ApiMemory {
               id: string;
+              createdAt: string;
+              category: "decision" | "discussion" | "document" | "insight" | "knowledge";
               title: string;
-              fileType?: string;
-              updatedAt?: string;
-              source?: {
-                name: string;
-                type: string;
-              };
+              content: string;
+              badges: string[];
+              sourceName: string;
+              avatarUrl: string | null;
             }
-
-            const mappedDocs: TimelineItem[] = data.documents
-              .map((doc: DbDocument) => {
-                const dateObj = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
-                const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-                
-                let prefix = "";
-                if (dateObj.toDateString() === today.toDateString()) {
-                  prefix = "Today • ";
-                } else if (dateObj.toDateString() === yesterday.toDateString()) {
-                  prefix = "Yesterday • ";
-                }
-
-                // Determine source name
-                let sourceName = "Google Drive";
-                if (doc.source) {
-                  if (doc.source.type === "google_drive") sourceName = "Google Drive";
-                  else if (doc.source.type === "notion") sourceName = "Notion";
-                  else if (doc.source.type === "slack") sourceName = "Slack";
-                  else sourceName = doc.source.name || "Connected Source";
-                }
-
-                return {
-                  id: `db-doc-${doc.id}`,
-                  time: timeStr,
-                  category: "document",
-                  title: "Document Synced",
-                  content: `${doc.title} (${doc.fileType || "File"})`,
-                  badges: [doc.fileType || "Synced"],
-                  sourceName: sourceName,
-                  avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-                  date: `${prefix}${dateStr}`
-                };
-              })
-              .filter((item: TimelineItem) => !deletedList.includes(item.id));
-
-            setTimelineItems((prev) => {
-              // Retain all items in previous state that are not db-docs
-              const nonDbItems = prev.filter(
-                (item) => !item.id.startsWith("db-doc-")
-              );
+            const mappedList: TimelineItem[] = data.memories.map((item: ApiMemory) => {
+              const dateObj = new Date(item.createdAt);
+              const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
               
-              return [...nonDbItems, ...mappedDocs];
+              const today = new Date();
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+              
+              let prefix = "";
+              if (dateObj.toDateString() === today.toDateString()) {
+                prefix = "Today • ";
+              } else if (dateObj.toDateString() === yesterday.toDateString()) {
+                prefix = "Yesterday • ";
+              }
+
+              return {
+                id: item.id,
+                time: timeStr,
+                category: item.category,
+                title: item.title,
+                content: item.content,
+                badges: Array.isArray(item.badges) ? item.badges : [],
+                sourceName: item.sourceName,
+                avatarUrl: item.avatarUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+                date: `${prefix}${dateStr}`,
+              };
             });
+            setTimelineItems(mappedList);
           }
         }
       } catch (e) {
-        console.error("Failed to fetch synced documents:", e);
+        console.error("Failed to fetch memories:", e);
+      } finally {
+        setIsLoading(false);
       }
     };
-    
-    fetchDbDocuments();
+    fetchMemories();
   }, []);
 
   // ── Filters & Category Mapper ──────────────────────────────────────────────
@@ -478,39 +364,61 @@ export default function MemoryPage() {
   }, [timelineItems]);
 
   // ── Form Handlers ──────────────────────────────────────────────────────────
-  const handleAddMemorySubmit = (e: React.FormEvent) => {
+  const handleAddMemorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim()) return;
-
-    const timeStr = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const errors: { title?: string; content?: string } = {};
+    if (!newTitle.trim()) errors.title = "Title is required";
+    if (!newContent.trim()) errors.content = "Content is required";
     
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    
+    setFormErrors({});
 
-    const newItem: TimelineItem = {
-      id: `mem-${Date.now()}`,
-      time: timeStr,
-      category: newCategory,
-      title: newTitle.trim(),
-      content: newContent.trim(),
-      badges: newBadge.trim() ? [newBadge.trim()] : ["Custom"],
-      sourceName: newSource,
-      avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80", // Admin face
-      date: `Today • ${dateStr}`,
-    };
+    try {
+      const payload = {
+        category: newCategory,
+        title: newTitle.trim(),
+        content: newContent.trim(),
+        badges: newBadge.trim() ? [newBadge.trim()] : ["Custom"],
+        sourceName: newSource,
+      };
 
-    setTimelineItems((prev) => {
-      const updated = [newItem, ...prev];
-      localStorage.setItem("corely-memories", JSON.stringify(updated));
-      return updated;
-    });
+      const res = await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.memory) {
+          const item = data.memory;
+          const dateObj = new Date(item.createdAt);
+          const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          const prefix = "Today • ";
+          
+          const newItem: TimelineItem = {
+            id: item.id,
+            time: timeStr,
+            category: item.category,
+            title: item.title,
+            content: item.content,
+            badges: item.badges,
+            sourceName: item.sourceName,
+            avatarUrl: item.avatarUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+            date: `${prefix}${dateStr}`,
+          };
+
+          setTimelineItems((prev) => [newItem, ...prev]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to add memory", err);
+    }
     
     // Reset Form
     setNewTitle("");
@@ -518,32 +426,17 @@ export default function MemoryPage() {
     setNewBadge("");
     setNewCategory("decision");
     setNewSource("Notion");
+    setFormErrors({});
     setShowAddModal(false);
   };
 
-  const handleDeleteItem = (id: string) => {
-    setTimelineItems((prev) => {
-      const updated = prev.filter((item) => item.id !== id);
-      
-      // If it's a DB document, save its ID to the deleted list in localstorage
-      if (id.startsWith("db-doc-")) {
-        try {
-          const deletedRaw = localStorage.getItem("corely-deleted-documents");
-          const deletedList = deletedRaw ? JSON.parse(deletedRaw) : [];
-          if (!deletedList.includes(id)) {
-            deletedList.push(id);
-            localStorage.setItem("corely-deleted-documents", JSON.stringify(deletedList));
-          }
-        } catch (e) {
-          console.error("Failed to update deleted documents list:", e);
-        }
-      }
-
-      // Save only custom/saved items back to localstorage corely-memories (excluding the db-doc ones)
-      const customOnly = updated.filter((item) => !item.id.startsWith("db-doc-"));
-      localStorage.setItem("corely-memories", JSON.stringify(customOnly));
-      return updated;
-    });
+  const handleDeleteItem = async (id: string) => {
+    try {
+      await fetch(`/api/memory?id=${id}`, { method: "DELETE" });
+      setTimelineItems((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error("Failed to delete memory", err);
+    }
   };
 
   const handleCreateSnapshot = () => {
@@ -775,7 +668,24 @@ export default function MemoryPage() {
             <div className="mem-timeline-list">
               <div className="mem-timeline-line" />
 
-              {Object.keys(groupedItems).length === 0 ? (
+              {isLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32, paddingLeft: 120 }}>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+                      <Skeleton width={48} height={48} borderRadius="50%" />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <Skeleton width="40%" height={20} />
+                        <Skeleton width="100%" height={16} />
+                        <Skeleton width="80%" height={16} />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Skeleton width={80} height={24} borderRadius={12} />
+                          <Skeleton width={80} height={24} borderRadius={12} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : Object.keys(groupedItems).length === 0 ? (
                 <div style={{ padding: "48px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 12, marginLeft: 128, background: "#fafafa" }}>
                   <Brain size={32} style={{ color: "#a1a1aa", marginBottom: 12 }} />
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>No memory entries found</h3>
@@ -1073,23 +983,29 @@ export default function MemoryPage() {
                   <label className="mem-form-label">Title / Event Type</label>
                   <input
                     type="text"
-                    className="mem-form-input"
+                    className={`mem-form-input ${formErrors.title ? "error" : ""}`}
                     placeholder="e.g. Decision Captured"
                     value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      setNewTitle(e.target.value);
+                      if (formErrors.title) setFormErrors({ ...formErrors, title: undefined });
+                    }}
                   />
+                  {formErrors.title && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.title}</span>}
                 </div>
 
                 <div className="mem-form-group">
                   <label className="mem-form-label">Content Description</label>
                   <textarea
-                    className="mem-form-textarea"
+                    className={`mem-form-textarea ${formErrors.content ? "error" : ""}`}
                     placeholder="Provide description of what happened..."
                     value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      setNewContent(e.target.value);
+                      if (formErrors.content) setFormErrors({ ...formErrors, content: undefined });
+                    }}
                   />
+                  {formErrors.content && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.content}</span>}
                 </div>
 
                 <div className="mem-form-group">
