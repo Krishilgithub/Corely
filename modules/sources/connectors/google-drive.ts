@@ -236,6 +236,14 @@ async function processFile(
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pdfImport = require("pdf-parse");
     const PDFParseClass = pdfImport.PDFParse || (typeof pdfImport === "function" ? pdfImport : pdfImport.default);
+    
+    // Set the worker source statically before parsing in Node.js to prevent fake worker resolution failure
+    try {
+      PDFParseClass.setWorker(require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs"));
+    } catch (e) {
+      console.warn("[Google Drive] Failed to set local pdf.js worker:", e);
+    }
+
     const parser = new PDFParseClass({ data: Buffer.from(res.data as ArrayBuffer) });
     const parsed = await parser.getText();
     rawContent = parsed.text;
