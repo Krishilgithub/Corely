@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Geist, Outfit } from "next/font/google";
 import "./globals.css";
+import { ReactLenis } from "lenis/react";
+import "lenis/dist/lenis.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -39,7 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${geistSans.variable} ${outfit.variable} h-full`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col antialiased bg-white text-[#111111]">{children}</body>
+      <body suppressHydrationWarning className="min-h-full flex flex-col antialiased bg-white text-[#111111]">
+        <ReactLenis root>
+          {children}
+        </ReactLenis>
+      </body>
     </html>
   );
 }

@@ -78,6 +78,12 @@ async function startRealWorker() {
             await syncGoogleDrive(sourceId);
             break;
           }
+          case "sync-notion": {
+            const { sourceId } = job.data as { sourceId: string; workspaceId: string };
+            const { syncNotion } = await import("../modules/sources/connectors/notion");
+            await syncNotion(sourceId);
+            break;
+          }
           default:
             console.warn(`[Worker] ⚠️ Unknown job name: ${job.name}`);
         }

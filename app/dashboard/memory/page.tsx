@@ -842,6 +842,7 @@ export default function MemoryPage() {
                                 <span>{item.sourceName}</span>
                               </div>
                               
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={item.avatarUrl}
                                 className="mem-participant-avatar"

@@ -20,6 +20,7 @@ import {
   Loader2,
   Folder,
   Check,
+  Trash2,
 } from "lucide-react";
 
 // ── Temporary MVP workspace/user IDs ─────────────────────────────────────────
@@ -48,6 +49,13 @@ const GoogleDriveIcon = () => (
     <path d="M6.75 12L3 17.57h5.93L12 12H6.75z" fill="#00832D" />
     <path d="M17.25 12L19.07 17.57 21 14.14l-3.75-6.14H12l5.25 4z" fill="#FFBA00" />
     <path d="M12 3l5.25 9H6.75L12 3z" fill="#00AC47" opacity="0.3"/>
+  </svg>
+);
+
+const NotionIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15Z" fill="#000000"/>
+    <path d="M7 17V7h2.2l5.2 6.8V7H17v10h-2.2L9.6 10.2V17H7Z" fill="#FFFFFF"/>
   </svg>
 );
 
@@ -235,9 +243,87 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Notion Card */}
+          <div
+            style={{
+              border: "1.5px solid #e4e4e7",
+              borderRadius: 12,
+              padding: "20px",
+              marginBottom: 12,
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#8b5cf6";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #f5f3ff";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#e4e4e7";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    background: "#f3f4f6",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <NotionIcon />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>Notion</div>
+                  <div style={{ fontSize: 12.5, color: "#71717a", marginTop: 2 }}>
+                    Wikis, documents, and workspace databases
+                  </div>
+                </div>
+              </div>
+              <a
+                href={`/api/sources/notion/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
+                style={{
+                  padding: "8px 18px",
+                  background: "#8b5cf6",
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.15s",
+                }}
+              >
+                Connect
+              </a>
+            </div>
+            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {["Pages", "Databases", "Wikis", "Docs", "Nested Blocks"].map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#52525b",
+                    background: "#f4f4f5",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* Coming soon connectors */}
           {[
-            { name: "Notion", desc: "Pages, databases, and wikis" },
             { name: "Slack", desc: "Messages, channels, and files" },
             { name: "Confluence", desc: "Spaces, pages, and comments" },
           ].map((c) => (
@@ -290,6 +376,7 @@ export default function SourcesMain() {
   const [activeTab, setActiveTab] = useState<"all" | "synced" | "syncing">("all");
   const [activeDropdownSourceId, setActiveDropdownSourceId] = useState<string | null>(null);
   const [disconnectingSource, setDisconnectingSource] = useState<Source | null>(null);
+  const [managingSource, setManagingSource] = useState<Source | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "info" } | null>(null);
 
@@ -337,13 +424,17 @@ export default function SourcesMain() {
   // ── Detect successful connection redirect ──────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("connected") === "google_drive") {
+    const connected = params.get("connected");
+    if (connected === "google_drive") {
       const sourceId = params.get("sourceId");
       if (sourceId) {
         setConfiguringSourceId(sourceId);
       } else {
         showToast("Google Drive connected! Sync in progress...", "success");
       }
+      window.history.replaceState({}, "", "/dashboard/sources");
+    } else if (connected === "notion") {
+      showToast("Notion connected! Sync in progress...", "success");
       window.history.replaceState({}, "", "/dashboard/sources");
     }
   }, [showToast]);
@@ -632,7 +723,8 @@ export default function SourcesMain() {
 
         {/* Data table */}
         {!loading && filtered.length > 0 && (
-          <table className="src-table">
+          <div style={{ overflowX: "auto" }}>
+            <table className="src-table">
             <thead>
               <tr>
                 <th className="src-th">Source</th>
@@ -650,11 +742,14 @@ export default function SourcesMain() {
                     <div className="src-source-cell">
                       <div className="src-source-icon">
                         {source.type === "google_drive" && <GoogleDriveIcon />}
+                        {source.type === "notion" && <NotionIcon />}
                       </div>
                       <div>
                         <div className="src-source-name">{source.name}</div>
                         <div className="src-source-url">
-                          {(source.config as { email?: string })?.email ?? source.type}
+                          {(source.config as { email?: string })?.email ??
+                            (source.config as { ownerEmail?: string })?.ownerEmail ??
+                            source.type}
                           {(source.config as { folderName?: string })?.folderName && (
                             <span style={{ color: "#ff6b00", fontWeight: 700, marginLeft: 6 }}>
                               • Folder: {(source.config as { folderName?: string }).folderName}
@@ -669,12 +764,24 @@ export default function SourcesMain() {
                       className="src-type-pill"
                       style={{
                         background:
-                          source.type === "google_drive" ? "#dcfce7" : "#f4f4f5",
+                          source.type === "google_drive"
+                            ? "#dcfce7"
+                            : source.type === "notion"
+                            ? "#f5f3ff"
+                            : "#f4f4f5",
                         color:
-                          source.type === "google_drive" ? "#16a34a" : "#52525b",
+                          source.type === "google_drive"
+                            ? "#16a34a"
+                            : source.type === "notion"
+                            ? "#8b5cf6"
+                            : "#52525b",
                       }}
                     >
-                      {source.type === "google_drive" ? "Storage" : source.type}
+                      {source.type === "google_drive"
+                        ? "Storage"
+                        : source.type === "notion"
+                        ? "Workspace"
+                        : source.type}
                     </span>
                   </td>
                   <td className="src-td">
@@ -712,7 +819,7 @@ export default function SourcesMain() {
                     )}
                   </td>
                   <td className="src-td" style={{ position: "relative" }}>
-                    <div className="src-action-cell" style={{ gap: 8, justifyContent: "center", position: "relative" }}>
+                    <div className="src-action-cell" style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", position: "relative" }}>
                       {source.type === "google_drive" && (
                         <button
                           title="Configure folder sync restriction"
@@ -758,6 +865,29 @@ export default function SourcesMain() {
                           className={source.status === "syncing" ? "animate-spin" : ""}
                         />
                         {source.status === "syncing" ? "Syncing..." : "Sync"}
+                      </button>
+                      <button
+                        title="Manage indexed documents"
+                        onClick={() => setManagingSource(source)}
+                        style={{
+                          border: "1px solid #ff6b00",
+                          background: "#fff3ee",
+                          borderRadius: 6,
+                          padding: "4px 8px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: "#ff6b00",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#ffd7c7")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "#fff3ee")}
+                      >
+                        <FileText size={12} />
+                        Manage
                       </button>
                       <button
                         title="More options"
@@ -869,6 +999,37 @@ export default function SourcesMain() {
                               Configure Scope
                             </button>
                           )}
+                          <button
+                            onClick={() => {
+                              setManagingSource(source);
+                              setActiveDropdownSourceId(null);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "8px 12px",
+                              background: "none",
+                              border: "none",
+                              borderRadius: 6,
+                              width: "100%",
+                              textAlign: "left",
+                              fontSize: 12.5,
+                              fontWeight: 500,
+                              color: "#3f3f46",
+                              cursor: "pointer",
+                              transition: "background 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#f4f4f5";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "none";
+                            }}
+                          >
+                            <FileText size={13} style={{ color: "#ff6b00" }} />
+                            Manage Documents
+                          </button>
                           <div style={{ height: 1, background: "#e4e4e7", margin: "4px 0" }} />
                           <button
                             onClick={() => {
@@ -909,6 +1070,7 @@ export default function SourcesMain() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {filtered.length > 0 && (
@@ -1084,6 +1246,18 @@ export default function SourcesMain() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Manage Documents Modal ── */}
+      <AnimatePresence>
+        {managingSource && (
+          <ManageDocumentsModal
+            source={managingSource}
+            onClose={() => setManagingSource(null)}
+            onDocumentsChanged={fetchSources}
+            showToast={showToast}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -1472,6 +1646,731 @@ function ConfigureFolderModal({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+// ── Manage Documents Modal Component ─────────────────────────────────────────
+
+interface ManageDoc {
+  id: string;
+  title: string;
+  fileType: string | null;
+  externalId: string;
+  rawContent: string | null;
+  indexedAt: string | null;
+  updatedAt: string;
+}
+
+function ManageDocumentsModal({
+  source,
+  onClose,
+  onDocumentsChanged,
+  showToast,
+}: {
+  source: Source;
+  onClose: () => void;
+  onDocumentsChanged: () => void;
+  showToast: (text: string, type?: "success" | "info") => void;
+}) {
+  const [docs, setDocs] = useState<ManageDoc[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [searchDocQuery, setSearchDocQuery] = useState("");
+  
+  // Add manual form states
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocType, setNewDocType] = useState("manual_upload");
+  const [newDocContent, setNewDocContent] = useState("");
+  const [submittingDoc, setSubmittingDoc] = useState(false);
+  const [submitStep, setSubmitStep] = useState(0); // 0: Idle, 1: Chunking, 2: Embedding, 3: Saving
+  
+  // Document deleting states
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
+  const fetchDocs = useCallback(async () => {
+    setLoadingDocs(true);
+    try {
+      const res = await fetch(`/api/documents?sourceId=${source.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDocs(data.documents || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch documents for source:", e);
+    } finally {
+      setLoadingDocs(false);
+    }
+  }, [source.id]);
+
+  useEffect(() => {
+    fetchDocs();
+  }, [fetchDocs]);
+
+  // Handle Delete
+  const handleDeleteDoc = async (docId: string, docTitle: string) => {
+    setDeletingDocId(docId);
+    try {
+      const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
+      if (res.ok) {
+        setDocs((prev) => prev.filter((d) => d.id !== docId));
+        showToast(`Document "${docTitle}" deleted successfully.`, "success");
+        onDocumentsChanged();
+      } else {
+        throw new Error("Failed to delete document");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Failed to delete document.", "info");
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  // Handle Manual Submit
+  const handleAddDocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDocTitle.trim() || !newDocContent.trim()) {
+      showToast("Title and content are required.", "info");
+      return;
+    }
+
+    setSubmittingDoc(true);
+    setSubmitStep(1); // Analyzing & Chunking
+
+    // Visual step sequence for a premium feeling
+    setTimeout(() => {
+      setSubmitStep(2); // Generating vector embeddings
+    }, 800);
+
+    try {
+      const res = await fetch(`/api/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceId: source.id,
+          title: newDocTitle.trim(),
+          fileType: newDocType.trim() || "manual_upload",
+          rawContent: newDocContent.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSubmitStep(3); // Finalizing
+        setTimeout(() => {
+          setDocs((prev) => [data.document, ...prev]);
+          showToast(`Document "${newDocTitle}" indexed successfully!`, "success");
+          
+          // Reset form
+          setNewDocTitle("");
+          setNewDocContent("");
+          setShowAddForm(false);
+          setSubmittingDoc(false);
+          setSubmitStep(0);
+          onDocumentsChanged();
+        }, 600);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to index manual document");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast((err as Error).message || "Failed to add manual document", "info");
+      setSubmittingDoc(false);
+      setSubmitStep(0);
+    }
+  };
+
+  const filteredDocs = docs.filter((d) =>
+    d.title.toLowerCase().includes(searchDocQuery.toLowerCase())
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10000,
+        backdropFilter: "blur(5px)",
+      }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 25 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          width: "90%",
+          maxWidth: 1000,
+          height: "80vh",
+          maxHeight: 700,
+          boxShadow: "0 28px 75px rgba(0,0,0,0.2)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "24px 32px",
+            borderBottom: "1px solid #f4f4f5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "linear-gradient(to right, #fafafa, #ffffff)",
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h2 style={{ fontSize: 19, fontWeight: 800, color: "#18181b" }}>
+                Manage Source Documents
+              </h2>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#ff6b00",
+                  background: "#fff3ee",
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                }}
+              >
+                {source.name}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "#71717a", marginTop: 4 }}>
+              View, add manual contents, or purge documents currently indexed under this connector.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "#f4f4f5",
+              borderRadius: 10,
+              padding: 10,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#e4e4e7")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#f4f4f5")}
+          >
+            <X size={16} color="#52525b" />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0, background: "#ffffff" }}>
+          {/* Left Column: Documents List */}
+          <div
+            style={{
+              flex: 1.3,
+              borderRight: "1px solid #f4f4f5",
+              display: "flex",
+              flexDirection: "column",
+              padding: "24px 32px",
+              minWidth: 0,
+            }}
+          >
+            {/* Table Header and Search */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+                gap: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#f4f4f5",
+                  borderRadius: 10,
+                  padding: "8px 14px",
+                  flex: 1,
+                  border: "1.5px solid transparent",
+                  transition: "border-color 0.15s",
+                }}
+                onFocusCapture={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
+                onBlurCapture={(e) => (e.currentTarget.style.borderColor = "transparent")}
+              >
+                <Search size={14} color="#71717a" style={{ marginRight: 8 }} />
+                <input
+                  type="text"
+                  placeholder="Search indexed files by title..."
+                  value={searchDocQuery}
+                  onChange={(e) => setSearchDocQuery(e.target.value)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    outline: "none",
+                    width: "100%",
+                    fontSize: 13,
+                    color: "#18181b",
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                style={{
+                  border: "none",
+                  background: showAddForm ? "#f4f4f5" : "#ff6b00",
+                  color: showAddForm ? "#52525b" : "#fff",
+                  borderRadius: 10,
+                  padding: "10px 16px",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.15s, transform 0.1s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = showAddForm ? "#e4e4e7" : "#e05e00";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = showAddForm ? "#f4f4f5" : "#ff6b00";
+                }}
+              >
+                {showAddForm ? (
+                  <>View Document List</>
+                ) : (
+                  <>
+                    <Plus size={14} strokeWidth={2.5} /> Add Document
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Main view container */}
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              {loadingDocs ? (
+                // Loading State
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "20px 0" }}>
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      style={{
+                        height: 52,
+                        background: "#fafafa",
+                        borderRadius: 10,
+                        border: "1px solid #f4f4f5",
+                        animation: "pulse 1.5s ease-in-out infinite",
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : filteredDocs.length === 0 ? (
+                // Empty State
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    padding: 40,
+                    textAlign: "center",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: "#fff3ee",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FileText size={24} color="#ff6b00" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "#18181b" }}>
+                      No documents found
+                    </div>
+                    <div style={{ fontSize: 13, color: "#71717a", marginTop: 4, maxWidth: 280 }}>
+                      {searchDocQuery
+                        ? "We couldn't find any documents matching your search term."
+                        : "There are no files indexed under this source. Add a manual document to get started."}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Documents List
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1.5px solid #f4f4f5" }}>
+                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "#71717a", padding: "10px 8px" }}>
+                        Title
+                      </th>
+                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "#71717a", padding: "10px 8px" }}>
+                        Type
+                      </th>
+                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "#71717a", padding: "10px 8px" }}>
+                        Indexed Date
+                      </th>
+                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "#71717a", padding: "10px 8px", textAlign: "center" }}>
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDocs.map((doc) => {
+                      const isDeleting = deletingDocId === doc.id;
+                      return (
+                        <tr
+                          key={doc.id}
+                          style={{
+                            borderBottom: "1px solid #f4f4f5",
+                            opacity: isDeleting ? 0.5 : 1,
+                            background: isDeleting ? "#fafafa" : "transparent",
+                          }}
+                        >
+                          <td style={{ padding: "12px 8px", maxWidth: 220 }}>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: "#18181b",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={doc.title}
+                            >
+                              {doc.title}
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 8px" }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: "2px 8px",
+                                borderRadius: 12,
+                                background: doc.fileType === "manual_upload" ? "#fff3ee" : "#f4f4f5",
+                                color: doc.fileType === "manual_upload" ? "#ff6b00" : "#52525b",
+                              }}
+                            >
+                              {doc.fileType === "manual_upload"
+                                ? "Manual"
+                                : doc.fileType
+                                ? doc.fileType.toUpperCase()
+                                : "FILE"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 8px", fontSize: 12, color: "#71717a" }}>
+                            {doc.indexedAt
+                              ? new Date(doc.indexedAt).toLocaleDateString()
+                              : new Date(doc.updatedAt).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: "12px 8px", textAlign: "center" }}>
+                            <button
+                              onClick={() => handleDeleteDoc(doc.id, doc.title)}
+                              disabled={isDeleting}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                padding: 6,
+                                cursor: isDeleting ? "not-allowed" : "pointer",
+                                borderRadius: 6,
+                                color: "#ef4444",
+                                transition: "background 0.15s",
+                                display: "inline-flex",
+                                alignItems: "center",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              title="Delete document"
+                            >
+                              {isDeleting ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={13} />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Statistics or Form Panel */}
+          <div
+            style={{
+              flex: 0.8,
+              padding: "24px 32px",
+              background: "#fafafa",
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              overflowY: "auto",
+            }}
+          >
+            {showAddForm ? (
+              // Manual Document Form
+              <form onSubmit={handleAddDocSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "#18181b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Plus size={16} strokeWidth={2.5} style={{ color: "#ff6b00" }} />
+                    Add Manual Document
+                  </h3>
+                  <p style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
+                    Paste plain text content to index it manually under this source container.
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>Document Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Q3 Strategic Budget Ingestion"
+                    value={newDocTitle}
+                    onChange={(e) => setNewDocTitle(e.target.value)}
+                    disabled={submittingDoc}
+                    style={{
+                      background: "#fff",
+                      border: "1.5px solid #e4e4e7",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 13,
+                      color: "#18181b",
+                      outline: "none",
+                      transition: "border-color 0.15s",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = "#e4e4e7")}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>File Type Label</label>
+                  <select
+                    value={newDocType}
+                    onChange={(e) => setNewDocType(e.target.value)}
+                    disabled={submittingDoc}
+                    style={{
+                      background: "#fff",
+                      border: "1.5px solid #e4e4e7",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 13,
+                      color: "#18181b",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="manual_upload">Manual Upload</option>
+                    <option value="pdf">PDF Document</option>
+                    <option value="txt">Text File (TXT)</option>
+                    <option value="md">Markdown Ingestion</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>Raw Content</label>
+                  <textarea
+                    required
+                    rows={8}
+                    placeholder="Paste plain text content here. We will automatically chunk and embed it..."
+                    value={newDocContent}
+                    onChange={(e) => setNewDocContent(e.target.value)}
+                    disabled={submittingDoc}
+                    style={{
+                      background: "#fff",
+                      border: "1.5px solid #e4e4e7",
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      fontSize: 13,
+                      color: "#18181b",
+                      fontFamily: "inherit",
+                      resize: "none",
+                      outline: "none",
+                      transition: "border-color 0.15s",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = "#e4e4e7")}
+                  />
+                </div>
+
+                {submittingDoc ? (
+                  // Premium Embedding Progress Stepper
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e4e4e7",
+                      borderRadius: 10,
+                      padding: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#18181b" }}>
+                        {submitStep === 1
+                          ? "Analyzing & chunking text..."
+                          : submitStep === 2
+                          ? "Generating vector embeddings..."
+                          : "Indexing document chunks..."}
+                      </div>
+                    </div>
+                    {/* Pulsing Progress Bar */}
+                    <div style={{ height: 4, width: "100%", background: "#f4f4f5", borderRadius: 2, overflow: "hidden" }}>
+                      <motion.div
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                        style={{ height: "100%", width: "50%", background: "#ff6b00", borderRadius: 2 }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    style={{
+                      background: "#ff6b00",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: "10px 18px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "background 0.15s",
+                      textAlign: "center",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#e05e00")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#ff6b00")}
+                  >
+                    Embedding & Index Document
+                  </button>
+                )}
+              </form>
+            ) : (
+              // Source General Statistics
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 14.5, fontWeight: 800, color: "#18181b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Database size={15} style={{ color: "#ff6b00" }} />
+                    Connector Overview
+                  </h3>
+                  <p style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
+                    Status overview and index stats for this data source integration.
+                  </p>
+                </div>
+
+                {/* Metrics list */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #f4f4f5",
+                      borderRadius: 10,
+                      padding: 12,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#71717a", fontWeight: 500 }}>Index Count</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: "#18181b" }}>
+                      {docs.length} documents
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #f4f4f5",
+                      borderRadius: 10,
+                      padding: 12,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#71717a", fontWeight: 500 }}>Connector Type</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 12,
+                        background: source.type === "google_drive" ? "#dcfce7" : "#f5f3ff",
+                        color: source.type === "google_drive" ? "#16a34a" : "#8b5cf6",
+                      }}
+                    >
+                      {source.type === "google_drive" ? "Storage (Drive)" : "Workspace (Notion)"}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #f4f4f5",
+                      borderRadius: 10,
+                      padding: 12,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#71717a", fontWeight: 500 }}>Sync Status</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: source.status === "synced" ? "#16a34a" : "#2563eb",
+                      }}
+                    >
+                      {source.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info Note */}
+                <div
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 12,
+                    color: "#b45309",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  <strong>💡 Dynamic RAG Search Context:</strong> Manually added documents are split into semantic word blocks, embedded via OpenAI, and made instantly searchable inside the Ask Corely conversational Q&A lane.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

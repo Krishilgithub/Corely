@@ -38,17 +38,7 @@ export default function Topbar() {
           <span className="db-notif-badge" aria-label="3 notifications">3</span>
         </button>
 
-        {/* AI Status Pill */}
-        <div className="db-ai-pill">
-          <div className="db-ai-pulse">
-            <div className="db-ai-pulse-ring" />
-            <div className="db-ai-pulse-dot" />
-          </div>
-          <div>
-            <div className="db-ai-label">Corely AI</div>
-            <div className="db-ai-status-text">Active</div>
-          </div>
-        </div>
+
 
         {/* Avatar */}
         <div

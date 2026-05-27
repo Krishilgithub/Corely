@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
       
       // Map history to ChatGPT messages format (exclude the current user message to avoid duplicate addition)
       conversationHistory = history
-        .filter((msg) => msg.text !== question)
-        .map((msg) => ({
+        .filter((msg: { text: string; sender: string }) => msg.text !== question)
+        .map((msg: { text: string; sender: string }) => ({
           role: (msg.sender === "user" ? "user" : "assistant") as "user" | "assistant",
           content: msg.text,
         }));
