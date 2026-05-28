@@ -174,39 +174,34 @@ export default function SettingsMain() {
   }
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      {/* Header */}
+    <>
+      {/* Left Navigation */}
       <motion.div
-        className="set-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="set-nav-sidebar"
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="set-title">Settings</h1>
-        <p className="set-subtitle">Manage your workspace, preferences, and configurations.</p>
-      </motion.div>
-
-      {/* Tabs */}
-      <motion.div
-        className="set-tabs-wrap"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
+        <div style={{ marginBottom: 24 }}>
+          <h1 className="set-title" style={{ fontSize: 24 }}>Settings</h1>
+          <p className="set-subtitle" style={{ fontSize: 13 }}>Manage your configurations.</p>
+        </div>
         {tabs.map((tab) => (
           <div
             key={tab}
-            className={`set-tab ${activeTab === tab ? "active" : ""}`}
+            className={`set-nav-item ${activeTab === tab ? "active" : ""}`}
             onClick={() => setActiveTab(tab)}
           >
             {tab}
+            {activeTab === tab && <ChevronRight size={14} />}
           </div>
         ))}
       </motion.div>
 
-      {/* Tab Content */}
+      {/* Right Content */}
       <motion.div
         key={activeTab}
+        style={{ flex: 1, minWidth: 0 }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -546,20 +541,22 @@ export default function SettingsMain() {
             <div className="set-section-title">Audit Logs</div>
             <div className="set-card" style={{ padding: 24 }}>
               <div style={{ fontSize: 13, color: '#71717a', marginBottom: 20 }}>View recent security and administrative events.</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #e4e4e7', textAlign: 'left', color: '#71717a' }}>
-                    <th style={{ padding: '12px 8px' }}>Action</th>
-                    <th style={{ padding: '12px 8px' }}>Actor</th>
-                    <th style={{ padding: '12px 8px' }}>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: '12px 8px' }} colSpan={3} align="center" className="text-gray-400">No logs available.</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="table-responsive-wrapper">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e4e4e7', textAlign: 'left', color: '#71717a' }}>
+                      <th style={{ padding: '12px 8px' }}>Action</th>
+                      <th style={{ padding: '12px 8px' }}>Actor</th>
+                      <th style={{ padding: '12px 8px' }}>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: '12px 8px' }} colSpan={3} align="center" className="text-gray-400">No logs available.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -649,6 +646,6 @@ export default function SettingsMain() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

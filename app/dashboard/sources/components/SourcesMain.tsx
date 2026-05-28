@@ -2644,7 +2644,8 @@ function ManageDocumentsModal({
                 </div>
               ) : (
                 // Documents List
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive-wrapper">
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                   <thead>
                     <tr style={{ borderBottom: "1.5px solid #f4f4f5" }}>
                       <th style={{ fontSize: 11.5, fontWeight: 700, color: "#71717a", padding: "10px 8px" }}>
@@ -2742,6 +2743,7 @@ function ManageDocumentsModal({
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>

@@ -497,7 +497,8 @@ export default function WorkflowsMain({
 
         {/* ── Table List View ── */}
         {viewMode === "list" ? (
-          <table className="wf-table">
+          <div className="table-responsive-wrapper">
+            <table className="wf-table">
             <thead>
               <tr>
                 <th className="wf-th">Workflow</th>
@@ -577,7 +578,8 @@ export default function WorkflowsMain({
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         ) : (
           /* ── Grid Cards View ── */
           <div className="wf-grid-layout">

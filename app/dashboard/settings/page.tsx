@@ -1,5 +1,4 @@
 import SettingsMain from "./components/SettingsMain";
-import SettingsRightSidebar from "./components/SettingsRightSidebar";
 
 export const metadata = {
   title: "Settings — Corely Enterprise",
@@ -11,7 +10,6 @@ export default function SettingsPage() {
     <main className="db-content">
       <div className="set-page-grid">
         <SettingsMain />
-        <SettingsRightSidebar />
       </div>
     </main>
   );
