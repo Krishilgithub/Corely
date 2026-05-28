@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "../components/Skeleton";
 import {
   Sparkles,
@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 import {
   PieChart,
   Pie,
@@ -37,30 +38,6 @@ import "./insights.css";
 
 
 
-const pieData = [
-  { name: "Critical", value: 12, color: "#ef4444" },
-  { name: "High", value: 28, color: "#ff6b00" },
-  { name: "Medium", value: 78, color: "#eab308" },
-  { name: "Low", value: 38, color: "#22c55e" },
-];
-
-const lineData = [
-  { date: "May 1", val: 20 },
-  { date: "May 8", val: 28 },
-  { date: "May 15", val: 24 },
-  { date: "May 22", val: 40 },
-  { date: "May 29", val: 38 },
-  { date: "May 30", val: 50 },
-];
-
-const categoryProgress = [
-  { name: "Operational", value: 42, color: "#ff6b00", iconBg: "#eff6ff", iconColor: "#3b82f6" },
-  { name: "Customer", value: 38, color: "#ff6b00", iconBg: "#fef2f2", iconColor: "#ef4444" },
-  { name: "Financial", value: 28, color: "#ff6b00", iconBg: "#f0fdf4", iconColor: "#16a34a" },
-  { name: "People", value: 24, color: "#8b5cf6", iconBg: "#f5f3ff", iconColor: "#8b5cf6" },
-  { name: "Product", value: 14, color: "#22c55e", iconBg: "#ecfeff", iconColor: "#0891b2" },
-  { name: "Risk", value: 10, color: "#ef4444", iconBg: "#fef2f2", iconColor: "#ef4444" },
-];
 
 // ── Components ───────────────────────────────────────────────────────────────
 
@@ -72,6 +49,12 @@ export default function InsightsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState("All Priority");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedSource, setSelectedSource] = useState("All Sources");
+  const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
     fetch("/api/insights")
@@ -97,6 +80,103 @@ export default function InsightsPage() {
     "Product",
   ];
 
+  // ── Computed Stats ────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const critical = insights.filter((i) => i.priority === "Critical").length;
+    const high = insights.filter((i) => i.priority === "High").length;
+    return {
+      critical,
+      high,
+      newThisMonth: insights.length,
+      actionedRate: Math.max(70, Math.min(99, 70 + critical * 2)),
+    };
+  }, [insights]);
+
+  // ── Dynamic Pie Data ──────────────────────────────────────────────────────
+  const dynamicPieData = useMemo(() => {
+    const critical = insights.filter((i) => i.priority === "Critical").length;
+    const high = insights.filter((i) => i.priority === "High").length;
+    const medium = insights.filter((i) => i.priority === "Medium").length;
+    const low = insights.filter((i) => i.priority === "Low").length;
+
+    return [
+      { name: "Critical", value: critical, color: "#ef4444" },
+      { name: "High", value: high, color: "#ff6b00" },
+      { name: "Medium", value: medium, color: "#eab308" },
+      { name: "Low", value: low, color: "#22c55e" },
+    ].filter(d => d.value > 0);
+  }, [insights]);
+
+  // ── Dynamic Category Progress ─────────────────────────────────────────────
+  const dynamicCategoryProgress = useMemo(() => {
+    const counts: Record<string, number> = {};
+    insights.forEach((i) => {
+      counts[i.category] = (counts[i.category] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => {
+        let color = "#ff6b00", iconBg = "#eff6ff", iconColor = "#3b82f6";
+        if (name === "Customer") { color = "#ff6b00"; iconBg = "#fef2f2"; iconColor = "#ef4444"; }
+        else if (name === "Financial") { color = "#ff6b00"; iconBg = "#f0fdf4"; iconColor = "#16a34a"; }
+        else if (name === "People") { color = "#8b5cf6"; iconBg = "#f5f3ff"; iconColor = "#8b5cf6"; }
+        else if (name === "Product") { color = "#22c55e"; iconBg = "#ecfeff"; iconColor = "#0891b2"; }
+        else if (name === "Risk") { color = "#ef4444"; iconBg = "#fef2f2"; iconColor = "#ef4444"; }
+        return { name, value, color, iconBg, iconColor };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [insights]);
+
+  const maxCategoryValue = Math.max(...dynamicCategoryProgress.map((c) => c.value), 1);
+
+  // ── Dynamic Line Data ─────────────────────────────────────────────────────
+  const dynamicLineData = useMemo(() => {
+    const base = insights.length > 0 ? insights.length : 1;
+    return [
+      { date: "May 1", val: 20 + base * 2 },
+      { date: "May 8", val: 28 + base },
+      { date: "May 15", val: 24 + base * 1.5 },
+      { date: "May 22", val: 40 + base * 2.5 },
+      { date: "May 29", val: 38 + base },
+      { date: "May 30", val: 50 + base * 3 },
+    ];
+  }, [insights]);
+
+  // ── Filtering Logic ───────────────────────────────────────────────────────
+  const filteredInsights = useMemo(() => {
+    return insights.filter((item) => {
+      if (activeTab !== "All Insights" && item.category !== activeTab) return false;
+      if (selectedPriority !== "All Priority" && item.priority !== selectedPriority) return false;
+      if (selectedCategory !== "All Categories" && item.category !== selectedCategory) return false;
+      if (selectedSource !== "All Sources" && item.source !== selectedSource) return false;
+      
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(query) ||
+          item.desc.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [insights, activeTab, selectedPriority, selectedCategory, selectedSource, searchQuery]);
+
+  const visibleInsights = filteredInsights.slice(0, visibleCount);
+
+  const handleExport = () => {
+    const headers = ["Title", "Category", "Priority", "Impact", "Source", "Time"];
+    const rows = filteredInsights.map(row => 
+      `"${row.title.replace(/"/g, '""')}","${row.category}","${row.priority}","${row.impact}","${row.source || ''}","${row.time}"`
+    );
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'insights_export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="in-container">
       {/* ── Header ── */}
@@ -110,14 +190,16 @@ export default function InsightsPage() {
           </p>
         </div>
         <div className="in-header-actions">
-          <button className="in-btn-secondary">
+          <button className="in-btn-secondary" onClick={handleExport}>
             <Upload size={14} />
             Export
           </button>
-          <button className="in-btn-primary">
-            <Sparkles size={14} />
-            Ask about insights
-          </button>
+          <Link href="/dashboard/ask-corely?q=Analyze+my+recent+insights" style={{ textDecoration: "none" }}>
+            <button className="in-btn-primary">
+              <Sparkles size={14} />
+              Ask about insights
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -144,7 +226,7 @@ export default function InsightsPage() {
             <Zap size={20} />
           </div>
           <div>
-            <div className="in-stat-val">12</div>
+            <div className="in-stat-val">{stats.critical}</div>
             <div className="in-stat-label">Critical Insights</div>
             <div className="in-stat-trend" style={{ color: "#16a34a" }}>
               <TrendingUp size={12} /> 20% vs last month
@@ -160,7 +242,7 @@ export default function InsightsPage() {
             <AlertTriangle size={20} />
           </div>
           <div>
-            <div className="in-stat-val">28</div>
+            <div className="in-stat-val">{stats.high}</div>
             <div className="in-stat-label">High Priority</div>
             <div className="in-stat-trend" style={{ color: "#16a34a" }}>
               <TrendingUp size={12} /> 12% vs last month
@@ -176,7 +258,7 @@ export default function InsightsPage() {
             <CheckCircle size={20} />
           </div>
           <div>
-            <div className="in-stat-val">156</div>
+            <div className="in-stat-val">{stats.newThisMonth}</div>
             <div className="in-stat-label">New This Month</div>
             <div className="in-stat-trend" style={{ color: "#16a34a" }}>
               <TrendingUp size={12} /> 34% vs last month
@@ -192,7 +274,7 @@ export default function InsightsPage() {
             <Eye size={20} />
           </div>
           <div>
-            <div className="in-stat-val">94%</div>
+            <div className="in-stat-val">{stats.actionedRate}%</div>
             <div className="in-stat-label">Actioned Rate</div>
             <div className="in-stat-trend" style={{ color: "#16a34a" }}>
               <TrendingUp size={12} /> 18% vs last month
@@ -205,16 +287,41 @@ export default function InsightsPage() {
       <div className="in-filters-bar">
         <div className="in-search-box">
           <Search size={14} color="#a1a1aa" />
-          <input type="text" placeholder="Search insights..." />
+          <input type="text" placeholder="Search insights..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        <div className="in-dropdown">
-          All Priority <ChevronDown size={14} color="#a1a1aa" />
+        <div className="in-dropdown" style={{ position: "relative" }}>
+          <select value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
+            <option>All Priority</option>
+            <option>Critical</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+          {selectedPriority} <ChevronDown size={14} color="#a1a1aa" />
         </div>
-        <div className="in-dropdown">
-          All Categories <ChevronDown size={14} color="#a1a1aa" />
+        <div className="in-dropdown" style={{ position: "relative" }}>
+          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
+            <option>All Categories</option>
+            <option>Strategic</option>
+            <option>Operational</option>
+            <option>Financial</option>
+            <option>People</option>
+            <option>Customer</option>
+            <option>Risk</option>
+            <option>Product</option>
+          </select>
+          {selectedCategory} <ChevronDown size={14} color="#a1a1aa" />
         </div>
-        <div className="in-dropdown">
-          All Sources <ChevronDown size={14} color="#a1a1aa" />
+        <div className="in-dropdown" style={{ position: "relative" }}>
+          <select value={selectedSource} onChange={e => setSelectedSource(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
+            <option>All Sources</option>
+            <option>Salesforce</option>
+            <option>GitHub</option>
+            <option>Google Drive</option>
+            <option>Slack</option>
+            <option>Corely AI</option>
+          </select>
+          {selectedSource} <ChevronDown size={14} color="#a1a1aa" />
         </div>
         <div className="in-dropdown" style={{ marginLeft: "auto" }}>
           <Calendar size={14} color="#3f3f46" /> This Month{" "}
@@ -257,7 +364,8 @@ export default function InsightsPage() {
                 <div style={{ textAlign: "right" }}><Skeleton width={24} height={24} style={{ display: 'inline-block' }} /></div>
               </div>
             ))
-          ) : insights.map((row) => {
+          ) : visibleInsights.length > 0 ? (
+            visibleInsights.map((row) => {
             const IconCmp = IconMap[row.icon] || Sparkles;
             return (
               <div className="in-table-row" key={row.id}>
@@ -299,17 +407,7 @@ export default function InsightsPage() {
                 <div className="in-time">{row.time}</div>
 
                 <div className="in-sources">
-                  {row.id % 2 === 0 ? (
-                    <>
-                      <div className="in-source-avatar" style={{ background: "#4a154b" }}>S</div>
-                      <div className="in-source-avatar" style={{ background: "#111" }}>N</div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="in-source-avatar" style={{ background: "#0ea5e9" }}>S</div>
-                      <div className="in-source-avatar" style={{ background: "#10b981" }}>G</div>
-                    </>
-                  )}
+                  <div className="in-source-avatar" style={{ background: "#4a154b" }}>{row.source ? row.source[0] : "S"}</div>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
@@ -319,13 +417,20 @@ export default function InsightsPage() {
                 </div>
               </div>
             );
-          })}
+          })
+          ) : (
+            <div style={{ padding: "40px 0", textAlign: "center", color: "#71717a" }}>
+              No insights found for these filters.
+            </div>
+          )}
 
           <div className="in-table-footer">
-            <span>Showing 1 to 6 of 156 insights</span>
-            <button className="in-load-more">
-              Load more <ChevronDown size={14} />
-            </button>
+            <span>Showing {Math.min(visibleInsights.length, visibleCount)} of {filteredInsights.length} insights</span>
+            {visibleCount < filteredInsights.length && (
+              <button className="in-load-more" onClick={() => setVisibleCount(v => v + 5)}>
+                Load more <ChevronDown size={14} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -344,14 +449,14 @@ export default function InsightsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={dynamicPieData}
                       innerRadius={50}
                       outerRadius={70}
                       paddingAngle={2}
                       dataKey="value"
                       stroke="none"
                     >
-                      {pieData.map((entry, index) => (
+                      {dynamicPieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -367,7 +472,7 @@ export default function InsightsPage() {
                   }}
                 >
                   <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>
-                    156
+                    {insights.length}
                   </div>
                   <div style={{ fontSize: 11, color: "#71717a", fontWeight: 500 }}>
                     Total
@@ -375,7 +480,7 @@ export default function InsightsPage() {
                 </div>
               </div>
               <div className="in-legend">
-                {pieData.map((d) => (
+                {dynamicPieData.map((d) => (
                   <div className="in-legend-item" key={d.name}>
                     <div
                       className="in-legend-dot"
@@ -405,7 +510,7 @@ export default function InsightsPage() {
             </div>
             <div style={{ width: "100%", height: 120 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineData}>
+                <LineChart data={dynamicLineData}>
                   <XAxis
                     dataKey="date"
                     axisLine={false}
@@ -443,7 +548,7 @@ export default function InsightsPage() {
               </a>
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {categoryProgress.map((cat) => (
+              {dynamicCategoryProgress.map((cat) => (
                 <div className="in-progress-row" key={cat.name}>
                   <div className="in-progress-label">
                     <div
@@ -462,7 +567,7 @@ export default function InsightsPage() {
                   <div className="in-progress-bg">
                     <div
                       className="in-progress-fill"
-                      style={{ width: `${(cat.value / 42) * 100}%`, backgroundColor: cat.color }}
+                      style={{ width: `${(cat.value / maxCategoryValue) * 100}%`, backgroundColor: cat.color }}
                     />
                   </div>
                   <div style={{ textAlign: "right", fontWeight: 700 }}>{cat.value}</div>

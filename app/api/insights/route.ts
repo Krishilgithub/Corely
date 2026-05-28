@@ -18,6 +18,7 @@ const insightsData = [
     impact: "High",
     trend: "up",
     time: "2h ago",
+    source: "Salesforce",
   },
   {
     id: 2,
@@ -35,6 +36,7 @@ const insightsData = [
     impact: "High",
     trend: "up",
     time: "4h ago",
+    source: "GitHub",
   },
   {
     id: 3,
@@ -52,6 +54,7 @@ const insightsData = [
     impact: "High",
     trend: "up",
     time: "6h ago",
+    source: "Google Drive",
   },
   {
     id: 4,
@@ -69,6 +72,7 @@ const insightsData = [
     impact: "Medium",
     trend: "up",
     time: "8h ago",
+    source: "Slack",
   },
   {
     id: 5,
@@ -86,6 +90,7 @@ const insightsData = [
     impact: "High",
     trend: "up",
     time: "10h ago",
+    source: "GitHub",
   },
   {
     id: 6,
@@ -103,6 +108,7 @@ const insightsData = [
     impact: "Medium",
     trend: "up",
     time: "12h ago",
+    source: "Corely AI",
   },
 ];
 

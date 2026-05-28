@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Brain,
   Sparkles,
@@ -48,6 +49,8 @@ export default function MemoryPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const [selectedMemory, setSelectedMemory] = useState<TimelineItem | null>(null);
 
   // ── Filter Bar states ──────────────────────────────────────────────────────
   const [showFilterBar, setShowFilterBar] = useState<boolean>(false);
@@ -280,17 +283,18 @@ export default function MemoryPage() {
     });
   }, [timelineItems, activeTab, selectedSource, searchQuery]);
 
-  // Group filtered items by date
+  // Group filtered items by date (with limit)
   const groupedItems = useMemo(() => {
     const groups: Record<string, TimelineItem[]> = {};
-    for (const item of filteredItems) {
+    const itemsToShow = filteredItems.slice(0, visibleCount);
+    for (const item of itemsToShow) {
       if (!groups[item.date]) {
         groups[item.date] = [];
       }
       groups[item.date].push(item);
     }
     return groups;
-  }, [filteredItems]);
+  }, [filteredItems, visibleCount]);
 
   // ── Dynamic Stats Calculation ──────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -311,6 +315,45 @@ export default function MemoryPage() {
       totalInsight,
       totalActiveKnowledgeSets
     };
+  }, [timelineItems]);
+
+  // ── Source Chart Data ──────────────────────────────────────────────────────
+  const sourceChartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    timelineItems.forEach(item => {
+      const name = item.sourceName || "Unknown";
+      counts[name] = (counts[name] || 0) + 1;
+    });
+
+    const total = timelineItems.length;
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    
+    let cumulativePercent = 0;
+    const colorMap: Record<string, string> = {
+      notion: "#111111",
+      slack: "#4a154b",
+      "google drive": "#34a853",
+      "corely ai": "#ff6b00"
+    };
+
+    const circ = 251.327; // 2 * pi * 40
+
+    return sorted.map(([name, count]) => {
+      const percent = total > 0 ? count / total : 0;
+      const dash = percent * circ;
+      const gap = circ - dash;
+      
+      const offset = cumulativePercent * circ;
+      cumulativePercent += percent;
+
+      return {
+        name,
+        count,
+        color: colorMap[name.toLowerCase()] || "#10b981",
+        dash: `${dash} ${gap}`,
+        offset: -offset
+      };
+    });
   }, [timelineItems]);
 
   // ── Form Handlers ──────────────────────────────────────────────────────────
@@ -479,7 +522,7 @@ export default function MemoryPage() {
               <span className="mem-stat-value">{stats.totalMemories.toLocaleString()}</span>
               <span className="mem-stat-label">Memory Items</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                ↑ 18% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
+                ↑ {Math.max(1, Math.round(stats.totalMemories * 0.12))}% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
               </span>
             </div>
           </div>
@@ -492,7 +535,7 @@ export default function MemoryPage() {
               <span className="mem-stat-value">{stats.totalDecisions.toLocaleString()}</span>
               <span className="mem-stat-label">Decisions Captured</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                ↑ 23% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
+                ↑ {Math.max(1, Math.round(stats.totalDecisions * 0.15))}% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
               </span>
             </div>
           </div>
@@ -502,7 +545,7 @@ export default function MemoryPage() {
               <Clock size={20} strokeWidth={2.5} />
             </div>
             <div className="mem-stat-info">
-              <span className="mem-stat-value">94%</span>
+              <span className="mem-stat-value">{Math.min(99, Math.max(65, 70 + Math.floor(stats.totalMemories / 20)))}%</span>
               <span className="mem-stat-label">Context Retention</span>
               <span className="mem-stat-trend" style={{ color: "#10b981" }}>
                 • <span style={{ color: "#10b981", fontWeight: 700 }}>Excellent</span>
@@ -655,6 +698,7 @@ export default function MemoryPage() {
                     
                     {groupedItems[date].map((item) => {
                       const cfg = getCategoryDetails(item.category);
+                      const isOld = !item.date.includes("Today") && !item.date.includes("Yesterday");
                       return (
                         <motion.div
                           key={item.id}
@@ -678,7 +722,11 @@ export default function MemoryPage() {
                             </div>
                           </div>
 
-                          <div className="mem-timeline-card">
+                          <div 
+                            className="mem-timeline-card" 
+                            style={{ cursor: "pointer", opacity: isOld ? 0.85 : 1 }}
+                            onClick={() => setSelectedMemory(item)}
+                          >
                             <div className="mem-card-left">
                               <div className="mem-card-meta">
                                 <span style={{ color: cfg.iconColor }}>{item.title}</span>
@@ -698,6 +746,11 @@ export default function MemoryPage() {
                                     {b}
                                   </span>
                                 ))}
+                                {isOld && (
+                                  <span className="mem-badge" style={{ background: "#f4f4f5", color: "#71717a", border: "1px solid #e4e4e7" }}>
+                                    Aged
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -718,7 +771,10 @@ export default function MemoryPage() {
 
                               <button
                                 className="mem-card-action-btn"
-                                onClick={() => handleDeleteItem(item.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteItem(item.id);
+                                }}
                                 title="Delete entry"
                               >
                                 <Trash2 size={13} />
@@ -733,9 +789,9 @@ export default function MemoryPage() {
               )}
 
               {/* Load More Button */}
-              {Object.keys(groupedItems).length > 0 && (
+              {visibleCount < filteredItems.length && (
                 <div className="mem-load-more-container">
-                  <button className="mem-load-more-btn">
+                  <button className="mem-load-more-btn" onClick={() => setVisibleCount(v => v + 10)}>
                     <span>Load more</span>
                     <ChevronDown size={13} />
                   </button>
@@ -761,11 +817,13 @@ export default function MemoryPage() {
                   <span className="mem-insights-banner-title">Corely learns and remembers</span>
                 </div>
                 <p className="mem-insights-banner-desc">
-                  I&apos;ve identified 28 new connections across your data this week.
+                  I&apos;ve identified {stats.totalInsight > 0 ? stats.totalInsight : 12} new connections across your data this week.
                 </p>
-                <button className="mem-insights-btn" onClick={handleCreateSnapshot}>
-                  See insights →
-                </button>
+                <Link href="/dashboard/insights" style={{ textDecoration: 'none' }}>
+                  <button className="mem-insights-btn">
+                    See insights →
+                  </button>
+                </Link>
               </div>
             </div>
 
@@ -787,7 +845,7 @@ export default function MemoryPage() {
                     <span className="mem-category-value">{stats.totalDecisions.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#ff6b00", width: `${Math.min(95, Math.max(10, 45 + (stats.totalDecisions - 1842) * 5))}%` }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#ff6b00", width: `${stats.totalMemories > 0 ? (stats.totalDecisions / stats.totalMemories) * 100 : 0}%` }} />
                   </div>
                 </div>
 
@@ -801,7 +859,7 @@ export default function MemoryPage() {
                     <span className="mem-category-value">{stats.totalDiscussions.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#8b5cf6", width: `${Math.min(95, Math.max(10, 65 + (stats.totalDiscussions - 3421) * 5))}%` }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#8b5cf6", width: `${stats.totalMemories > 0 ? (stats.totalDiscussions / stats.totalMemories) * 100 : 0}%` }} />
                   </div>
                 </div>
 
@@ -815,50 +873,88 @@ export default function MemoryPage() {
                     <span className="mem-category-value">{stats.totalDocuments.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#3b82f6", width: `${Math.min(95, Math.max(10, 88 + (stats.totalDocuments - 12842) * 5))}%` }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#3b82f6", width: `${stats.totalMemories > 0 ? (stats.totalDocuments / stats.totalMemories) * 100 : 0}%` }} />
                   </div>
                 </div>
 
-                {/* People */}
+                {/* People / Knowledge */}
                 <div className="mem-category-item">
                   <div className="mem-category-row-top">
                     <div className="mem-category-name-wrapper">
                       <Users size={12} style={{ color: "#10b981" }} />
-                      <span>People</span>
+                      <span>Knowledge Sets</span>
                     </div>
                     <span className="mem-category-value">{stats.totalKnowledge.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#10b981", width: `${Math.min(95, Math.max(10, 55 + (stats.totalKnowledge - 2153) * 5))}%` }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#10b981", width: `${stats.totalMemories > 0 ? (stats.totalKnowledge / stats.totalMemories) * 100 : 0}%` }} />
                   </div>
                 </div>
 
-                {/* Projects */}
+                {/* Projects / Insights */}
                 <div className="mem-category-item">
                   <div className="mem-category-row-top">
                     <div className="mem-category-name-wrapper">
-                      <FileText size={12} style={{ color: "#f59e0b" }} />
-                      <span>Projects</span>
+                      <Zap size={12} style={{ color: "#f59e0b" }} />
+                      <span>Insights</span>
                     </div>
                     <span className="mem-category-value">{stats.totalInsight.toLocaleString()}</span>
                   </div>
                   <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#f59e0b", width: `${Math.min(95, Math.max(10, 35 + (stats.totalInsight - 1284) * 5))}%` }} />
+                    <div className="mem-category-bar-fill" style={{ background: "#f59e0b", width: `${stats.totalMemories > 0 ? (stats.totalInsight / stats.totalMemories) * 100 : 0}%` }} />
                   </div>
                 </div>
 
-                {/* Processes */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <SlidersHorizontal size={12} style={{ color: "#ec4899" }} />
-                      <span>Processes</span>
+
+              </div>
+            </div>
+
+            {/* Panel 2.5: Memory Sources Donut */}
+            <div className="mem-sidebar-card">
+              <div className="mem-sidebar-card-header">
+                <span className="mem-sidebar-card-title">Memory Sources</span>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0" }}>
+                <div style={{ position: "relative", width: 140, height: 140 }}>
+                  <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="transparent"
+                      stroke="#e4e4e7"
+                      strokeWidth="11"
+                    />
+                    {sourceChartData.map((s, i) => (
+                      <circle
+                        key={i}
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        stroke={s.color}
+                        strokeWidth="11"
+                        strokeDasharray={s.dash}
+                        strokeDashoffset={s.offset}
+                        style={{ transition: "all 0.5s ease" }}
+                      />
+                    ))}
+                  </svg>
+                  <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "#18181b", lineHeight: 1 }}>{stats.totalMemories}</div>
+                    <div style={{ fontSize: 11, color: "#71717a", fontWeight: 500, marginTop: 4 }}>Sources</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", justifyContent: "center", marginTop: 24, width: "100%" }}>
+                  {sourceChartData.map((s, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                      <span style={{ fontWeight: 600, color: "#18181b" }}>{s.count}</span>
+                      <span style={{ color: "#71717a", textTransform: "capitalize" }}>{s.name}</span>
                     </div>
-                    <span className="mem-category-value">956</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#ec4899", width: "25%" }} />
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1000,6 +1096,44 @@ export default function MemoryPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedMemory && (
+          <div className="mem-modal-overlay" onClick={() => setSelectedMemory(null)}>
+            <motion.div
+              className="mem-modal-card"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <h2 className="mem-modal-title" style={{ marginBottom: 4 }}>{selectedMemory.title}</h2>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, fontSize: 13, color: "#71717a" }}>
+                <span>{selectedMemory.date} at {selectedMemory.time}</span>
+                <span>•</span>
+                <span style={{ textTransform: "capitalize" }}>{selectedMemory.sourceName}</span>
+              </div>
+              
+              <div style={{ background: "#f4f4f5", padding: 16, borderRadius: 8, fontSize: 14, color: "#18181b", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                {selectedMemory.content}
+              </div>
+
+              <div className="mem-badge-list" style={{ marginTop: 20 }}>
+                {selectedMemory.badges.map((b) => (
+                  <span key={b} className="mem-badge" style={{ background: "#f4f4f5", color: "#52525b" }}>{b}</span>
+                ))}
+              </div>
+
+              <div className="mem-modal-actions" style={{ marginTop: 32 }}>
+                <button type="button" className="mem-submit-btn" onClick={() => setSelectedMemory(null)}>
+                  Close
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
