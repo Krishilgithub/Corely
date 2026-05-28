@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../../lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import {
   Sparkles,
   Paperclip,
@@ -30,6 +31,8 @@ interface SourceInfo {
   title: string;
   url: string | null;
   type: string;
+  confidenceScore?: number;
+  confidenceLabel?: "Fresh" | "Stale" | "Aged";
 }
 
 interface ChatMessage {
@@ -226,6 +229,16 @@ export default function AskMain({
               text: msg.text,
               sources: msg.sources ? (msg.sources as SourceInfo[]) : [],
               feedback: msg.feedback as "positive" | "negative" | null,
+              timestamp: new Date(msg.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            });
+          } else if (msg.sender === "user") {
+            transformed.push({
+              id: msg.id,
+              sender: "user",
+              text: msg.text,
               timestamp: new Date(msg.createdAt).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -546,7 +559,8 @@ export default function AskMain({
       </motion.div>
 
       {/* Chat Thread & Scroll Lane */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: "0", marginBottom: 16, paddingRight: "6px", scrollbarWidth: "thin" }}>
+      <div style={{ flex: 1, position: "relative", minHeight: 0, marginBottom: 16 }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflowY: "auto", paddingRight: "6px", scrollbarWidth: "thin" }}>
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             if (msg.sender === "user") {
@@ -599,9 +613,11 @@ export default function AskMain({
 
                 {/* Response Body */}
                 <div className="ac-response-body">
-                  <div className="ac-response-context" style={{ whiteSpace: "pre-wrap", lineHeight: "1.6", margin: 0 }}>
+                  <div className="ac-response-context" style={{ lineHeight: "1.6", margin: 0 }}>
                     {msg.text ? (
-                      msg.text
+                      <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-100 prose-pre:text-zinc-900 prose-a:text-orange-600">
+                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                      </div>
                     ) : (
                       <ThinkingState sources={msg.sources} />
                     )}
@@ -609,34 +625,74 @@ export default function AskMain({
 
                   {/* Dynamic citations / sources */}
                   {msg.sources && msg.sources.length > 0 && (
-                    <div className="ac-r-source-wrap" style={{ marginTop: 18 }}>
-                      <span className="ac-r-source-label">Sources:</span>
-                      {msg.sources.map((src, i) => (
-                        src.url ? (
-                          <a
-                            key={i}
-                            href={src.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ac-r-source-badge"
-                            style={{
-                              textDecoration: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
-                            <FileText size={11} style={{ marginRight: 2 }} />
-                            {src.title}
-                            <ExternalLink size={10} style={{ marginLeft: 2, opacity: 0.7 }} />
-                          </a>
-                        ) : (
-                          <span key={i} className="ac-r-source-badge">
-                            <FileText size={11} style={{ marginRight: 2 }} />
-                            {src.title}
-                          </span>
-                        )
-                      ))}
+                    <div className="ac-r-source-wrap" style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span className="ac-r-source-label">Sources & Temporal Confidence:</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {msg.sources.map((src, i) => {
+                          let badgeColor = "#71717a";
+                          let badgeBg = "#f4f4f5";
+                          if (src.confidenceLabel === "Fresh") {
+                            badgeColor = "#16a34a"; // green
+                            badgeBg = "#dcfce7";
+                          } else if (src.confidenceLabel === "Aged") {
+                            badgeColor = "#ca8a04"; // yellow
+                            badgeBg = "#fef08a";
+                          } else if (src.confidenceLabel === "Stale") {
+                            badgeColor = "#dc2626"; // red
+                            badgeBg = "#fee2e2";
+                          }
+
+                          const SourceContent = (
+                            <>
+                              <FileText size={11} style={{ marginRight: 2 }} />
+                              <span style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {src.title}
+                              </span>
+                              {src.confidenceLabel && (
+                                <span style={{
+                                  marginLeft: "6px",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  color: badgeColor,
+                                  backgroundColor: badgeBg,
+                                  letterSpacing: "0.5px",
+                                  textTransform: "uppercase"
+                                }}>
+                                  {src.confidenceLabel} ({src.confidenceScore}%)
+                                </span>
+                              )}
+                            </>
+                          );
+
+                          return (
+                            <a
+                              key={i}
+                              href={src.url || "#"}
+                              target={src.url ? "_blank" : "_self"}
+                              rel="noopener noreferrer"
+                              className="ac-r-source-badge"
+                              style={{
+                                textDecoration: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "4px 8px",
+                                background: "#fff",
+                                border: "1px solid #e4e4e7",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                color: "#111",
+                                transition: "all 0.2s"
+                              }}
+                            >
+                              {SourceContent}
+                              <ExternalLink size={10} style={{ marginLeft: 2, opacity: 0.7 }} />
+                            </a>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -686,23 +742,13 @@ export default function AskMain({
         </AnimatePresence>
 
         {/* Empty state + Preset grid rendered internally inside scroll lane */}
-        {messages.length === 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "20px 0" }}>
+        {messages.length === 0 && !loading && (
+          <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: "10vh" }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              style={{
-                padding: "48px 24px",
-                border: "1.5px dashed #e4e4e7",
-                borderRadius: 16,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                background: "#fafafa",
-              }}
+              style={{ textAlign: "center", marginBottom: 40 }}
             >
               <div
                 style={{
@@ -714,42 +760,23 @@ export default function AskMain({
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 16,
+                  margin: "0 auto",
                 }}
               >
                 <Sparkles size={24} color="#ff6b00" />
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", marginBottom: 6, marginTop: 16 }}>
                 Ask anything about your company
               </h3>
               <p style={{ fontSize: 13.5, color: "#71717a", maxWidth: 360, lineHeight: 1.5 }}>
                 Corely semantic brain indexes all your Google Drive and cloud files, then responds instantly using context-aware RAG.
               </p>
             </motion.div>
-
-            {/* Preset Prompts Grid */}
-            <motion.div
-              className="ac-prompts-grid"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              style={{ margin: 0 }}
-            >
-              {PRESET_PROMPTS.map((prompt, i) => (
-                <div
-                  key={i}
-                  className="ac-prompt-card"
-                  onClick={() => handlePresetClick(prompt.text)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {prompt.icon}
-                  <span className="ac-prompt-text">{prompt.text}</span>
-                </div>
-              ))}
-            </motion.div>
           </div>
         )}
 
         <div ref={messagesEndRef} />
+      </div>
       </div>
 
       {/* Input Box - Anchored at the bottom */}

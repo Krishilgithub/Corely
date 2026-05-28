@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Sparkles, Bell, ChevronDown, Command, Search, X, Menu } from "lucide-react";
+import { useAuth } from "../../lib/auth-context";
 
 export default function Topbar() {
+  const { user, workspace } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -41,7 +43,7 @@ export default function Topbar() {
         {/* Workspace Switcher */}
         <button className="db-ws-btn" aria-label="Switch workspace">
           <Building2 size={13} style={{ color: "#71717a" }} />
-          <span>Corely Enterprise</span>
+          <span>{workspace?.name || "Workspace"}</span>
           <ChevronDown size={12} style={{ color: "#a1a1aa" }} />
         </button>
       </div>
@@ -91,7 +93,7 @@ export default function Topbar() {
           }}
           aria-label="User profile"
         >
-          K
+          {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
         </div>
       </div>
 

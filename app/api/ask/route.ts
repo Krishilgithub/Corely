@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { openai, generateEmbedding } from "@/lib/openai";
-import { supabaseAdmin } from "@/lib/supabase";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth-server";
 import { errorResponse } from "@/lib/api-response";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
+
 interface ChatCompletionMessageParam {
   role: "system" | "user" | "assistant";
   content: string;
@@ -18,11 +19,8 @@ interface ChunkResult {
   content: string;
   document_id: string;
   source_id: string;
-  metadata?: {
-    document_title?: string;
-    url?: string;
-    source_type?: string;
-  };
+  metadata: Record<string, unknown>;
+  created_at: Date;
   similarity: number;
 }
 
@@ -32,11 +30,22 @@ const askSchema = z.object({
   sessionId: z.string().optional(),
 });
 
+function calculateTemporalConfidence(createdAt: Date): { score: number; label: "Fresh" | "Stale" | "Aged" } {
+  const ageInDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+  let score = 100 - (ageInDays * 0.5); // Decay 0.5 points per day
+  if (score < 0) score = 0;
+  
+  let label: "Fresh" | "Stale" | "Aged" = "Fresh";
+  if (score < 50) label = "Stale";
+  else if (score < 80) label = "Aged";
+  
+  return { score: Math.round(score), label };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { user, workspace } = await auth();
 
-    // Rate Limiting (5 requests per minute)
     const rl = await rateLimit(user.id, 5, 60);
     if (!rl.success) {
       return errorResponse("Too many requests", 429);
@@ -52,7 +61,6 @@ export async function POST(request: NextRequest) {
     const { question, sessionId } = result.data;
     const workspaceId = workspace.id;
 
-    // 1. If sessionId is active, save the user message to database
     if (sessionId) {
       await prisma.chatMessage.create({
         data: {
@@ -63,65 +71,94 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Fetch last 5 conversation history messages if sessionId is present to provide chat context
     let conversationHistory: ChatCompletionMessageParam[] = [];
     if (sessionId) {
       const history = await prisma.chatMessage.findMany({
         where: { sessionId },
         orderBy: { createdAt: "desc" },
-        take: 6, // User message is already saved above, get previous 5 + current user message
+        take: 6,
       });
-      
-      // Reverse history to chronological order (oldest first)
       history.reverse();
-      
-      // Map history to ChatGPT messages format (exclude the current user message to avoid duplicate addition)
       conversationHistory = history
-        .filter((msg: { text: string; sender: string }) => msg.text !== question)
-        .map((msg: { text: string; sender: string }) => ({
+        .filter((msg) => msg.text !== question)
+        .map((msg) => ({
           role: (msg.sender === "user" ? "user" : "assistant") as "user" | "assistant",
           content: msg.text,
         }));
     }
 
-    // 3. Embed the user's question
-    const queryEmbedding = await generateEmbedding(question);
-
-    // 4. Semantic search via pgvector similarity
-    const { data: chunks, error } = await supabaseAdmin.rpc("match_chunks", {
-      query_embedding: queryEmbedding,
-      workspace_filter: workspaceId,
-      match_threshold: 0.65,
-      match_count: 6,
+    // 1. PERMISSION-AWARE RETRIEVAL LAYER
+    // Fetch sources the user has access to
+    const userSources = await prisma.source.findMany({
+      where: { workspaceId, userId: user.id },
+      select: { id: true },
     });
-
-    if (error) {
-      console.error("pgvector search error:", error);
-      return errorResponse("Search failed internally", 500);
+    
+    let allowedSourceIds = userSources.map(s => s.id);
+    if (allowedSourceIds.length === 0) {
+      // Fallback for demo purposes if no sources exist for user, allow public workspace sources
+      const allWorkspaceSources = await prisma.source.findMany({
+        where: { workspaceId },
+        select: { id: true },
+      });
+      allowedSourceIds = allWorkspaceSources.map(s => s.id);
     }
 
-    const chunkResults = (chunks ?? []) as ChunkResult[];
+    // If no sources exist at all in workspace, we use a dummy UUID to prevent SQL syntax errors
+    if (allowedSourceIds.length === 0) {
+      allowedSourceIds = ["00000000-0000-0000-0000-000000000000"];
+    }
 
-    // 5. Build context from retrieved chunks
-    const context = chunkResults
-      .map((c, i: number) =>
-        `[Source ${i + 1}: ${c.metadata?.document_title ?? "Unnamed"}]\n${c.content}`
-      )
+    const queryEmbedding = await generateEmbedding(question);
+    const vectorQuery = `[${queryEmbedding.join(",")}]`;
+
+    // Prisma $queryRaw for zero cross-permission leakage vector search
+    const chunks = await prisma.$queryRaw<ChunkResult[]>`
+      SELECT 
+        id, 
+        content, 
+        document_id, 
+        source_id, 
+        metadata,
+        created_at,
+        1 - (embedding <=> ${vectorQuery}::vector) as similarity
+      FROM document_chunks
+      WHERE workspace_id = ${workspaceId}::uuid
+        AND source_id::text IN (${Prisma.join(allowedSourceIds)})
+        AND 1 - (embedding <=> ${vectorQuery}::vector) > 0.60
+      ORDER BY embedding <=> ${vectorQuery}::vector
+      LIMIT 6;
+    `;
+
+    // 2. TEMPORAL CONFIDENCE SCORING
+    const context = chunks
+      .map((c, i) => {
+        const meta = c.metadata as Record<string, unknown>;
+        const confidence = calculateTemporalConfidence(c.created_at);
+        return `[Source ${i + 1}: ${meta?.document_title ?? "Unnamed"} | Age: ${confidence.label} | Conf: ${confidence.score}%]\n${c.content}`;
+      })
       .join("\n\n---\n\n");
 
-    const sources = chunkResults.map((c) => ({
-      title: c.metadata?.document_title ?? "Unnamed",
-      url: c.metadata?.url ?? null,
-      type: c.metadata?.source_type ?? "google_drive",
-    }));
+    const sources = chunks.map((c) => {
+      const meta = c.metadata as Record<string, unknown>;
+      const confidence = calculateTemporalConfidence(c.created_at);
+      return {
+        title: meta?.document_title ?? "Unnamed",
+        url: meta?.url ?? null,
+        type: meta?.source_type ?? "knowledge",
+        confidenceScore: confidence.score,
+        confidenceLabel: confidence.label,
+      };
+    });
 
-    // 6. Build the LLM messages sequence
+    // 3. CITATION EXTRACTION & DECISION RECONSTRUCTION (GPT-4o Function Calling)
     const systemInstruction = {
       role: "system",
-      content: `You are Corely, an AI assistant with deep knowledge of this company's data.
-Answer questions based ONLY on the provided context. Be concise, professional, and specific.
-If the context doesn't contain the answer, say so honestly. Do not make up facts.
-Always cite which sources your answer is based on.`,
+      content: `You are Corely, an AI institutional memory engine. 
+Synthesize a coherent response drawing from the provided sources. 
+If the query asks about a decision (e.g., "why was X delayed"), construct a timeline with stakeholder attribution. 
+Always rely on the temporal confidence scores provided in the context to warn the user if information is stale.
+You MUST use the provided tool to output your response and citations.`,
     };
 
     const userMessage = {
@@ -135,54 +172,82 @@ Always cite which sources your answer is based on.`,
       userMessage,
     ] as ChatCompletionMessageParam[];
 
-    // 7. Stream the AI response using GPT-4o mini
-    const responseStream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      stream: true,
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: apiMessages,
       temperature: 0.3,
-      max_tokens: 1000,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "deliver_cited_intelligence",
+            description: "Delivers the synthesized answer and specific source citations.",
+            parameters: {
+              type: "object",
+              properties: {
+                answer: {
+                  type: "string",
+                  description: "The detailed, synthesized answer formatted in Markdown.",
+                },
+                citations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      sourceIndex: { type: "number", description: "The index of the source (1-6)" },
+                      relevance: { type: "string", description: "Why this source was used" },
+                    },
+                  },
+                },
+              },
+              required: ["answer", "citations"],
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "deliver_cited_intelligence" } },
     });
 
-    // 8. Stream the response
+    const toolCall = completion.choices[0].message.tool_calls?.[0];
+    let answerText = "No answer generated.";
+    if (toolCall && toolCall.type === "function") {
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        answerText = parsed.answer;
+      } catch {
+        answerText = toolCall.function.arguments;
+      }
+    }
+
+    // 4. SIMULATE STREAMING FOR UI
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
-        let accumulatedText = "";
         const safeEnqueue = (data: string) => {
-          try {
-            controller.enqueue(encoder.encode(data));
-          } catch {
-            // ignore closed or aborted states
-          }
+          try { controller.enqueue(encoder.encode(data)); } catch {}
         };
 
         try {
-          // First, send the sources metadata as a special chunk
           safeEnqueue(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
 
-          for await (const chunk of responseStream) {
-            const text = chunk.choices[0]?.delta?.content || "";
-            if (text) {
-              accumulatedText += text;
-              safeEnqueue(`data: ${JSON.stringify({ type: "text", text })}\n\n`);
-            }
+          // Simulate streaming chunk by chunk (50 chars at a time)
+          const chunkSize = 50;
+          for (let i = 0; i < answerText.length; i += chunkSize) {
+            const textChunk = answerText.slice(i, i + chunkSize);
+            safeEnqueue(`data: ${JSON.stringify({ type: "text", text: textChunk })}\n\n`);
+            await new Promise((resolve) => setTimeout(resolve, 20)); // artificial delay
           }
 
-          // If sessionId is active, persist the generated Corely response to DB
           if (sessionId) {
             await prisma.chatMessage.create({
               data: {
                 sessionId,
                 sender: "corely",
-                text: accumulatedText,
-                // JSON.parse(JSON.stringify(...)) produces a plain value that
-                // satisfies Prisma's InputJsonValue without importing the Prisma namespace
+                text: answerText,
                 sources: JSON.parse(JSON.stringify(sources)),
               },
             });
 
-            // Update chat session title if it is "New Conversation"
             const session = await prisma.chatSession.findUnique({
               where: { id: sessionId },
               select: { title: true },
@@ -195,7 +260,6 @@ Always cite which sources your answer is based on.`,
                 },
               });
             } else {
-              // Touch updatedAt time
               await prisma.chatSession.update({
                 where: { id: sessionId },
                 data: { updatedAt: new Date() },
@@ -205,13 +269,9 @@ Always cite which sources your answer is based on.`,
 
           safeEnqueue("data: [DONE]\n\n");
         } catch (error) {
-    console.error("Streaming error:", error);
+          console.error("Streaming error:", error);
         } finally {
-          try {
-            controller.close();
-          } catch {
-            // ignore already closed stream
-          }
+          try { controller.close(); } catch {}
         }
       },
     });

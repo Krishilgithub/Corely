@@ -15,7 +15,7 @@ export default function AskCorelyPage() {
 
   return (
     <main className="db-content" style={{ height: "calc(100vh - 60px)", minHeight: "0", padding: "20px 28px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <div className="ac-page-grid" style={{ height: "100%", minHeight: "0", display: "grid", gap: "24px", overflow: "hidden" }}>
+      <div className="ac-page-grid" style={{ height: "100%", minHeight: "0", display: "grid", gap: "24px", overflow: "hidden", gridTemplateRows: "minmax(0, 1fr)" }}>
         <AskMain
           activeSessionId={activeSessionId}
           setActiveSessionId={setActiveSessionId}

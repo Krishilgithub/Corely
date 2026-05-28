@@ -707,9 +707,10 @@
 /* ── ASK CORELY PAGE ──────────────────────────────────────── */
 .ac-page-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 280px;
   gap: 28px;
-  max-width: 1400px;
+  max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
 }
 

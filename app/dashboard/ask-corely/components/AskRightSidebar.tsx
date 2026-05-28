@@ -39,6 +39,23 @@ export default function AskRightSidebar({
   const { workspaceId } = useAuth();
   const [sessions, setSessions] = useState<ChatSessionInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<{ people: number; sources: number; sessions: number; memories: number } | null>(null);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/context-stats");
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      }
+    };
+    fetchStats();
+  }, [workspaceId, refreshTrigger]);
 
   // ── Fetch session history list ──────────────────────────────────────────────
   useEffect(() => {
@@ -134,19 +151,19 @@ export default function AskRightSidebar({
           <div className="ac-row-left">
             <Users size={15} style={{ color: "#71717a" }} /> People
           </div>
-          <div className="ac-row-right">12</div>
+          <div className="ac-row-right">{stats?.people ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Folder size={15} style={{ color: "#71717a" }} /> Projects
+            <Folder size={15} style={{ color: "#71717a" }} /> Chat Sessions
           </div>
-          <div className="ac-row-right">7</div>
+          <div className="ac-row-right">{stats?.sessions ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Users size={15} style={{ color: "#71717a" }} /> Teams
+            <Database size={15} style={{ color: "#71717a" }} /> Memories
           </div>
-          <div className="ac-row-right">6</div>
+          <div className="ac-row-right">{stats?.memories ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
@@ -158,51 +175,13 @@ export default function AskRightSidebar({
           <div className="ac-row-left">
             <Database size={15} style={{ color: "#71717a" }} /> Data Sources
           </div>
-          <div className="ac-row-right">9 Connected</div>
+          <div className="ac-row-right" style={{ color: "#111", fontWeight: 600 }}>
+            {stats?.sources ?? "-"} Connected
+          </div>
         </div>
       </motion.div>
 
-      {/* Suggested Prompts */}
-      <motion.div
-        className="ac-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <div className="ac-card-header">
-          <div className="ac-card-title">Suggested Prompts</div>
-        </div>
-        <div className="ac-prompt-list">
-          {[
-            "What are the top priorities for this quarter?",
-            "Summarize engineering velocity trends",
-            "Show risks that need executive attention",
-            "How is our revenue pipeline trending?",
-          ].map((prompt, i) => (
-            <button
-              key={i}
-              onClick={() => setSharedPrompt(prompt)}
-              className="ac-prompt-link"
-              style={{
-                background: "none",
-                border: "none",
-                width: "100%",
-                padding: 0,
-                textAlign: "left",
-                font: "inherit",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 8,
-              }}
-            >
-              <span>{prompt}</span>
-              <ArrowUpRight size={14} style={{ color: "#ff6b00", flexShrink: 0 }} />
-            </button>
-          ))}
-        </div>
-      </motion.div>
+
 
       {/* Recent Conversations */}
       <motion.div
@@ -210,11 +189,12 @@ export default function AskRightSidebar({
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
+        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
       >
-        <div className="ac-card-header">
+        <div className="ac-card-header" style={{ flexShrink: 0 }}>
           <div className="ac-card-title">Recent Conversations</div>
         </div>
-        <div className="ac-convo-list" style={{ maxHeight: "150px", overflowY: "auto", scrollbarWidth: "thin", paddingRight: "4px" }}>
+        <div className="ac-convo-list" style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", paddingRight: "4px" }}>
           {loading && sessions.length === 0 && (
             <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
               Loading conversations...

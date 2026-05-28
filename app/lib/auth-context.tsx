@@ -10,9 +10,17 @@ interface User {
   role: string;
 }
 
+interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+}
+
 interface AuthContextType {
   user: User | null;
   workspaceId: string | null;
+  workspace: Workspace | null;
   isLoading: boolean;
   login: (email: string) => Promise<void>;
   logout: () => void;
@@ -20,11 +28,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Removed localStorage mock
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -37,7 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const { data } = await res.json();
           setUser(data.user);
-          setWorkspaceId(data.workspace.id);
+          setWorkspaceId(data.workspace?.id || null);
+          setWorkspace(data.workspace || null);
         }
       } catch (err) {
         console.error("Failed to fetch session", err);
@@ -71,7 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data } = await res.json();
       setUser(data.user);
-      setWorkspaceId(data.workspace.id);
+      setWorkspaceId(data.workspace?.id || null);
+      setWorkspace(data.workspace || null);
       
       router.push("/dashboard");
     } catch (err) {
@@ -86,11 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
     setWorkspaceId(null);
+    setWorkspace(null);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, workspaceId, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, workspaceId, workspace, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
