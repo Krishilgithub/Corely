@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../lib/auth-context";
 import { motion } from "framer-motion";
 import {
@@ -8,7 +8,7 @@ import {
   Folder,
   Calendar,
   Database,
-  ArrowUpRight,
+  Search,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -34,12 +34,22 @@ export default function AskRightSidebar({
   activeSessionId,
   setActiveSessionId,
   refreshTrigger,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setSharedPrompt,
 }: AskRightSidebarProps) {
   const { workspaceId } = useAuth();
   const [sessions, setSessions] = useState<ChatSessionInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{ people: number; sources: number; sessions: number; memories: number } | null>(null);
+  const [sessionSearch, setSessionSearch] = useState("");
+
+  // Filter sessions by search query
+  const filteredSessions = useMemo(() => {
+    if (!sessionSearch.trim()) return sessions;
+    return sessions.filter((s) =>
+      s.title.toLowerCase().includes(sessionSearch.toLowerCase())
+    );
+  }, [sessions, sessionSearch]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -144,7 +154,7 @@ export default function AskRightSidebar({
           <div className="ac-card-title">
             Context <span style={{ color: "#71717a", fontWeight: 500 }}>(Auto-detected)</span>
           </div>
-          <Link href="#" className="ac-card-view-all">View all</Link>
+          <Link href="/dashboard/sources" className="ac-card-view-all">View all</Link>
         </div>
 
         <div className="ac-card-row">
@@ -194,6 +204,19 @@ export default function AskRightSidebar({
         <div className="ac-card-header" style={{ flexShrink: 0 }}>
           <div className="ac-card-title">Recent Conversations</div>
         </div>
+        {/* Conversation search */}
+        <div style={{ padding: "0 0 8px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#f9f9f9", border: "1px solid #f0f0f0", borderRadius: 8 }}>
+            <Search size={13} style={{ color: "#a1a1aa", flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={sessionSearch}
+              onChange={(e) => setSessionSearch(e.target.value)}
+              style={{ border: "none", background: "transparent", outline: "none", fontSize: 12, color: "#374151", width: "100%" }}
+            />
+          </div>
+        </div>
         <div 
           className="ac-convo-list" 
           data-lenis-prevent
@@ -210,7 +233,12 @@ export default function AskRightSidebar({
               No recent conversations.
             </div>
           )}
-          {sessions.map((session) => (
+          {!loading && sessions.length > 0 && filteredSessions.length === 0 && (
+            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
+              No conversations match your search.
+            </div>
+          )}
+          {filteredSessions.map((session) => (
             <div
               key={session.id}
               className={`ac-convo-item ${activeSessionId === session.id ? "active" : ""}`}

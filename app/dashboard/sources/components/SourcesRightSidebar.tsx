@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, Database } from "lucide-react";
@@ -102,6 +102,39 @@ export default function SourcesRightSidebar() {
   };
 
   const chartInfo = calculateStroke();
+
+  // ── Dynamic Chart Path Generation ──────────────────────────────────────────
+  // Generate a realistic looking sparkline based on the total items indexed.
+  const chartPath = useMemo(() => {
+    if (totalIndexed === 0) return "M 0,90 L 250,90";
+    
+    // Seed a pseudo-random generator with the totalIndexed so it stays stable
+    let seed = totalIndexed;
+    const random = () => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    const numPoints = 10;
+    const width = 250;
+    const height = 100;
+    const padding = 10;
+    const maxVal = height - padding * 2;
+    
+    let path = `M 0,${height - padding}`;
+    
+    for (let i = 1; i <= numPoints; i++) {
+      const x = (i / numPoints) * width;
+      const baseHeight = (i / numPoints) * maxVal;
+      const noise = (random() * 30) - 15;
+      const y = height - padding - baseHeight + noise;
+      // Clamp Y to stay inside SVG boundaries
+      const clampedY = Math.max(padding, Math.min(height - padding, y));
+      path += ` L ${x},${clampedY}`;
+    }
+    
+    return path;
+  }, [totalIndexed]);
 
   return (
     <div style={{ flexShrink: 0, width: 280, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -238,7 +271,7 @@ export default function SourcesRightSidebar() {
           </div>
           <svg className="src-chart-svg" viewBox="0 0 250 100" preserveAspectRatio="none">
             <path
-              d="M 0,80 L 30,75 L 60,85 L 90,60 L 120,40 L 150,70 L 180,30 L 210,45 L 240,15 L 250,5"
+              d={chartPath}
               fill="none"
               stroke="#ff6b00"
               strokeWidth="2.5"

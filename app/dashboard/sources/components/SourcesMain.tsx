@@ -85,6 +85,14 @@ const ConfluenceIcon = () => (
   </svg>
 );
 
+const LinearIcon = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 3v18h18" stroke="#5E6AD2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="#5E6AD2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+
 function StatusBadge({ status }: { status: Source["status"] }) {
   const map: Record<
     Source["status"],
@@ -537,15 +545,22 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
             </div>
           </div>
 
-          {/* Slack Card (Coming soon) */}
+          {/* Slack Card */}
           <div
             style={{
-              border: "1.5px solid #f4f4f5",
+              border: "1.5px solid #e4e4e7",
               borderRadius: 12,
               padding: "20px",
-              cursor: "not-allowed",
-              opacity: 0.6,
-              background: "#fafafa"
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#e4e4e7";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -570,18 +585,24 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
                   </div>
                 </div>
               </div>
-              <span
+              <a
+                href={`/api/sources/slack/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
                 style={{
-                  fontSize: 11,
+                  padding: "8px 18px",
+                  background: "#e01e5a",
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontSize: 13,
                   fontWeight: 700,
-                  color: "#71717a",
-                  background: "#e4e4e7",
-                  padding: "6px 12px",
-                  borderRadius: 20,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.15s",
                 }}
               >
-                Coming Soon
-              </span>
+                Connect
+              </a>
             </div>
             <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
               {["Channels", "Messages", "Files", "Threads"].map((t) => (
@@ -602,15 +623,22 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
             </div>
           </div>
 
-          {/* Confluence Card (Coming soon) */}
+          {/* Linear Card */}
           <div
             style={{
-              border: "1.5px solid #f4f4f5",
+              border: "1.5px solid #e4e4e7",
               borderRadius: 12,
               padding: "20px",
-              cursor: "not-allowed",
-              opacity: 0.6,
-              background: "#fafafa"
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#e4e4e7";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -620,36 +648,121 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
                     width: 48,
                     height: 48,
                     borderRadius: 12,
-                    background: "#eff6ff",
+                    background: "#eef2ff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <ConfluenceIcon />
+                  <LinearIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>Confluence</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>Linear</div>
                   <div style={{ fontSize: 12.5, color: "#71717a", marginTop: 2 }}>
-                    Spaces, pages, and comments
+                    Issues, projects, and cycles
                   </div>
                 </div>
               </div>
-              <span
+              <a
+                href={`/api/sources/linear/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
                 style={{
-                  fontSize: 11,
+                  padding: "8px 18px",
+                  background: "#5E6AD2",
+                  color: "#fff",
+                  borderRadius: 8,
+                  fontSize: 13,
                   fontWeight: 700,
-                  color: "#71717a",
-                  background: "#e4e4e7",
-                  padding: "6px 12px",
-                  borderRadius: 20,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.15s",
                 }}
               >
-                Coming Soon
-              </span>
+                Connect
+              </a>
             </div>
             <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Spaces", "Pages", "Comments", "Attachments"].map((t) => (
+              {["Issues", "Projects", "Comments", "Cycles"].map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#52525b",
+                    background: "#f4f4f5",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Manual Upload Card */}
+          <div
+            style={{
+              border: "1.5px solid #e4e4e7",
+              borderRadius: 12,
+              padding: "20px",
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+            onClick={() => document.getElementById("manual-upload-input")?.click()}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#e4e4e7";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    background: "#fff7ed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FileText size={22} color="#ff6b00" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#111" }}>Manual Upload</div>
+                  <div style={{ fontSize: 12.5, color: "#71717a", marginTop: 2 }}>
+                    PDF, TXT, CSV, DOCX
+                  </div>
+                </div>
+              </div>
+              <button
+                style={{
+                  padding: "8px 18px",
+                  background: "#18181b",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  cursor: "pointer",
+                  transition: "background 0.15s",
+                }}
+              >
+                Upload
+              </button>
+            </div>
+            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {["Text", "Markdown", "PDF", "Documents"].map((t) => (
                 <span
                   key={t}
                   style={{
@@ -770,6 +883,35 @@ export default function SourcesMain() {
     }
   };
 
+  // ── Manual Upload ──────────────────────────────────────────────
+  const handleManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Reset the input so the same file can be uploaded again if needed
+    e.target.value = '';
+    
+    showToast(`Uploading ${file.name}...`, "info");
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("/api/sources/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error("Upload failed");
+      
+      showToast(`${file.name} uploaded successfully!`, "success");
+      fetchSources(); // Refresh sources list
+    } catch (err) {
+      console.error("Manual upload error:", err);
+      showToast("Failed to upload file.", "info");
+    }
+  };
+
   // ── Filter sources based on Tab and Search query ───────────────
   const filtered = sources
     .filter((s) => {
@@ -785,6 +927,14 @@ export default function SourcesMain() {
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Hidden file input for Manual Uploads */}
+      <input
+        type="file"
+        id="manual-upload-input"
+        style={{ display: 'none' }}
+        onChange={handleManualUpload}
+        accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+      />
       {/* ── Dynamic Success/Info Toast ───────────────────────────────── */}
       <AnimatePresence>
         {toastMessage && (
@@ -1429,9 +1579,9 @@ export default function SourcesMain() {
         />
       )}
 
-      {/* ── Folder Configuration Modal ───────────────────────────── */}
+      {/* ── Source Configuration Modal ───────────────────────────── */}
       {configuringSourceId && (
-        <ConfigureFolderModal
+        <ConfigureSourceModal
           sourceId={configuringSourceId}
           onClose={() => setConfiguringSourceId(null)}
           onConfigSaved={fetchSources}
@@ -1617,7 +1767,7 @@ interface Folder {
   parents?: string[];
 }
 
-function ConfigureFolderModal({
+function ConfigureSourceModal({
   sourceId,
   onClose,
   onConfigSaved,
@@ -1634,6 +1784,9 @@ function ConfigureFolderModal({
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [sourceName, setSourceName] = useState("Google Drive");
+  const [sourceType, setSourceType] = useState("google_drive");
+  const [activeConfigTab, setActiveConfigTab] = useState<"sync" | "permissions">("permissions");
+  const [permissions, setPermissions] = useState<"everyone" | "admins">("everyone");
 
   // Load existing source configuration and list of folders
   useEffect(() => {
@@ -1649,25 +1802,35 @@ function ConfigureFolderModal({
         setSourceName(sourceData.name || "Google Drive");
 
         const config = sourceData.config || {};
-        if (config.folderIds && config.folderIds.length > 0) {
-          setSyncOption("folder");
-          setSelectedFolderIds(config.folderIds);
-        } else if (config.folderId) {
-          setSyncOption("folder");
-          setSelectedFolderIds([config.folderId]);
+        if (config.permissions) {
+          setPermissions(config.permissions);
         }
-
-        // 2. Fetch folder list from Drive
-        const foldersRes = await fetch(`/api/sources/${sourceId}/folders`);
-        if (!foldersRes.ok) return;
-        const foldersData = await foldersRes.json();
-        if (!active) return;
         
-        const folderList = foldersData.folders || [];
-        setFolders(folderList);
-        setFilteredFolders(folderList);
+        const type = sourceData.type || "google_drive";
+        setSourceType(type);
+        if (type === "google_drive") {
+          setActiveConfigTab("sync");
+          if (config.folderIds && config.folderIds.length > 0) {
+            setSyncOption("folder");
+            setSelectedFolderIds(config.folderIds);
+          } else if (config.folderId) {
+            setSyncOption("folder");
+            setSelectedFolderIds([config.folderId]);
+          }
+
+          // 2. Fetch folder list from Drive
+          const foldersRes = await fetch(`/api/sources/${sourceId}/folders`);
+          if (foldersRes.ok) {
+            const foldersData = await foldersRes.json();
+            if (active) {
+              const folderList = foldersData.folders || [];
+              setFolders(folderList);
+              setFilteredFolders(folderList);
+            }
+          }
+        }
       } catch (err) {
-        console.error("Failed to load folder configuration data:", err);
+        console.error("Failed to load source configuration data:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -1704,8 +1867,11 @@ function ConfigureFolderModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          folderIds: selectedFolders.map(f => f.id),
-          folderNames: selectedFolders.map(f => f.name),
+          ...(sourceType === "google_drive" && {
+            folderIds: selectedFolders.map(f => f.id),
+            folderNames: selectedFolders.map(f => f.name),
+          }),
+          permissions
         }),
       });
 
@@ -1765,9 +1931,9 @@ function ConfigureFolderModal({
           {/* Header */}
           <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
-              <h2 style={{ fontSize: 18.5, fontWeight: 800, color: "#111" }}>Configure Folder Sync</h2>
+              <h2 style={{ fontSize: 18.5, fontWeight: 800, color: "#111" }}>Configure Source Settings</h2>
               <p style={{ fontSize: 13, color: "#71717a", marginTop: 4 }}>
-                Choose which folders to ingest from <strong style={{ color: "#18181b" }}>{sourceName}</strong>.
+                Manage settings for <strong style={{ color: "#18181b" }}>{sourceName}</strong>.
               </p>
             </div>
             <button
@@ -1789,12 +1955,49 @@ function ConfigureFolderModal({
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
               <Loader2 size={24} className="animate-spin" style={{ color: "#ff6b00" }} />
-              <span style={{ fontSize: 13.5, color: "#71717a", fontWeight: 500 }}>Connecting to Google Drive and fetching folders...</span>
+              <span style={{ fontSize: 13.5, color: "#71717a", fontWeight: 500 }}>Fetching source configuration...</span>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0 }}>
-              {/* Radio Group */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              
+              {sourceType === "google_drive" && (
+                <div style={{ display: "flex", borderBottom: "1px solid #e4e4e7" }}>
+                  <button
+                    style={{
+                      padding: "8px 16px",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: activeConfigTab === "sync" ? "2px solid #18181b" : "2px solid transparent",
+                      color: activeConfigTab === "sync" ? "#18181b" : "#71717a",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer"
+                    }}
+                    onClick={() => setActiveConfigTab("sync")}
+                  >
+                    Sync Settings
+                  </button>
+                  <button
+                    style={{
+                      padding: "8px 16px",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: activeConfigTab === "permissions" ? "2px solid #18181b" : "2px solid transparent",
+                      color: activeConfigTab === "permissions" ? "#18181b" : "#71717a",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer"
+                    }}
+                    onClick={() => setActiveConfigTab("permissions")}
+                  >
+                    Permissions
+                  </button>
+                </div>
+              )}
+
+              {activeConfigTab === "sync" && sourceType === "google_drive" && (
+                <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {/* Option 1: Sync Everything */}
                 <label
                   style={{
@@ -1959,6 +2162,71 @@ function ConfigureFolderModal({
                   </div>
                 </motion.div>
               )}
+              </>
+              )}
+
+              {activeConfigTab === "permissions" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", marginBottom: 4 }}>Access Control</div>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      border: permissions === "everyone" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      background: permissions === "everyone" ? "#fff3ee" : "#fff",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="permissions"
+                      value="everyone"
+                      checked={permissions === "everyone"}
+                      onChange={() => setPermissions("everyone")}
+                      style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Everyone in Workspace</div>
+                      <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
+                        All members of this workspace can query this source.
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      border: permissions === "admins" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      background: permissions === "admins" ? "#fff3ee" : "#fff",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="permissions"
+                      value="admins"
+                      checked={permissions === "admins"}
+                      onChange={() => setPermissions("admins")}
+                      style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Admins Only</div>
+                      <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
+                        Only workspace administrators can query this source.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div style={{ display: "flex", justifyContent: "end", gap: 10, marginTop: 10 }}>
@@ -1980,16 +2248,16 @@ function ConfigureFolderModal({
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || (syncOption === "folder" && selectedFolderIds.length === 0)}
+                  disabled={saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0)}
                   style={{
                     padding: "8px 18px",
-                    background: saving || (syncOption === "folder" && selectedFolderIds.length === 0) ? "#e4e4e7" : "#ff6b00",
+                    background: saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0) ? "#e4e4e7" : "#ff6b00",
                     border: "none",
                     color: "#fff",
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: saving || (syncOption === "folder" && selectedFolderIds.length === 0) ? "not-allowed" : "pointer",
+                    cursor: saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0) ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: 6
