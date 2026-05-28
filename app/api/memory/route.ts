@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { z } from "zod";
 
@@ -17,15 +18,15 @@ const memorySchema = z.object({
 
 export async function GET() {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_READ);
 
     // Seed dummy data if empty
-    const count = await prisma.orgMemory.count({ where: { workspaceId: workspace.id } });
+    const count = await prisma.orgMemory.count({ where: { workspaceId: user.workspaceId } });
 
     if (count === 0) {
       const dummyMemories = [
         {
-          workspaceId: workspace.id,
+          workspaceId: user.workspaceId,
           category: "decision",
           title: "Decision Captured",
           content: "Approved Q2 marketing budget increase of 15% focusing on paid acquisition and brand.",
@@ -35,7 +36,7 @@ export async function GET() {
           createdAt: new Date(),
         },
         {
-          workspaceId: workspace.id,
+          workspaceId: user.workspaceId,
           category: "discussion",
           title: "Discussion Summary",
           content: "Product roadmap review meeting. Aligned on shipping AI Search in June.",
@@ -49,12 +50,13 @@ export async function GET() {
     }
 
     const memories = await prisma.orgMemory.findMany({
-      where: { workspaceId: workspace.id },
+      where: { workspaceId: user.workspaceId },
       orderBy: { createdAt: 'desc' }
     });
 
     return successResponse({ memories });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/memory error:", error);
     return errorResponse("Internal Server Error", 500);
@@ -63,7 +65,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_WRITE);
 
     const body = await request.json();
     const result = memorySchema.safeParse(body);
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const memory = await prisma.orgMemory.create({
       data: {
-        workspaceId: workspace.id,
+        workspaceId: user.workspaceId,
         category: category || "knowledge",
         title,
         content,
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse({ memory });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("POST /api/memory error:", error);
     return errorResponse("Internal Server Error", 500);
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_WRITE);
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -107,12 +110,13 @@ export async function DELETE(request: NextRequest) {
     await prisma.orgMemory.deleteMany({
       where: {
         id: id,
-        workspaceId: workspace.id
+        workspaceId: user.workspaceId
       }
     });
 
     return successResponse({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("DELETE /api/memory error:", error);
     return errorResponse("Internal Server Error", 500);

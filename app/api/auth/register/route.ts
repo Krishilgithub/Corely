@@ -5,6 +5,7 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { DefaultRoles } from "@/lib/rbac";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -50,15 +51,32 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Seed roles
+      const rolesData = Object.values(DefaultRoles).map((role) => ({
+        workspaceId: workspace.id,
+        name: role.name,
+        description: role.description,
+        permissions: role.permissions,
+      }));
+
+      await tx.workspaceRole.createMany({
+        data: rolesData,
+      });
+
+      const adminRole = await tx.workspaceRole.findFirst({
+        where: { workspaceId: workspace.id, name: DefaultRoles.ADMIN.name },
+      });
+
       const newUser = await tx.user.create({
         data: {
           email,
           name,
           passwordHash,
           role: "admin",
+          roleId: adminRole?.id,
           workspaceId: workspace.id,
         },
-        include: { workspace: true },
+        include: { workspace: true, workspaceRole: true },
       });
 
       return newUser;
@@ -87,6 +105,8 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        roleId: user.roleId,
+        permissions: user.workspaceRole?.permissions || [],
       },
       workspace: user.workspace,
     });

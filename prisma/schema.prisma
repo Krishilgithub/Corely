@@ -28,22 +28,40 @@ model Workspace {
   workflows          Workflow[]
   workflowActivities WorkflowActivity[]
   teams              Team[]
+  roles              WorkspaceRole[]
 
   @@map("workspaces")
 }
 
+model WorkspaceRole {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  description String?
+  permissions Json     @default("[]") // Array of permission strings
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  users     User[]
+
+  @@map("workspace_roles")
+}
+
 model User {
-  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId  String    @map("workspace_id") @db.Uuid
-  email        String    @unique
-  passwordHash String?   @map("password_hash")
-  name         String?
-  avatarUrl    String?   @map("avatar_url")
-  role         String    @default("member")
-  preferences  Json      @default("{}")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  sources      Source[]
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId   String         @map("workspace_id") @db.Uuid
+  email         String         @unique
+  passwordHash  String?        @map("password_hash")
+  name          String?
+  avatarUrl     String?        @map("avatar_url")
+  role          String         @default("member")
+  roleId        String?        @map("role_id") @db.Uuid
+  preferences   Json           @default("{}")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  sources       Source[]
+  teams         Team[]
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceRole WorkspaceRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -257,6 +275,7 @@ model Team {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  users     User[]
 
   @@map("teams")
 }

@@ -3,23 +3,20 @@
  * DELETE /api/sources/[id]   — disconnect a source
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
+import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  const workspaceId = request.nextUrl.searchParams.get("workspaceId");
+export async function GET() {
+  try {
+    const user = await requirePermission(Permissions.SOURCES_READ);
 
-  if (!workspaceId) {
-    return NextResponse.json(
-      { error: "workspaceId query param required" },
-      { status: 400 }
-    );
-  }
-
-  const sources = await prisma.source.findMany({
-    where: { workspaceId },
+    const sources = await prisma.source.findMany({
+      where: { workspaceId: user.workspaceId },
     select: {
       id: true,
       name: true,
@@ -34,5 +31,11 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ sources });
+  return successResponse({ sources });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("GET /api/sources error:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
 }

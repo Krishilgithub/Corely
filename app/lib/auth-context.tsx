@@ -8,6 +8,8 @@ interface User {
   name: string;
   email: string;
   role: string;
+  roleId?: string;
+  permissions?: string[];
 }
 
 interface Workspace {
@@ -25,6 +27,7 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<void>;
   register: (name: string, company: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,8 +132,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
+  const hasPermission = (permission: string) => {
+    // Admin override for legacy users
+    if (user?.role === "admin" && !user?.roleId) return true;
+    return user?.permissions?.includes(permission) || false;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, workspaceId, workspace, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, workspaceId, workspace, isLoading, login, register, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

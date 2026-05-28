@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "../components/Skeleton";
+import { useAuth } from "../../lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -140,12 +141,23 @@ export default function TeamsPage() {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   
   // Form State
   const [formName, setFormName] = useState("");
   const [formMembers, setFormMembers] = useState("");
   const [formFocus, setFormFocus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Invite Form State
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRoleId, setInviteRoleId] = useState("");
+  const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [inviteDevPassword, setInviteDevPassword] = useState<string | null>(null);
+
+  const { hasPermission } = useAuth();
   
   // Compare State
   const [compareTeam1, setCompareTeam1] = useState("");
@@ -169,7 +181,12 @@ export default function TeamsPage() {
 
   useEffect(() => {
     fetchTeams();
-  }, []);
+    if (hasPermission("teams:manage")) {
+      fetch("/api/teams/roles")
+        .then(res => res.json())
+        .then(data => setRoles(data.data || []));
+    }
+  }, [hasPermission]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -196,6 +213,43 @@ export default function TeamsPage() {
         setFormName("");
         setFormMembers("");
         setFormFocus("");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/teams/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: inviteName,
+          email: inviteEmail,
+          roleId: inviteRoleId,
+          teamIds: selectedTeamIds,
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await fetchTeams();
+        triggerToast("Member invited successfully!");
+        if (data.data && data.data._devPassword) {
+          setInviteDevPassword(data.data._devPassword);
+        } else {
+          setShowInviteModal(false);
+          setInviteName("");
+          setInviteEmail("");
+          setInviteRoleId("");
+          setSelectedTeamIds([]);
+        }
+      } else {
+        alert("Failed: " + data.error);
       }
     } catch (e) {
       console.error(e);
@@ -268,10 +322,18 @@ export default function TeamsPage() {
             <Upload size={14} />
             Export
           </button>
-          <button className="tm-btn-primary" onClick={() => setShowAddModal(true)}>
-            <Plus size={14} />
-            Add Team
-          </button>
+          {hasPermission("teams:manage") && (
+            <>
+              <button className="tm-btn-secondary" onClick={() => setShowInviteModal(true)}>
+                <Users size={14} />
+                Invite Member
+              </button>
+              <button className="tm-btn-primary" onClick={() => setShowAddModal(true)}>
+                <Plus size={14} />
+                Add Team
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -878,6 +940,79 @@ export default function TeamsPage() {
             >
               <CheckCircle2 size={16} style={{ color: "#10b981" }} />
               <span>{toastMessage}</span>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Invite Member Modal ── */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <div className="tm-modal-overlay">
+            <motion.div
+              className="tm-modal-card"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>Invite Member</h2>
+                <button onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteDevPassword(null);
+                  setInviteName("");
+                  setInviteEmail("");
+                  setInviteRoleId("");
+                }} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              {inviteDevPassword ? (
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ color: "#16a34a", marginBottom: 12 }}><CheckCircle2 size={48} style={{ margin: "0 auto" }} /></div>
+                  <h3 style={{ fontSize: 16, marginBottom: 8 }}>Member Invited!</h3>
+                  <p style={{ fontSize: 13, color: "#52525b", marginBottom: 16 }}>An invitation email was &quot;sent&quot; (mocked) to {inviteEmail}. For development purposes, here is the generated password:</p>
+                  <div style={{ padding: 12, background: "#f4f4f5", borderRadius: 8, fontSize: 18, fontFamily: "monospace", letterSpacing: 2, fontWeight: "bold" }}>
+                    {inviteDevPassword}
+                  </div>
+                  <button className="tm-btn-primary" onClick={() => { setShowInviteModal(false); setInviteDevPassword(null); }} style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "12px" }}>
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleInviteSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Name</label>
+                    <input type="text" style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14 }}
+                           value={inviteName} onChange={(e) => setInviteName(e.target.value)} required placeholder="e.g. Jane Doe" />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Email</label>
+                    <input type="email" style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14 }}
+                           value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required placeholder="jane@example.com" />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Role</label>
+                    <select style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14 }}
+                            value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} required>
+                      <option value="">Select a role...</option>
+                      {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Assign to Teams (Optional)</label>
+                    <select multiple style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14, minHeight: 80 }}
+                            value={selectedTeamIds} onChange={(e) => setSelectedTeamIds(Array.from(e.target.selectedOptions, option => option.value))}>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                    <p style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>Hold Ctrl/Cmd to select multiple teams.</p>
+                  </div>
+                  <button type="submit" className="tm-btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 8 }} disabled={isSubmitting}>
+                    {isSubmitting ? "Inviting..." : "Send Invite"}
+                  </button>
+                </form>
+              )}
             </motion.div>
           </div>
         )}

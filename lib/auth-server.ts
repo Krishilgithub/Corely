@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify, JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
+import { Permission, hasPermission } from "./rbac";
 
 const secretKey = process.env.JWT_SECRET || "fallback-secret-for-development-only";
 const key = new TextEncoder().encode(secretKey);
@@ -54,7 +55,7 @@ export async function auth() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    include: { workspace: true },
+    include: { workspace: true, workspaceRole: true },
   });
 
   if (!user) {
@@ -62,4 +63,19 @@ export async function auth() {
   }
 
   return { user, workspace: user.workspace };
+}
+
+export async function requirePermission(permission: Permission) {
+  const { user } = await auth();
+  
+  // Backwards compatibility for MVP Admin users who haven't been assigned a strict roleId yet
+  if (user.role === "admin" && !user.roleId) {
+    return user; 
+  }
+  
+  if (!user.workspaceRole || !hasPermission(user.workspaceRole.permissions, permission)) {
+    throw new Error("Forbidden: Insufficient permissions");
+  }
+  
+  return user;
 }

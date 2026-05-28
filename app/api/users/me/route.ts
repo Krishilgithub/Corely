@@ -11,6 +11,8 @@ export async function GET() {
         name: user.name,
         email: user.email,
         role: user.role,
+        roleId: user.roleId,
+        permissions: user.workspaceRole?.permissions || [],
       },
       workspace,
     });

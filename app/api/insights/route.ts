@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 const insightsData = [
@@ -114,12 +115,13 @@ const insightsData = [
 
 export async function GET() {
   try {
-    await auth(); // Enforce authentication
+    await requirePermission(Permissions.INSIGHTS_READ);
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
     return successResponse(insightsData);
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/insights error:", error);
     return errorResponse("Internal Server Error", 500);

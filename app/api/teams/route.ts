@@ -1,5 +1,6 @@
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
 import { prisma } from "@/lib/db";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 const DEFAULT_TEAMS = [
@@ -151,25 +152,33 @@ const DEFAULT_TEAMS = [
 
 export async function GET() {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.TEAMS_READ);
 
     let teams = await prisma.team.findMany({
-      where: { workspaceId: workspace.id },
+      where: { workspaceId: user.workspaceId },
+      include: { users: true },
       orderBy: { createdAt: "asc" },
     });
 
     if (teams.length === 0) {
       await prisma.team.createMany({
-        data: DEFAULT_TEAMS.map((t) => ({ ...t, workspaceId: workspace.id })),
+        data: DEFAULT_TEAMS.map((t) => ({ ...t, workspaceId: user.workspaceId })),
       });
       teams = await prisma.team.findMany({
-        where: { workspaceId: workspace.id },
+        where: { workspaceId: user.workspaceId },
+        include: { users: true },
         orderBy: { createdAt: "asc" },
       });
     }
 
-    return successResponse(teams);
+    const formattedTeams = teams.map(t => ({
+      ...t,
+      members: Math.max(t.users.length, t.members) // Keep default members if no real users yet
+    }));
+
+    return successResponse(formattedTeams);
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/teams error:", error);
     return errorResponse("Internal Server Error", 500);
@@ -178,12 +187,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.TEAMS_MANAGE);
     const data = await req.json();
 
     const team = await prisma.team.create({
       data: {
-        workspaceId: workspace.id,
+        workspaceId: user.workspaceId,
         name: data.name,
         members: parseInt(data.members || "1", 10),
         icon: data.icon || "Users",
@@ -205,6 +214,7 @@ export async function POST(req: Request) {
 
     return successResponse(team);
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("POST /api/teams error:", error);
     return errorResponse("Internal Server Error", 500);
