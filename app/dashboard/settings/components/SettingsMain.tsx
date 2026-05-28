@@ -176,12 +176,7 @@ export default function SettingsMain() {
   return (
     <>
       {/* Left Navigation */}
-      <motion.div
-        className="set-nav-sidebar"
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4 }}
-      >
+      <div className="set-nav-sidebar">
         <div style={{ marginBottom: 24 }}>
           <h1 className="set-title" style={{ fontSize: 24 }}>Settings</h1>
           <p className="set-subtitle" style={{ fontSize: 13 }}>Manage your configurations.</p>
@@ -196,7 +191,7 @@ export default function SettingsMain() {
             {activeTab === tab && <ChevronRight size={14} />}
           </div>
         ))}
-      </motion.div>
+      </div>
 
       {/* Right Content */}
       <motion.div

@@ -180,32 +180,35 @@ export default function TeamsPage() {
     ];
   }, [teams]);
 
-  const fetchTeams = () => {
+  const fetchTeams = async () => {
     setLoading(true);
-    fetch("/api/teams")
-      .then(res => res.json())
-      .then(json => {
-        const data = json.data || json;
-        setTeams(data.teams || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    try {
+      const res = await fetch("/api/teams");
+      const json = await res.json();
+      const data = json.data || json;
+      setTeams(data.teams || data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchTeams();
-    if (hasPermission("teams:manage")) {
-      fetch("/api/teams/roles")
-        .then(res => res.json())
-        .then(json => {
-          const data = json.data || json;
-          setRoles(data.roles || []);
-        });
-    }
-  }, [hasPermission]);
+    // Always fetch roles so the invite dropdown is populated
+    fetch("/api/teams/roles")
+      .then(res => res.json())
+      .then(json => {
+        // successResponse wraps data directly; roles is the array itself
+        const data = json.data || json;
+        // data could be an array or an object with a roles key
+        const rolesArr = Array.isArray(data) ? data : (data.roles || []);
+        setRoles(rolesArr);
+      })
+      .catch(err => console.error("Failed to fetch roles", err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -982,6 +985,7 @@ export default function TeamsPage() {
           <div className="tm-modal-overlay">
             <motion.div
               className="tm-modal-card"
+              style={{ maxHeight: "90vh", overflowY: "auto", display: "flex", flexDirection: "column" }}
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
