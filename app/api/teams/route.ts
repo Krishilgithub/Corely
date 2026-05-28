@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth-server";
+import { prisma } from "@/lib/db";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
-const teamsData = [
+const DEFAULT_TEAMS = [
   {
-    id: 1,
     name: "Engineering",
     members: 128,
     icon: "Users",
@@ -22,7 +22,6 @@ const teamsData = [
     isUp: true,
   },
   {
-    id: 2,
     name: "Product",
     members: 64,
     icon: "BarChart2",
@@ -41,7 +40,6 @@ const teamsData = [
     isUp: true,
   },
   {
-    id: 3,
     name: "Sales",
     members: 96,
     icon: "Target",
@@ -60,7 +58,6 @@ const teamsData = [
     isUp: true,
   },
   {
-    id: 4,
     name: "Marketing",
     members: 48,
     icon: "Users",
@@ -79,7 +76,6 @@ const teamsData = [
     isUp: true,
   },
   {
-    id: 5,
     name: "Customer Success",
     members: 52,
     icon: "Activity",
@@ -98,7 +94,6 @@ const teamsData = [
     isUp: true,
   },
   {
-    id: 6,
     name: "Finance",
     members: 36,
     icon: "Target",
@@ -117,7 +112,6 @@ const teamsData = [
     isUp: false,
   },
   {
-    id: 7,
     name: "People Operations",
     members: 28,
     icon: "Users",
@@ -136,7 +130,6 @@ const teamsData = [
     isUp: false,
   },
   {
-    id: 8,
     name: "Legal",
     members: 15,
     icon: "ShieldAlert",
@@ -158,14 +151,62 @@ const teamsData = [
 
 export async function GET() {
   try {
-    await auth(); // Enforce authentication
+    const { workspace } = await auth();
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return successResponse(teamsData);
+    let teams = await prisma.team.findMany({
+      where: { workspaceId: workspace.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (teams.length === 0) {
+      await prisma.team.createMany({
+        data: DEFAULT_TEAMS.map((t) => ({ ...t, workspaceId: workspace.id })),
+      });
+      teams = await prisma.team.findMany({
+        where: { workspaceId: workspace.id },
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    return successResponse(teams);
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/teams error:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const { workspace } = await auth();
+    const data = await req.json();
+
+    const team = await prisma.team.create({
+      data: {
+        workspaceId: workspace.id,
+        name: data.name,
+        members: parseInt(data.members || "1", 10),
+        icon: data.icon || "Users",
+        iconBg: data.iconBg || "#eff6ff",
+        iconColor: data.iconColor || "#3b82f6",
+        health: data.health || 100,
+        healthColor: data.healthColor || "#10b981",
+        collab: data.collab || "Good",
+        know: data.know || 100,
+        knowColor: data.knowColor || "#10b981",
+        actions: data.actions || 0,
+        actionsTrend: data.actionsTrend || 0,
+        focus: data.focus || "Growth",
+        focusBg: data.focusBg || "#f5f3ff",
+        focusColor: data.focusColor || "#8b5cf6",
+        isUp: data.isUp !== undefined ? data.isUp : true,
+      },
+    });
+
+    return successResponse(team);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("POST /api/teams error:", error);
     return errorResponse("Internal Server Error", 500);
   }
 }

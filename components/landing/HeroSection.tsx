@@ -36,8 +36,8 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-8 leading-[1.1] text-center text-black"
         >
-          The Institutional Memory Engine<br />
-          For Modern Organizations.
+          The Unified Brain<br />
+          For Your Enterprise.
         </motion.h1>
 
         <motion.p 

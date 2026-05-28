@@ -8,23 +8,26 @@ datasource db {
 }
 
 model Workspace {
-  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name           String
-  slug           String          @unique
-  plan           String          @default("free")
-  logoUrl        String?         @map("logo_url")
-  settings       Json            @default("{}")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  chatSessions   ChatSession[]
-  documentChunks DocumentChunk[]
-  documents      Document[]
-  sources        Source[]
-  users          User[]
-  dashboardInsights DashboardInsight[]
-  dashboardActions  DashboardAction[]
-  orgMemories       OrgMemory[]
-  memorySnapshots   MemorySnapshot[]
+  id                 String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String
+  slug               String             @unique
+  plan               String             @default("free")
+  logoUrl            String?            @map("logo_url")
+  settings           Json               @default("{}")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  chatSessions       ChatSession[]
+  documentChunks     DocumentChunk[]
+  documents          Document[]
+  sources            Source[]
+  users              User[]
+  dashboardInsights  DashboardInsight[]
+  dashboardActions   DashboardAction[]
+  orgMemories        OrgMemory[]
+  memorySnapshots    MemorySnapshot[]
+  workflows          Workflow[]
+  workflowActivities WorkflowActivity[]
+  teams              Team[]
 
   @@map("workspaces")
 }
@@ -131,56 +134,128 @@ model DocumentChunk {
 }
 
 model DashboardInsight {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
-  priority    String    // 'HIGH', 'MEDIUM', 'LOW'
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  priority    String // 'HIGH', 'MEDIUM', 'LOW'
   title       String
   description String
   source      String
-  iconType    String    @default("TrendingDown") // lucide icon name
-  createdAt   DateTime  @default(now()) @map("created_at")
+  iconType    String   @default("TrendingDown") // lucide icon name
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("dashboard_insights")
 }
 
 model DashboardAction {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
   description String
   source      String
-  iconType    String    @default("Cloud") // lucide icon name
-  createdAt   DateTime  @default(now()) @map("created_at")
+  iconType    String   @default("Cloud") // lucide icon name
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("dashboard_actions")
 }
 
 model OrgMemory {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
-  category    String    // 'decision', 'discussion', 'document', 'insight', 'knowledge'
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  category    String // 'decision', 'discussion', 'document', 'insight', 'knowledge'
   title       String
   content     String
-  badges      Json      @default("[]") // Array of strings
-  sourceName  String    @map("source_name")
-  avatarUrl   String?   @map("avatar_url")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  badges      Json     @default("[]") // Array of strings
+  sourceName  String   @map("source_name")
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("org_memories")
 }
 
 model MemorySnapshot {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
   title       String
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("memory_snapshots")
+}
+
+model Workflow {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String @map("workspace_id") @db.Uuid
+  title       String
+  desc        String
+  icon        String
+  iconBg      String
+  iconCol     String
+  triggerType String @map("trigger_type") // Schedule, Event, Condition
+  triggerIcon String @map("trigger_icon")
+  triggerDesc String @map("trigger_desc")
+  status      String @default("Draft") // Active, Draft, Inactive
+  executions  Int    @default(0)
+  lastRun     String @default("—") @map("last_run")
+  lastRunTime String @default("") @map("last_run_time")
+  owner       String
+  ownerBg     String
+  ownerName   String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  activities WorkflowActivity[]
+
+  @@map("workflows")
+}
+
+model WorkflowActivity {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId   String @map("workspace_id") @db.Uuid
+  workflowId    String @map("workflow_id") @db.Uuid
+  workflowTitle String @map("workflow_title")
+  status        String @default("success") // success, running, failed
+  timestamp     String // e.g. "2 min ago" (for simulation UI)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_activities")
+}
+
+model Team {
+  id           String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId  String  @map("workspace_id") @db.Uuid
+  name         String
+  members      Int     @default(1)
+  icon         String
+  iconBg       String
+  iconColor    String
+  health       Int     @default(100)
+  healthColor  String
+  collab       String
+  know         Int     @default(100)
+  knowColor    String
+  actions      Int     @default(0)
+  actionsTrend Int     @default(0)
+  focus        String
+  focusBg      String
+  focusColor   String
+  isUp         Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("teams")
 }

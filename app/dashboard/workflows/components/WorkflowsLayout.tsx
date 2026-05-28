@@ -36,160 +36,7 @@ export interface ActivityItem {
   timestamp: string;
 }
 
-const INITIAL_WORKFLOWS: WorkflowItem[] = [
-  {
-    id: "wf-1",
-    icon: "Mail",
-    iconBg: "#eff6ff",
-    iconCol: "#3b82f6",
-    title: "Daily Executive Digest",
-    desc: "Sends AI-powered daily summary to executives",
-    triggerType: "Schedule",
-    triggerIcon: "Clock",
-    triggerDesc: "Daily at 8:00 AM",
-    lastRun: "May 12, 2025",
-    lastRunTime: "8:01 AM",
-    executions: 312,
-    status: "Active",
-    owner: "JD",
-    ownerBg: "#c2410c",
-    ownerName: "Jane Doe"
-  },
-  {
-    id: "wf-2",
-    icon: "Video",
-    iconBg: "#f3e8ff",
-    iconCol: "#9333ea",
-    title: "Meeting Summary Automation",
-    desc: "Generate summaries and action items",
-    triggerType: "Event",
-    triggerIcon: "Zap",
-    triggerDesc: "Meeting Ended",
-    lastRun: "May 12, 2025",
-    lastRunTime: "7:43 AM",
-    executions: 245,
-    status: "Active",
-    owner: "KS",
-    ownerBg: "#0ea5e9",
-    ownerName: "Krishil Shah"
-  },
-  {
-    id: "wf-3",
-    icon: "Cloud",
-    iconBg: "#dcfce7",
-    iconCol: "#16a34a",
-    title: "CRM Update Assistant",
-    desc: "Auto-enrich and update CRM records",
-    triggerType: "Event",
-    triggerIcon: "Zap",
-    triggerDesc: "New Email",
-    lastRun: "May 12, 2025",
-    lastRunTime: "7:21 AM",
-    executions: 389,
-    status: "Active",
-    owner: "AM",
-    ownerBg: "#db2777",
-    ownerName: "Alex Morgan"
-  },
-  {
-    id: "wf-4",
-    icon: "Headphones",
-    iconBg: "#ffedd5",
-    iconCol: "#ea580c",
-    title: "Support Ticket Triage",
-    desc: "Categorize and route support tickets",
-    triggerType: "Event",
-    triggerIcon: "Zap",
-    triggerDesc: "New Ticket",
-    lastRun: "May 12, 2025",
-    lastRunTime: "6:58 AM",
-    executions: 178,
-    status: "Active",
-    owner: "TR",
-    ownerBg: "#4f46e5",
-    ownerName: "Taylor Rogers"
-  },
-  {
-    id: "wf-5",
-    icon: "DollarSign",
-    iconBg: "#fee2e2",
-    iconCol: "#ef4444",
-    title: "Sales Opportunity Alerts",
-    desc: "Notify team about high-value opportunities",
-    triggerType: "Condition",
-    triggerIcon: "LayoutGrid",
-    triggerDesc: "Deal > $50K",
-    lastRun: "May 12, 2025",
-    lastRunTime: "6:34 AM",
-    executions: 96,
-    status: "Active",
-    owner: "JD",
-    ownerBg: "#c2410c",
-    ownerName: "Jane Doe"
-  },
-  {
-    id: "wf-6",
-    icon: "Users",
-    iconBg: "#f3e8ff",
-    iconCol: "#9333ea",
-    title: "HR Onboarding Flow",
-    desc: "Automate new hire onboarding process",
-    triggerType: "Event",
-    triggerIcon: "Zap",
-    triggerDesc: "New Employee",
-    lastRun: "May 11, 2025",
-    lastRunTime: "5:12 PM",
-    executions: 24,
-    status: "Active",
-    owner: "KS",
-    ownerBg: "#0ea5e9",
-    ownerName: "Krishil Shah"
-  },
-  {
-    id: "wf-7",
-    icon: "LineChart",
-    iconBg: "#ffedd5",
-    iconCol: "#ea580c",
-    title: "Product Feedback Analysis",
-    desc: "Analyze and summarize product feedback",
-    triggerType: "Schedule",
-    triggerIcon: "Clock",
-    triggerDesc: "Daily at 10:00 AM",
-    lastRun: "May 11, 2025",
-    lastRunTime: "10:01 AM",
-    executions: 156,
-    status: "Draft",
-    owner: "AM",
-    ownerBg: "#db2777",
-    ownerName: "Alex Morgan"
-  },
-  {
-    id: "wf-8",
-    icon: "FileText",
-    iconBg: "#fee2e2",
-    iconCol: "#ef4444",
-    title: "Expense Report Review",
-    desc: "Review and approve expense reports",
-    triggerType: "Event",
-    triggerIcon: "Zap",
-    triggerDesc: "Report Submitted",
-    lastRun: "—",
-    lastRunTime: "",
-    executions: 0,
-    status: "Draft",
-    owner: "TR",
-    ownerBg: "#4f46e5",
-    ownerName: "Taylor Rogers"
-  }
-];
 
-const INITIAL_ACTIVITIES: ActivityItem[] = [
-  { id: "act-1", workflowId: "wf-1", workflowTitle: "Daily Executive Digest", status: "success", timestamp: "2 min ago" },
-  { id: "act-2", workflowId: "wf-3", workflowTitle: "CRM Update Assistant", status: "success", timestamp: "7 min ago" },
-  { id: "act-3", workflowId: "wf-2", workflowTitle: "Meeting Summary Automation", status: "running", timestamp: "12 min ago" },
-  { id: "act-4", workflowId: "wf-4", workflowTitle: "Support Ticket Triage", status: "failed", timestamp: "18 min ago" },
-  { id: "act-5", workflowId: "wf-5", workflowTitle: "Sales Opportunity Alerts", status: "success", timestamp: "32 min ago" }
-];
 
 export default function WorkflowsLayout() {
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
@@ -197,40 +44,24 @@ export default function WorkflowsLayout() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ── Hydrate State on Mount ─────────────────────────────────────────────────
-  useEffect(() => {
+  // ── Fetch Data on Mount ─────────────────────────────────────────────────
+  const fetchWorkflows = async () => {
     try {
-      const rawWorkflows = localStorage.getItem("corely-workflows");
-      if (rawWorkflows) {
-        const parsed = JSON.parse(rawWorkflows);
-        if (Array.isArray(parsed)) {
-          setWorkflows(parsed);
-        }
-      } else {
-        localStorage.setItem("corely-workflows", JSON.stringify(INITIAL_WORKFLOWS));
+      const res = await fetch("/api/workflows");
+      if (res.ok) {
+        const data = await res.json();
+        setWorkflows(data.workflows);
+        setActivityLogs(data.activities);
       }
     } catch (e) {
-      console.error("Failed to hydrate workflows:", e);
-    }
-
-    try {
-      const rawActivity = localStorage.getItem("corely-workflow-activity");
-      if (rawActivity) {
-        const parsed = JSON.parse(rawActivity);
-        if (Array.isArray(parsed)) {
-          setActivityLogs(parsed);
-        }
-      } else {
-        localStorage.setItem("corely-workflow-activity", JSON.stringify(INITIAL_ACTIVITIES));
-      }
-    } catch (e) {
-      console.error("Failed to hydrate workflow activity logs:", e);
-    }
-    
-    // Simulate network delay
-    setTimeout(() => {
+      console.error("Failed to fetch workflows:", e);
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkflows();
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -239,113 +70,107 @@ export default function WorkflowsLayout() {
   };
 
   // ── Operations & Actions ───────────────────────────────────────────────────
-  const handleAddWorkflow = (newWf: Omit<WorkflowItem, "id" | "executions" | "lastRun" | "lastRunTime">) => {
-    const item: WorkflowItem = {
-      ...newWf,
-      id: `wf-${Date.now()}`,
-      executions: 0,
-      lastRun: "—",
-      lastRunTime: ""
-    };
-
-    setWorkflows((prev) => {
-      const updated = [item, ...prev];
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
-    });
-
-    triggerToast(`Successfully created workflow: "${item.title}"`);
-  };
-
-  const handleEditWorkflow = (editedWf: WorkflowItem) => {
-    setWorkflows((prev) => {
-      const updated = prev.map((w) => (w.id === editedWf.id ? editedWf : w));
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
-    });
-
-    triggerToast(`Updated workflow settings: "${editedWf.title}"`);
-  };
-
-  const handleToggleStatus = (id: string) => {
-    let newStatus: WorkflowItem["status"] = "Active";
-    setWorkflows((prev) => {
-      const updated = prev.map((w) => {
-        if (w.id === id) {
-          newStatus = w.status === "Active" ? "Inactive" : "Active";
-          return { ...w, status: newStatus };
-        }
-        return w;
+  const handleAddWorkflow = async (newWf: Omit<WorkflowItem, "id" | "executions" | "lastRun" | "lastRunTime">) => {
+    try {
+      const res = await fetch("/api/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newWf)
       });
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
-    });
-
-    triggerToast(`Status changed to ${newStatus}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWorkflows((prev) => [data.workflow, ...prev]);
+        triggerToast(`Successfully created workflow: "${newWf.title}"`);
+      }
+    } catch (err) {
+      console.error("Failed to create workflow:", err);
+    }
   };
 
-  const handleDeleteWorkflow = (id: string) => {
-    let title = "";
-    setWorkflows((prev) => {
-      const target = prev.find((w) => w.id === id);
-      title = target ? target.title : "Workflow";
-      const updated = prev.filter((w) => w.id !== id);
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
-    });
-
-    // Also clean up matches inside activity logs (cascade simulation)
-    setActivityLogs((prev) => {
-      const updated = prev.filter((log) => log.workflowId !== id);
-      localStorage.setItem("corely-workflow-activity", JSON.stringify(updated));
-      return updated;
-    });
-
-    triggerToast(`Deleted workflow: "${title}"`);
-  };
-
-  const handleRunWorkflow = (id: string) => {
-    let wfTitle = "";
-    setWorkflows((prev) => {
-      const updated = prev.map((wf) => {
-        if (wf.id === id) {
-          wfTitle = wf.title;
-          const now = new Date();
-          const lastRunStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-          const lastRunTimeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          return {
-            ...wf,
-            executions: wf.executions + 1,
-            lastRun: lastRunStr,
-            lastRunTime: lastRunTimeStr
-          };
-        }
-        return wf;
+  const handleEditWorkflow = async (editedWf: WorkflowItem) => {
+    try {
+      const res = await fetch(`/api/workflows/${editedWf.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editedWf)
       });
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
-    });
-
-    const newLog: ActivityItem = {
-      id: `act-${Date.now()}`,
-      workflowId: id,
-      workflowTitle: wfTitle || "Workflow",
-      status: "success",
-      timestamp: "Just now"
-    };
-
-    setActivityLogs((prev) => {
-      const updated = [newLog, ...prev];
-      localStorage.setItem("corely-workflow-activity", JSON.stringify(updated));
-      return updated;
-    });
-
-    triggerToast(`Triggered execution run for: "${wfTitle}"`);
+      if (res.ok) {
+        setWorkflows((prev) => prev.map((w) => (w.id === editedWf.id ? editedWf : w)));
+        triggerToast(`Updated workflow settings: "${editedWf.title}"`);
+      }
+    } catch (err) {
+      console.error("Failed to update workflow:", err);
+    }
   };
 
-  const handleUseTemplate = (title: string, desc: string, icon: string, bg: string, col: string) => {
-    const newWf: WorkflowItem = {
-      id: `wf-${Date.now()}`,
+  const handleToggleStatus = async (id: string) => {
+    const wf = workflows.find((w) => w.id === id);
+    if (!wf) return;
+    const newStatus: WorkflowItem["status"] = wf.status === "Active" ? "Inactive" : "Active";
+    
+    try {
+      const res = await fetch(`/api/workflows/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setWorkflows((prev) => prev.map((w) => (w.id === id ? { ...w, status: newStatus } : w)));
+        triggerToast(`Status changed to ${newStatus}`);
+      }
+    } catch (err) {
+      console.error("Failed to toggle status:", err);
+    }
+  };
+
+  const handleDeleteWorkflow = async (id: string) => {
+    try {
+      const res = await fetch(`/api/workflows/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        const title = workflows.find((w) => w.id === id)?.title || "Workflow";
+        setWorkflows((prev) => prev.filter((w) => w.id !== id));
+        setActivityLogs((prev) => prev.filter((log) => log.workflowId !== id));
+        triggerToast(`Deleted workflow: "${title}"`);
+      }
+    } catch (err) {
+      console.error("Failed to delete workflow:", err);
+    }
+  };
+
+  const handleRunWorkflow = async (id: string) => {
+    try {
+      const res = await fetch(`/api/workflows/${id}/run`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        let wfTitle = "";
+        
+        setWorkflows((prev) => prev.map((wf) => {
+          if (wf.id === id) {
+            wfTitle = wf.title;
+            const now = new Date();
+            return {
+              ...wf,
+              executions: wf.executions + 1,
+              lastRun: now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              lastRunTime: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            };
+          }
+          return wf;
+        }));
+
+        if (data.activity) {
+          setActivityLogs((prev) => [data.activity, ...prev]);
+        }
+
+        triggerToast(`Triggered execution run for: "${wfTitle}"`);
+      }
+    } catch (err) {
+      console.error("Failed to run workflow:", err);
+    }
+  };
+
+  const handleUseTemplate = async (title: string, desc: string, icon: string, bg: string, col: string) => {
+    await handleAddWorkflow({
       icon,
       iconBg: bg,
       iconCol: col,
@@ -354,28 +179,15 @@ export default function WorkflowsLayout() {
       triggerType: "Event",
       triggerIcon: "Zap",
       triggerDesc: "Template Created",
-      lastRun: "—",
-      lastRunTime: "",
-      executions: 0,
       status: "Draft",
       owner: "KS",
       ownerBg: "#0ea5e9",
       ownerName: "Krishil Shah"
-    };
-
-    setWorkflows((prev) => {
-      const updated = [newWf, ...prev];
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
     });
-
-    triggerToast(`Cloned template workflow: "${title}"`);
   };
 
-  const handleImportWorkflow = () => {
-    // Simulate importing a workflow
-    const imported: WorkflowItem = {
-      id: `wf-imported-${Date.now()}`,
+  const handleImportWorkflow = async () => {
+    await handleAddWorkflow({
       icon: "Cloud",
       iconBg: "#dcfce7",
       iconCol: "#16a34a",
@@ -384,22 +196,11 @@ export default function WorkflowsLayout() {
       triggerType: "Schedule",
       triggerIcon: "Clock",
       triggerDesc: "Hourly at :00",
-      lastRun: "—",
-      lastRunTime: "",
-      executions: 0,
       status: "Draft",
       owner: "KS",
       ownerBg: "#0ea5e9",
       ownerName: "Krishil Shah"
-    };
-
-    setWorkflows((prev) => {
-      const updated = [imported, ...prev];
-      localStorage.setItem("corely-workflows", JSON.stringify(updated));
-      return updated;
     });
-
-    triggerToast(`Imported workflow: "${imported.title}" successfully`);
   };
 
   return (
