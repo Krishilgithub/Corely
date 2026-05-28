@@ -23,6 +23,7 @@
     "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.106.2",
     "ai": "^6.0.191",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.77.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/bcryptjs": "^2.4.6",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",

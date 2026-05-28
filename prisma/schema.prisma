@@ -33,16 +33,17 @@ model Workspace {
 }
 
 model User {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
-  email       String    @unique
-  name        String?
-  avatarUrl   String?   @map("avatar_url")
-  role        String    @default("member")
-  preferences Json      @default("{}")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  sources     Source[]
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  name         String?
+  avatarUrl    String?   @map("avatar_url")
+  role         String    @default("member")
+  preferences  Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  sources      Source[]
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("users")
 }

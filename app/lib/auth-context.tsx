@@ -22,7 +22,8 @@ interface AuthContextType {
   workspaceId: string | null;
   workspace: Workspace | null;
   isLoading: boolean;
-  login: (email: string) => Promise<void>;
+  login: (email: string, password?: string) => Promise<void>;
+  register: (name: string, company: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -64,13 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  const login = async (email: string) => {
+  const login = async (email: string, password?: string) => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password: password || "password123" }),
       });
 
       if (!res.ok) {
@@ -83,9 +84,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setWorkspace(data.workspace || null);
       
       router.push("/dashboard");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Failed to login");
+      alert("Failed to login: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (name: string, company: string, email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, company, email, password }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Registration failed");
+      }
+
+      const { data } = await res.json();
+      setUser(data.user);
+      setWorkspaceId(data.workspace?.id || null);
+      setWorkspace(data.workspace || null);
+      
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      console.error(err);
+      alert("Failed to register: " + (err instanceof Error ? err.message : String(err)));
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, workspaceId, workspace, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, workspaceId, workspace, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
