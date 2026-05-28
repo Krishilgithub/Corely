@@ -103,7 +103,7 @@ export default function AskRightSidebar({
   };
 
   return (
-    <div style={{ flexShrink: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+    <div style={{ flexShrink: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: 14, overflowY: "hidden", paddingRight: 4 }}>
       {/* New Chat Button */}
       <motion.button
         onClick={() => setActiveSessionId(null)}
@@ -194,7 +194,12 @@ export default function AskRightSidebar({
         <div className="ac-card-header" style={{ flexShrink: 0 }}>
           <div className="ac-card-title">Recent Conversations</div>
         </div>
-        <div className="ac-convo-list" style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", paddingRight: "4px" }}>
+        <div 
+          className="ac-convo-list" 
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", paddingRight: "4px" }}
+        >
           {loading && sessions.length === 0 && (
             <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
               Loading conversations...

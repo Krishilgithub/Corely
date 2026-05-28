@@ -255,11 +255,17 @@ export default function SourcesRightSidebar() {
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
+        style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
       >
-        <div className="src-card-header">
+        <div className="src-card-header" style={{ flexShrink: 0 }}>
           <div className="src-card-title">Recently Added</div>
         </div>
-        <div className="src-recent-list">
+        <div 
+          className="src-recent-list"
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", display: "flex", flexDirection: "column", gap: 14, paddingRight: 4, maxHeight: "320px" }}
+        >
           {loading && (
             <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px" }}>
               Loading recently added...
@@ -270,9 +276,11 @@ export default function SourcesRightSidebar() {
               No sources connected.
             </div>
           )}
-          {sources.slice(0, 3).map((source) => (
-            <div key={source.id} className="src-recent-item">
-              <div className="src-recent-left">
+          {[...sources]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map((source) => (
+            <div key={source.id} className="src-recent-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div className="src-recent-left" style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
                 <div
                   className="src-recent-icon"
                   style={{
@@ -281,6 +289,7 @@ export default function SourcesRightSidebar() {
                     borderRadius: 6,
                     width: 30,
                     height: 30,
+                    flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -288,14 +297,14 @@ export default function SourcesRightSidebar() {
                 >
                   {source.type === "google_drive" ? <GoogleDriveIcon size={15} /> : <Database size={15} color="#a1a1aa" />}
                 </div>
-                <div>
-                  <div className="src-recent-name" style={{ fontSize: 13, fontWeight: 700, color: "#18181b" }}>{source.name}</div>
-                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "#71717a" }}>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                  <div className="src-recent-name" title={source.name} style={{ fontSize: 13, fontWeight: 700, color: "#18181b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{source.name}</div>
+                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "#71717a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
                     {source.type === "google_drive" ? "Google Drive" : source.type}
                   </div>
                 </div>
               </div>
-              <div className="src-recent-time" style={{ fontSize: 11, color: "#a1a1aa" }}>
+              <div className="src-recent-time" style={{ fontSize: 11, color: "#a1a1aa", flexShrink: 0, fontWeight: 500 }}>
                 {source.lastSyncedAt ? "Active" : "New"}
               </div>
             </div>

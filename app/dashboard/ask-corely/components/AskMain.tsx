@@ -560,7 +560,11 @@ export default function AskMain({
 
       {/* Chat Thread & Scroll Lane */}
       <div style={{ flex: 1, position: "relative", minHeight: 0, marginBottom: 16 }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflowY: "auto", paddingRight: "6px", scrollbarWidth: "thin" }}>
+        <div 
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflowY: "auto", paddingRight: "6px", scrollbarWidth: "thin" }}
+        >
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             if (msg.sender === "user") {
