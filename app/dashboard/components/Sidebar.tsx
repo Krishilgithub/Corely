@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "../../lib/auth-context";
+
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,6 +34,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <>
@@ -124,11 +127,11 @@ export default function Sidebar() {
                   color: "#fff",
                 }}
               >
-                K
+                {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>
               <div>
-                <div className="db-user-name">Krishil Shah</div>
-                <div className="db-user-role">Admin</div>
+                <div className="db-user-name">{user?.name || "User"}</div>
+                <div className="db-user-role">{user?.roleName || "Member"}</div>
               </div>
             </div>
             <ChevronDown size={13} style={{ color: "#a1a1aa", flexShrink: 0 }} />

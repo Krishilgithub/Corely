@@ -12,6 +12,7 @@ export async function GET() {
         email: user.email,
         role: user.role,
         roleId: user.roleId,
+        roleName: user.workspaceRole?.name || (user.role === "admin" ? "Admin" : "Member"),
         permissions: user.workspaceRole?.permissions || [],
       },
       workspace,

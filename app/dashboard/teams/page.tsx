@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "../components/Skeleton";
 import { useAuth } from "../../lib/auth-context";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -105,26 +106,11 @@ const SparklineDown = ({ color }: { color: string }) => {
   );
 };
 
-const pieData = [
-  { name: "Excellent", value: 8, color: "#10b981" },
-  { name: "Good", value: 10, color: "#3b82f6" },
-  { name: "Fair", value: 4, color: "#f59e0b" },
-  { name: "Poor", value: 2, color: "#ef4444" },
-];
-
-const strengths = [
-  { name: "Knowledge Sharing", val: 84, color: "#10b981", icon: GraduationCap, bg: "#eff6ff", icColor: "#3b82f6" },
-  { name: "Execution Velocity", val: 81, color: "#10b981", icon: Zap, bg: "#f0fdf4", icColor: "#16a34a" },
-  { name: "Cross-team Collaboration", val: 76, color: "#10b981", icon: Users, bg: "#fff3ee", icColor: "#ff6b00" },
-  { name: "Adaptability", val: 72, color: "#f59e0b", icon: RefreshCw, bg: "#eff6ff", icColor: "#3b82f6" },
-];
-
-
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const IconMap: Record<string, any> = { Users, Activity, GraduationCap, Target, Zap, BarChart2, ShieldAlert };
 
 export default function TeamsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("All Teams");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [teams, setTeams] = useState<any[]>([]);
@@ -164,6 +150,35 @@ export default function TeamsPage() {
   const [compareTeam2, setCompareTeam2] = useState("");
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const dynamicPieData = useMemo(() => {
+    let excellent = 0, good = 0, fair = 0, poor = 0;
+    teams.forEach(t => {
+      if (t.health >= 90) excellent++;
+      else if (t.health >= 80) good++;
+      else if (t.health >= 70) fair++;
+      else poor++;
+    });
+    return [
+      { name: "Excellent", value: excellent, color: "#10b981" },
+      { name: "Good", value: good, color: "#3b82f6" },
+      { name: "Fair", value: fair, color: "#f59e0b" },
+      { name: "Poor", value: poor, color: "#ef4444" },
+    ].filter(d => d.value > 0);
+  }, [teams]);
+
+  const dynamicStrengths = useMemo(() => {
+    const avgKnow = teams.length ? Math.round(teams.reduce((acc, t) => acc + t.know, 0) / teams.length) : 0;
+    const avgHealth = teams.length ? Math.round(teams.reduce((acc, t) => acc + t.health, 0) / teams.length) : 0;
+    const avgCollab = teams.filter(t => t.collab === "Excellent" || t.collab === "Good").length / (teams.length || 1);
+    
+    return [
+      { name: "Knowledge Sharing", val: avgKnow, color: "#10b981", icon: GraduationCap, bg: "#eff6ff", icColor: "#3b82f6" },
+      { name: "Execution Velocity", val: avgHealth, color: "#10b981", icon: Zap, bg: "#f0fdf4", icColor: "#16a34a" },
+      { name: "Cross-team Collaboration", val: Math.round(avgCollab * 100), color: "#10b981", icon: Users, bg: "#fff3ee", icColor: "#ff6b00" },
+      { name: "Adaptability", val: 72, color: "#f59e0b", icon: RefreshCw, bg: "#eff6ff", icColor: "#3b82f6" },
+    ];
+  }, [teams]);
 
   const fetchTeams = () => {
     setLoading(true);
@@ -502,7 +517,12 @@ export default function TeamsPage() {
             paginatedTeams.map((row) => {
               const IconCmp = IconMap[row.icon] || Users;
               return (
-                <div className="tm-table-row" key={row.id}>
+                <div 
+                  className="tm-table-row" 
+                  key={row.id} 
+                  style={{ cursor: "pointer" }}
+                  onClick={() => router.push(`/dashboard/teams/${row.id}`)}
+                >
                   <div className="tm-team-col">
                     <div
                       className="tm-team-icon"
@@ -549,8 +569,11 @@ export default function TeamsPage() {
                     {row.isUp ? <Sparkline color="#10b981" /> : <SparklineDown color="#ff6b00" />}
                   </div>
 
-                  <div>
-                    <button className="tm-actions-btn">
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      className="tm-actions-btn"
+                      onClick={() => router.push(`/dashboard/teams/${row.id}`)}
+                    >
                       <MoreHorizontal size={16} />
                     </button>
                   </div>
@@ -562,7 +585,11 @@ export default function TeamsPage() {
               {paginatedTeams.map((row) => {
                 const IconCmp = IconMap[row.icon] || Users;
                 return (
-                  <div key={row.id} style={{ background: "#fff", borderRadius: 16, border: "1px solid #f4f4f5", padding: 20 }}>
+                  <div 
+                    key={row.id} 
+                    style={{ background: "#fff", borderRadius: 16, border: "1px solid #f4f4f5", padding: 20, cursor: "pointer" }}
+                    onClick={() => router.push(`/dashboard/teams/${row.id}`)}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                       <div
                         className="tm-team-icon"
@@ -647,7 +674,7 @@ export default function TeamsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={pieData}
+                      data={dynamicPieData}
                       innerRadius={45}
                       outerRadius={60}
                       paddingAngle={2}
@@ -656,7 +683,7 @@ export default function TeamsPage() {
                       startAngle={90}
                       endAngle={-270}
                     >
-                      {pieData.map((entry, index) => (
+                      {dynamicPieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -713,7 +740,7 @@ export default function TeamsPage() {
               </a>
             </div>
             <div>
-              {strengths.map((str) => (
+              {dynamicStrengths.map((str) => (
                 <div key={str.name}>
                   <div className="tm-progress-row">
                     <div className="tm-progress-label">
@@ -1002,11 +1029,35 @@ export default function TeamsPage() {
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Assign to Teams (Optional)</label>
-                    <select multiple style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14, minHeight: 80 }}
-                            value={selectedTeamIds} onChange={(e) => setSelectedTeamIds(Array.from(e.target.selectedOptions, option => option.value))}>
-                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    <p style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>Hold Ctrl/Cmd to select multiple teams.</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {teams.map(t => {
+                        const isSelected = selectedTeamIds.includes(t.id);
+                        return (
+                          <div 
+                            key={t.id}
+                            onClick={() => {
+                              setSelectedTeamIds(prev => 
+                                isSelected ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                              );
+                            }}
+                            style={{ 
+                              padding: "6px 14px", 
+                              borderRadius: 20, 
+                              fontSize: 13, 
+                              fontWeight: 500, 
+                              cursor: "pointer",
+                              border: isSelected ? "1px solid #3b82f6" : "1px solid #e4e4e7",
+                              backgroundColor: isSelected ? "#eff6ff" : "#fff",
+                              color: isSelected ? "#1d4ed8" : "#52525b",
+                              transition: "all 0.15s ease",
+                              userSelect: "none"
+                            }}
+                          >
+                            {t.name}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                   <button type="submit" className="tm-btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 8 }} disabled={isSubmitting}>
                     {isSubmitting ? "Inviting..." : "Send Invite"}

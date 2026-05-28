@@ -29,6 +29,7 @@ import {
   Trash2,
   AlertTriangle
 } from "lucide-react";
+import { useAuth } from "../../../lib/auth-context";
 import { WorkflowItem } from "./WorkflowsLayout";
 
 // ── Icon Helper ──────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ export default function WorkflowsMain({
   onEdit,
   onImport
 }: WorkflowsMainProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("all workflows");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -195,7 +197,7 @@ export default function WorkflowsMain({
     else if (formIcon === "FileText") { iconBg = "#fee2e2"; iconCol = "#ef4444"; }
 
     let ownerBg = "#0ea5e9";
-    let ownerName = "Krishil Shah";
+    let ownerName = user?.name || "User";
     if (formOwner === "JD") { ownerBg = "#c2410c"; ownerName = "Jane Doe"; }
     else if (formOwner === "AM") { ownerBg = "#db2777"; ownerName = "Alex Morgan"; }
     else if (formOwner === "TR") { ownerBg = "#4f46e5"; ownerName = "Taylor Rogers"; }
@@ -241,7 +243,7 @@ export default function WorkflowsMain({
     else if (formIcon === "FileText") { iconBg = "#fee2e2"; iconCol = "#ef4444"; }
 
     let ownerBg = "#0ea5e9";
-    let ownerName = "Krishil Shah";
+    let ownerName = user?.name || "User";
     if (formOwner === "JD") { ownerBg = "#c2410c"; ownerName = "Jane Doe"; }
     else if (formOwner === "AM") { ownerBg = "#db2777"; ownerName = "Alex Morgan"; }
     else if (formOwner === "TR") { ownerBg = "#4f46e5"; ownerName = "Taylor Rogers"; }
@@ -470,8 +472,8 @@ export default function WorkflowsMain({
                     onChange={(e) => setSelectedOwner(e.target.value)}
                   >
                     <option value="all">All Owners</option>
+                    <option value="KS">{user?.name || "User"}</option>
                     <option value="JD">Jane Doe</option>
-                    <option value="KS">Krishil Shah</option>
                     <option value="AM">Alex Morgan</option>
                     <option value="TR">Taylor Rogers</option>
                   </select>

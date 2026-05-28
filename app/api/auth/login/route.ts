@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     let user = await prisma.user.findUnique({
       where: { email },
-      include: { workspace: true },
+      include: { workspace: true, workspaceRole: true },
     });
 
     if (!user) {
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       user = await prisma.user.update({
         where: { email },
         data: { passwordHash: hashedPassword },
-        include: { workspace: true },
+        include: { workspace: true, workspaceRole: true },
       });
     } else {
       // Verify standard password
@@ -110,6 +110,9 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        roleId: user.roleId,
+        roleName: user.workspaceRole?.name || (user.role === "admin" ? "Admin" : "Member"),
+        permissions: user.workspaceRole?.permissions || [],
       },
       workspace: user.workspace,
     });

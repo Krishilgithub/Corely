@@ -3,7 +3,7 @@
  * DELETE /api/sources/[id]   — disconnect a source
  */
 
-import { NextRequest } from "next/server";
+
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth-server";
 import { Permissions } from "@/lib/rbac";

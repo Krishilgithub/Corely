@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/auth-server";
 import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { sendEmail } from "@/lib/email";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -66,15 +67,21 @@ export async function POST(request: NextRequest) {
       include: { workspaceRole: true, teams: true },
     });
 
-    // --- MOCK EMAIL SENDING ---
-    console.log("===================================================");
-    console.log(`[MOCK EMAIL] To: ${email}`);
-    console.log(`[MOCK EMAIL] Subject: You've been invited to Corely`);
-    console.log(`[MOCK EMAIL] Body: Hi ${name}, you have been invited to join your team's workspace!`);
-    console.log(`[MOCK EMAIL] Your temporary password is: ${generatedPassword}`);
-    console.log(`[MOCK EMAIL] Please login at http://localhost:3000/login`);
-    console.log("===================================================");
-    // --------------------------
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e7; border-radius: 8px;">
+        <h2 style="color: #ff6b00;">Welcome to Corely</h2>
+        <p>Hi ${name},</p>
+        <p>You have been invited to join your team's workspace on Corely.</p>
+        <div style="background-color: #f4f4f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px; color: #52525b;">Your temporary password is:</p>
+          <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; letter-spacing: 2px;">${generatedPassword}</p>
+        </div>
+        <p>Please login and change your password as soon as possible.</p>
+        <a href="http://localhost:3000/login" style="display: inline-block; background-color: #ff6b00; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">Login to Corely</a>
+      </div>
+    `;
+
+    await sendEmail(email, "You've been invited to Corely", html);
 
     return successResponse({
       user: {

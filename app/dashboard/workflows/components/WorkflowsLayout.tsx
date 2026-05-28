@@ -182,7 +182,7 @@ export default function WorkflowsLayout() {
       status: "Draft",
       owner: "KS",
       ownerBg: "#0ea5e9",
-      ownerName: "Krishil Shah"
+      ownerName: "User"
     });
   };
 
@@ -199,7 +199,7 @@ export default function WorkflowsLayout() {
       status: "Draft",
       owner: "KS",
       ownerBg: "#0ea5e9",
-      ownerName: "Krishil Shah"
+      ownerName: "User"
     });
   };
 
