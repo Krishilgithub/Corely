@@ -164,7 +164,11 @@ model DashboardInsight {
   title       String
   description String
   source      String
-  iconType    String   @default("TrendingDown") // lucide icon name
+  iconType    String   @default("Sparkles") // lucide icon name
+  category    String   @default("General")
+  impact      String   @default("Medium")
+  trend       String   @default("up")
+  time        String   @default("Just now")
   createdAt   DateTime @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

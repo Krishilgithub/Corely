@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const content = await file.text();
+    const rawContent = await file.text();
+    const content = rawContent.replace(/\0/g, ''); // Strip null bytes for Postgres
     const title = file.name;
     const fileType = file.name.split('.').pop() || "txt";
 
@@ -62,6 +63,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: "File uploaded successfully" });
   } catch (err) {
     console.error("[Manual Upload Error]", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 500 });
   }
 }

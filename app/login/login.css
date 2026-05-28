@@ -279,4 +279,28 @@
   .login-logo-text {
     font-size: 24px;
   }
+  
+  .login-back-btn {
+    top: 20px;
+    left: 20px;
+  }
+}
+
+.login-back-btn {
+  position: absolute;
+  top: 32px;
+  left: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #71717a;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s;
+  z-index: 10;
+}
+
+.login-back-btn:hover {
+  color: #111;
 }

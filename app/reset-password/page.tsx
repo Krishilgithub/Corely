@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -136,6 +136,9 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="login-page">
+      <Link href="/" className="login-back-btn">
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       <div className="login-bg-blob blob-1" />
       <div className="login-bg-blob blob-2" />
       <Suspense fallback={<div className="login-card"><Loader2 className="animate-spin" /></div>}>

@@ -2099,6 +2099,7 @@ function ConfigureSourceModal({
                     borderRadius: 10,
                     flex: 1,
                     minHeight: 0,
+                    maxHeight: 300,
                     overflowY: "auto",
                     background: "#fff"
                   }}>

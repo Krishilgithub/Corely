@@ -191,6 +191,7 @@ export default function AskMain({
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const skipNextFetchRef = useRef(false);
 
   // ─── Toast helper ────────────────────────────────────────────────────────────
   const toast = useCallback((msg: string) => {
@@ -202,6 +203,11 @@ export default function AskMain({
   useEffect(() => {
     if (!activeSessionId) {
       setMessages([]);
+      return;
+    }
+
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
       return;
     }
 
@@ -474,6 +480,7 @@ export default function AskMain({
 
         const newSessionRes = (await createRes.json()) as { data: { id: string } };
         currentSessionId = newSessionRes.data.id;
+        skipNextFetchRef.current = true;
         setActiveSessionId(currentSessionId);
         onNewMessage();
       }

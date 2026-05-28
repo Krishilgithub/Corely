@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, TrendingUp, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface StatCard {
   icon: LucideIcon;
@@ -11,6 +12,7 @@ interface StatCard {
   label: string;
   trend: string;
   delay: number;
+  href?: string;
 }
 
 function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -42,10 +44,10 @@ export default function StatsCards({ data }: { data?: any }) {
   useEffect(() => {
     if (data) {
       setStatsData([
-        { icon: Brain, value: data.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05 },
-        { icon: Zap, value: data.recentChats, label: "Recent Interactions", trend: "↑ Activity", delay: 0.1 },
-        { icon: PieChart, value: data.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15 },
-        { icon: ShieldAlert, value: data.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2 },
+        { icon: Brain, value: data.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05, href: "/dashboard/memory" },
+        { icon: Zap, value: data.recentChats, label: "Recent Interactions", trend: "↑ Activity", delay: 0.1, href: "/dashboard/ask-corely" },
+        { icon: PieChart, value: data.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15, href: "/dashboard/insights" },
+        { icon: ShieldAlert, value: data.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2, href: "/dashboard/sources" },
       ]);
     }
   }, [data]);
@@ -57,10 +59,11 @@ export default function StatsCards({ data }: { data?: any }) {
   return (
     <div className="db-stats-grid">
       {statsData.map((stat) => (
-        <motion.div
-          key={stat.label}
-          className="db-stat-card"
-          initial={{ opacity: 0, y: 16 }}
+        <Link href={stat.href || "#"} key={stat.label} style={{ textDecoration: 'none' }}>
+          <motion.div
+            className="db-stat-card"
+            style={{ cursor: "pointer" }}
+            initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: stat.delay, duration: 0.4, ease: "easeOut" }}
           whileHover={{ y: -2 }}
@@ -77,11 +80,11 @@ export default function StatsCards({ data }: { data?: any }) {
               <div className="db-stat-trend">
                 <TrendingUp size={11} />
                 {stat.trend}
-              </div>
             </div>
           </div>
           <ChevronRight size={15} style={{ color: "#d4d4d4", flexShrink: 0 }} />
-        </motion.div>
+          </motion.div>
+        </Link>
       ))}
     </div>
   );

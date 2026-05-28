@@ -26,7 +26,6 @@ const navItems = [
   { icon: MessageSquare, label: "Ask Corely", href: "/dashboard/ask-corely" },
   { icon: Brain, label: "Memory", href: "/dashboard/memory" },
   { icon: BarChart2, label: "Insights", href: "/dashboard/insights" },
-  { icon: Zap, label: "Actions", href: "/dashboard/workflows" },
   { icon: Link2, label: "Sources", href: "/dashboard/sources" },
   { icon: Users, label: "Teams", href: "/dashboard/teams" },
   { icon: GitBranch, label: "Workflows", href: "/dashboard/workflows" },

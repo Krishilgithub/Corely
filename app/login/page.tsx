@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import "./login.css";
@@ -65,6 +65,9 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <Link href="/" className="login-back-btn">
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       <div className="login-bg-blob blob-1" />
       <div className="login-bg-blob blob-2" />
 
