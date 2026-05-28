@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { BookOpen, Database } from "lucide-react";
 
 import { useAuth } from "../../../lib/auth-context";
@@ -20,13 +21,7 @@ interface Source {
 
 // ── Google Drive Mini Icon ───────────────────────────────────────────────────
 const GoogleDriveIcon = ({ size = 16 }: { size?: number }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size}>
-    <path d="M4.93 17.57L3 21l5.25-.02 1.93-3.41H4.93z" fill="#0066DA" />
-    <path d="M12 3L6.75 12h10.5L12 3z" fill="#00AC47" />
-    <path d="M19.07 17.57H12l1.93 3.41L19.25 21l-2.18-3.43z" fill="#EA4335" />
-    <path d="M6.75 12L3 17.57h5.93L12 12H6.75z" fill="#00832D" />
-    <path d="M17.25 12L19.07 17.57 21 14.14l-3.75-6.14H12l5.25 4z" fill="#FFBA00" />
-  </svg>
+  <Image src="/drive.png" alt="Google Drive" width={size} height={size} style={{ objectFit: 'contain' }} />
 );
 
 export default function SourcesRightSidebar() {
