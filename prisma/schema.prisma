@@ -57,9 +57,11 @@ model User {
   name          String?
   avatarUrl     String?        @map("avatar_url")
   role          String         @default("member")
-  roleId        String?        @map("role_id") @db.Uuid
-  preferences   Json           @default("{}")
-  createdAt     DateTime       @default(now()) @map("created_at")
+  roleId           String?        @map("role_id") @db.Uuid
+  preferences      Json           @default("{}")
+  resetToken       String?        @map("reset_token")
+  resetTokenExpiry DateTime?      @map("reset_token_expiry")
+  createdAt        DateTime       @default(now()) @map("created_at")
   sources       Source[]
   teams         Team[]
   auditLogs     AuditLog[]

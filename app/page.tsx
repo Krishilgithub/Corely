@@ -8,6 +8,7 @@ import IntegrationSection from "../components/landing/IntegrationSection";
 import CTASection from "../components/landing/CTASection";
 import FooterSection from "../components/landing/FooterSection";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -16,11 +17,7 @@ export default function LandingPage() {
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl z-50 rounded-2xl border border-black/10 bg-white/70 backdrop-blur-xl shadow-sm transition-all duration-300">
         <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff6b00] to-[#ff9240] flex items-center justify-center shadow-[0_0_15px_rgba(255,107,0,0.4)]">
-              <span className="text-white font-bold text-lg leading-none transform -rotate-45 block">
-                ◆
-              </span>
-            </div>
+            <Image src="/logo.png" alt="Corely" width={32} height={32} className="rounded-lg shadow-[0_0_15px_rgba(255,107,0,0.4)]" />
             <span className="text-zinc-900 font-bold text-xl tracking-tight">Corely</span>
           </div>
           

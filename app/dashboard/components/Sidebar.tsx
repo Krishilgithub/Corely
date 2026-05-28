@@ -2,9 +2,11 @@
 
 import { useAuth } from "../../lib/auth-context";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Home,
   MessageSquare,
@@ -34,7 +36,9 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <>
@@ -42,8 +46,8 @@ export default function Sidebar() {
       <div className="db-sidebar-inner">
         {/* Top: Logo + Nav */}
         <div>
-          <Link href="/dashboard" className="db-logo-link">
-            <div className="db-logo-icon">C</div>
+          <Link href="/" className="db-logo-link">
+            <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
             <span className="db-logo-text">Corely</span>
           </Link>
 
@@ -110,6 +114,8 @@ export default function Sidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.3 }}
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            style={{ cursor: "pointer", position: "relative" }}
           >
             <div className="db-user-info">
               <div
@@ -135,6 +141,41 @@ export default function Sidebar() {
               </div>
             </div>
             <ChevronDown size={13} style={{ color: "#a1a1aa", flexShrink: 0 }} />
+            
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  style={{
+                    position: "absolute",
+                    bottom: "100%",
+                    left: 0,
+                    right: 0,
+                    marginBottom: 8,
+                    background: "#fff",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    border: "1px solid #e4e4e7",
+                    overflow: "hidden",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button 
+                    onClick={async () => {
+                      await fetch("/api/auth/logout", { method: "POST" });
+                      router.push("/login");
+                      router.refresh();
+                    }}
+                    style={{ width: "100%", padding: "12px 16px", textAlign: "left", background: "none", border: "none", color: "#ef4444", fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+                  >
+                    Log out
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       </div>

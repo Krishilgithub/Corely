@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import "./login.css";
 
 const GoogleIcon = () => (
@@ -42,10 +43,24 @@ export default function LoginPage() {
     }
   };
 
-  const handleResetSubmit = (e: React.FormEvent) => {
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setResetSent(true);
+    
+    setIsSubmitting(true);
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      // We always show success regardless of user existence for security
+      setResetSent(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -66,7 +81,7 @@ export default function LoginPage() {
             <div className="login-header">
               <Link href="/" style={{ textDecoration: "none" }}>
                 <div className="login-logo cursor-pointer">
-                  <div className="login-logo-icon">C</div>
+                  <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
                   <div className="login-logo-text">Corely</div>
                 </div>
               </Link>
@@ -150,7 +165,7 @@ export default function LoginPage() {
           >
             <div className="login-header">
               <div className="login-logo cursor-pointer" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
-                <div className="login-logo-icon">C</div>
+                <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
                 <div className="login-logo-text">Corely</div>
               </div>
               <h1 className="login-title">Reset password</h1>
@@ -175,8 +190,8 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                <button type="submit" className="login-btn">
-                  Send reset link
+                <button type="submit" className="login-btn" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 size={18} className="login-spinner animate-spin" /> : "Send reset link"}
                 </button>
               </form>
             ) : (

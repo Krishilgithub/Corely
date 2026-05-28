@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import "../login/login.css"; // Reuse the login styling
 
 const GoogleIcon = () => (
@@ -59,7 +60,7 @@ export default function SignupPage() {
         <div className="login-header">
           <Link href="/" style={{ textDecoration: "none" }}>
             <div className="login-logo cursor-pointer">
-              <div className="login-logo-icon">C</div>
+              <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
               <div className="login-logo-text">Corely</div>
             </div>
           </Link>

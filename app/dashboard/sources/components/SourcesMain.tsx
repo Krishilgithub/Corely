@@ -165,11 +165,11 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
           onClick={(e) => e.stopPropagation()}
           style={{
             background: "#fff",
-            borderRadius: 16,
-            padding: "32px",
+            borderRadius: 24,
+            padding: "40px",
             width: "100%",
-            maxWidth: 820,
-            maxHeight: "88vh",
+            maxWidth: 1000,
+            maxHeight: "90vh",
             overflowY: "auto",
             boxShadow: "0 24px 64px rgba(0,0,0,0.15)",
           }}
@@ -177,7 +177,7 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111" }}>Add Data Source</h2>
+              <h2 style={{ fontSize: 26, fontWeight: 800, color: "#111", letterSpacing: "-0.02em" }}>Add Data Source</h2>
               <p style={{ fontSize: 13, color: "#71717a", marginTop: 4 }}>
                 Connect your first data source to get started.
               </p>
@@ -198,7 +198,7 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: "20px" }}>
             {/* Google Drive Card */}
             <div
             style={{
@@ -221,10 +221,11 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#f0fdf4",
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)",
+                    boxShadow: "0 4px 20px rgba(0, 172, 71, 0.15)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -326,10 +327,11 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#f3f4f6",
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -404,10 +406,11 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#fef2f2",
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)",
+                    boxShadow: "0 4px 20px rgba(234, 67, 53, 0.15)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -482,10 +485,11 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#f1f5f9",
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)",
+                    boxShadow: "0 4px 20px rgba(36, 41, 46, 0.15)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

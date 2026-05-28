@@ -3,6 +3,7 @@
 import React from "react";
 import { Globe, MessageSquare, Hash } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function FooterSection() {
   return (
@@ -16,11 +17,7 @@ export default function FooterSection() {
           {/* Brand Column */}
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff6b00] to-[#ff9240] flex items-center justify-center shadow-[0_0_15px_rgba(255,107,0,0.4)]">
-                <span className="text-white font-bold text-lg leading-none transform -rotate-45 block">
-                  ◆
-                </span>
-              </div>
+              <Image src="/logo.png" alt="Corely" width={32} height={32} className="rounded-lg shadow-[0_0_15px_rgba(255,107,0,0.4)]" />
               <span className="text-zinc-900 font-bold text-xl tracking-tight">Corely</span>
             </div>
             <p className="text-zinc-600 text-sm max-w-sm font-light leading-relaxed mb-6">

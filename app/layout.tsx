@@ -33,6 +33,9 @@ export const metadata: Metadata = {
     description: "Your Company Has Data. Now Give It Intelligence.",
     type: "website",
   },
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
