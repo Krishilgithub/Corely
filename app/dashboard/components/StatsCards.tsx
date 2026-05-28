@@ -35,32 +35,22 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
     </>
   );
 }
-
-export default function StatsCards() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function StatsCards({ data }: { data?: any }) {
   const [statsData, setStatsData] = useState<StatCard[]>([]);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          const data = await res.json();
-          const { stats } = data;
-          setStatsData([
-            { icon: Brain, value: stats.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05 },
-            { icon: Zap, value: stats.recentChats, label: "Recent Interactions", trend: "↑ 24h Activity", delay: 0.1 },
-            { icon: PieChart, value: stats.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15 },
-            { icon: ShieldAlert, value: stats.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2 },
-          ]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats", error);
-      }
-    };
-    fetchStats();
-  }, []);
+    if (data) {
+      setStatsData([
+        { icon: Brain, value: data.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05 },
+        { icon: Zap, value: data.recentChats, label: "Recent Interactions", trend: "↑ Activity", delay: 0.1 },
+        { icon: PieChart, value: data.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15 },
+        { icon: ShieldAlert, value: data.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2 },
+      ]);
+    }
+  }, [data]);
 
-  if (statsData.length === 0) {
+  if (!data || statsData.length === 0) {
     return <div className="db-stats-grid">Loading stats...</div>;
   }
 

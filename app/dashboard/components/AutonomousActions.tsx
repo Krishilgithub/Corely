@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Cloud, GitBranch, Mail, Cpu, type LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
 import * as React from "react";
+import Link from "next/link";
 
 const iconMap: Record<string, LucideIcon> = {
   Cloud,
@@ -31,26 +31,9 @@ interface Action {
   source: string;
 }
 
-export default function AutonomousActions() {
-  const [actions, setActions] = useState<Action[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchActions = async () => {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          const data = await res.json();
-          setActions(data.actions || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch actions", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchActions();
-  }, []);
+export default function AutonomousActions({ data }: { data?: Action[] }) {
+  const actions = data || [];
+  const loading = !data;
 
   return (
     <motion.div
@@ -64,8 +47,8 @@ export default function AutonomousActions() {
         <span style={{ fontSize: "14px", fontWeight: 700, color: "#111111" }}>
           Autonomous Actions
         </span>
-        <a
-          href="#"
+        <Link
+          href="/dashboard/workflows"
           style={{
             fontSize: "12.5px",
             fontWeight: 600,
@@ -74,7 +57,7 @@ export default function AutonomousActions() {
           }}
         >
           View all actions
-        </a>
+        </Link>
       </div>
 
       {/* Actions Grid */}

@@ -7,6 +7,7 @@ import FeaturesSection from "../components/landing/FeaturesSection";
 import IntegrationSection from "../components/landing/IntegrationSection";
 import CTASection from "../components/landing/CTASection";
 import FooterSection from "../components/landing/FooterSection";
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
@@ -24,19 +25,19 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600">
-            <a href="#" className="hover:text-zinc-900 transition-colors">Product</a>
-            <a href="#" className="hover:text-zinc-900 transition-colors">Solutions</a>
-            <a href="#" className="hover:text-zinc-900 transition-colors">Pricing</a>
-            <a href="#" className="hover:text-zinc-900 transition-colors">Changelog</a>
+            <Link href="#features" className="hover:text-zinc-900 transition-colors">Product</Link>
+            <Link href="#how-it-works" className="hover:text-zinc-900 transition-colors">Solutions</Link>
+            <Link href="/pricing" className="hover:text-zinc-900 transition-colors">Pricing</Link>
+            <Link href="/changelog" className="hover:text-zinc-900 transition-colors">Changelog</Link>
           </div>
 
           <div className="flex items-center gap-4">
-            <a href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+            <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
               Log in
-            </a>
-            <a href="/login" className="hidden sm:inline-flex px-4 py-2 bg-zinc-900 text-white text-sm font-semibold rounded-full hover:bg-zinc-800 shadow-md hover:shadow-lg transition-all">
+            </Link>
+            <Link href="/signup" className="hidden sm:inline-flex px-4 py-2 bg-zinc-900 text-white text-sm font-semibold rounded-full hover:bg-zinc-800 shadow-md hover:shadow-lg transition-all">
               Start Free
-            </a>
+            </Link>
           </div>
         </div>
       </nav>

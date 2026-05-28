@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Globe, MessageSquare, Hash } from "lucide-react";
+import Link from "next/link";
 
 export default function FooterSection() {
   return (
@@ -26,15 +27,15 @@ export default function FooterSection() {
               The Intelligence Layer for modern organizations. Connect your entire ecosystem and never lose institutional knowledge again.
             </p>
             <div className="flex items-center gap-4 text-zinc-500">
-              <a href="#" className="hover:text-zinc-900 transition-colors">
+              <Link href="https://twitter.com/corely" className="hover:text-zinc-900 transition-colors">
                 <MessageSquare size={20} />
-              </a>
-              <a href="#" className="hover:text-zinc-900 transition-colors">
+              </Link>
+              <Link href="https://github.com/corely" className="hover:text-zinc-900 transition-colors">
                 <Hash size={20} />
-              </a>
-              <a href="#" className="hover:text-zinc-900 transition-colors">
+              </Link>
+              <Link href="https://corely.ai" className="hover:text-zinc-900 transition-colors">
                 <Globe size={20} />
-              </a>
+              </Link>
             </div>
           </div>
           
@@ -42,32 +43,32 @@ export default function FooterSection() {
           <div>
             <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Product</h3>
             <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Integrations</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Changelog</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Security</a></li>
+              <li><Link href="/#features" className="hover:text-zinc-900 transition-colors">Features</Link></li>
+              <li><Link href="/#how-it-works" className="hover:text-zinc-900 transition-colors">Integrations</Link></li>
+              <li><Link href="/pricing" className="hover:text-zinc-900 transition-colors">Pricing</Link></li>
+              <li><Link href="/changelog" className="hover:text-zinc-900 transition-colors">Changelog</Link></li>
+              <li><Link href="/#security" className="hover:text-zinc-900 transition-colors">Security</Link></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Company</h3>
             <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Manifesto</a></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">About Us</Link></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Careers</Link></li>
+              <li><Link href="/blog" className="hover:text-zinc-900 transition-colors">Blog</Link></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Contact</Link></li>
+              <li><Link href="/#how-it-works" className="hover:text-zinc-900 transition-colors">Manifesto</Link></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Legal</h3>
             <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">Cookie Policy</a></li>
-              <li><a href="#" className="hover:text-zinc-900 transition-colors">DPA</a></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Cookie Policy</Link></li>
+              <li><Link href="/" className="hover:text-zinc-900 transition-colors">DPA</Link></li>
             </ul>
           </div>
         </div>

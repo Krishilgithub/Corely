@@ -11,7 +11,7 @@ import {
   RefreshCw,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import Link from "next/link";
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
@@ -50,26 +50,9 @@ interface Insight {
   createdAt: string;
 }
 
-export default function InsightsPanel() {
-  const [insights, setInsights] = useState<Insight[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchInsights = async () => {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          const data = await res.json();
-          setInsights(data.insights || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch insights", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInsights();
-  }, []);
+export default function InsightsPanel({ data, systemHealth }: { data?: Insight[], systemHealth?: string }) {
+  const insights = data || [];
+  const loading = !data;
 
   return (
     <motion.div
@@ -81,8 +64,8 @@ export default function InsightsPanel() {
       {/* Header */}
       <div className="db-panel-header">
         <span className="db-panel-title">Insights</span>
-        <a
-          href="#"
+        <Link
+          href="/dashboard/insights"
           style={{
             fontSize: "12.5px",
             fontWeight: 600,
@@ -91,7 +74,7 @@ export default function InsightsPanel() {
           }}
         >
           View all
-        </a>
+        </Link>
       </div>
 
       {/* Insights List */}
@@ -146,8 +129,10 @@ export default function InsightsPanel() {
       <div className="db-system-status">
         <div className="db-status-title">System Status</div>
         <div className="db-status-row">
-          <CheckCircle2 size={14} style={{ color: "#22c55e" }} />
-          <span style={{ color: "#22c55e", fontSize: "13px" }}>All systems operational</span>
+          <CheckCircle2 size={13} style={{ color: systemHealth === "Operational" ? "#16a34a" : "#ef4444" }} />
+          <span style={{ color: systemHealth === "Operational" ? "#16a34a" : "#ef4444", fontSize: "13px" }}>
+            {systemHealth === "Operational" ? "All systems operational" : "System degraded"}
+          </span>
         </div>
         <div className="db-status-row">
           <RefreshCw size={12} style={{ color: "#a1a1aa" }} />

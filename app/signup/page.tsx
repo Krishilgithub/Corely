@@ -5,18 +5,22 @@ import { motion } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import "./login.css";
+import "../login/login.css"; // Reuse the login styling
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [name, setName] = useState("");
+  const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !name.trim() || !company.trim()) return;
 
     setIsSubmitting(true);
+    // In this prototype, we seamlessly log the user in immediately after "signup"
     await login(email);
   };
 
@@ -27,27 +31,56 @@ export default function LoginPage() {
 
       <motion.div 
         className="login-card"
+        style={{ marginTop: "40px", marginBottom: "40px" }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="login-header">
-          <div className="login-logo">
-            <div className="login-logo-icon">C</div>
-            <div className="login-logo-text">Corely</div>
-          </div>
-          <h1 className="login-title">Welcome back</h1>
-          <p className="login-subtitle">Sign in to your enterprise intelligence layer</p>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <div className="login-logo cursor-pointer">
+              <div className="login-logo-icon">C</div>
+              <div className="login-logo-text">Corely</div>
+            </div>
+          </Link>
+          <h1 className="login-title">Create your workspace</h1>
+          <p className="login-subtitle">Start building your institutional memory engine today</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="name" className="form-label">Full Name</label>
+            <input
+              id="name"
+              type="text"
+              className="form-input"
+              placeholder="Jane Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="company" className="form-label">Company Name</label>
+            <input
+              id="company"
+              type="text"
+              className="form-input"
+              placeholder="Acme Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              required
+            />
+          </div>
+
           <div className="form-group">
             <label htmlFor="email" className="form-label">Work Email</label>
             <input
               id="email"
               type="email"
               className="form-input"
-              placeholder="you@company.com"
+              placeholder="jane@acme.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -61,8 +94,10 @@ export default function LoginPage() {
               type="password"
               className="form-input"
               placeholder="••••••••"
-              defaultValue="password123" // Pre-filled for MVP demo purposes
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={8}
             />
           </div>
 
@@ -74,16 +109,16 @@ export default function LoginPage() {
             {isSubmitting ? (
               <>
                 <Loader2 size={18} className="login-spinner" />
-                Signing in...
+                Creating workspace...
               </>
             ) : (
-              "Sign in to workspace"
+              "Start 14-Day Free Trial"
             )}
           </button>
         </form>
 
         <div className="login-footer">
-          Don&apos;t have an account? <Link href="/signup">Request access</Link>
+          Already have an account? <Link href="/login">Log in here</Link>
         </div>
       </motion.div>
     </div>

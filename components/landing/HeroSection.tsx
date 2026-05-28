@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import Link from "next/link";
 import Hero3D from "./Hero3D";
 
 export default function HeroSection() {
@@ -35,8 +36,8 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-8 leading-[1.1] text-center text-black"
         >
-          Your Company Has Data.<br />
-          Now Give It Intelligence.
+          The Institutional Memory Engine<br />
+          For Modern Organizations.
         </motion.h1>
 
         <motion.p 
@@ -54,14 +55,18 @@ export default function HeroSection() {
           transition={{ duration: 1, delay: 1 }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
-          <button className="group relative px-8 py-4 bg-zinc-900 text-white font-semibold rounded-full overflow-hidden transition-transform shadow-md active:scale-95">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#ff6b00] to-[#ff9240] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-            <span className="relative group-hover:text-white transition-colors duration-300">Start Building</span>
-          </button>
+          <Link href="/signup">
+            <button className="group relative px-8 py-4 bg-zinc-900 text-white font-semibold rounded-full overflow-hidden transition-transform shadow-md active:scale-95">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#ff6b00] to-[#ff9240] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <span className="relative group-hover:text-white transition-colors duration-300">Start Building</span>
+            </button>
+          </Link>
           
-          <button className="px-8 py-4 text-zinc-900 font-medium rounded-full border border-black/10 hover:bg-black/5 transition-colors backdrop-blur-sm">
-            Read the Manifesto
-          </button>
+          <Link href="#how-it-works">
+            <button className="px-8 py-4 text-zinc-900 font-medium rounded-full border border-black/10 hover:bg-black/5 transition-colors backdrop-blur-sm">
+              Read the Manifesto
+            </button>
+          </Link>
         </motion.div>
       </motion.div>
 
