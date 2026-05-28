@@ -40,7 +40,9 @@ export default function SourcesRightSidebar() {
       if (!workspaceId) return;
       const res = await fetch(`/api/sources?workspaceId=${workspaceId}`);
       if (!res.ok) return;
-      const data = (await res.json()) as { sources: Source[] };
+      const json = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = (json.data || json) as any;
       setSources(data.sources ?? []);
     } catch (err) {
       console.error("Sidebar failed to fetch sources:", err);

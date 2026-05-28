@@ -1794,6 +1794,31 @@
   margin-bottom: 16px;
 }
 
+/* Dark Mode Overrides for Settings */
+.dark .set-title, .dark .set-section-title, .dark .set-row-title, .dark .set-value-text, .dark .set-card-header, .dark .set-account-name, .dark .set-help-title, .dark .set-sec-left {
+  color: #ffffff;
+}
+.dark .set-subtitle, .dark .set-tab, .dark .set-row-desc, .dark .set-theme-btn, .dark .set-account-type, .dark .set-plan-desc, .dark .set-sec-right, .dark .set-help-desc {
+  color: #a1a1aa;
+}
+.dark .set-tab:hover { color: #ffffff; }
+.dark .set-card, .dark .set-sidebar-card, .dark .set-dropdown, .dark .set-btn-outline, .dark .set-theme-btn.active {
+  background: #18181b;
+  border-color: #27272a;
+}
+.dark .set-dropdown {
+  color: #ffffff;
+}
+.dark .set-row { border-color: #27272a; }
+.dark .set-row:hover { background: #27272a; }
+.dark .set-tabs-wrap { border-color: #27272a; }
+.dark .set-row-icon-wrap { background: #2d1600; color: #ff6b00; }
+.dark .set-theme-picker { background: #27272a; }
+.dark .set-theme-btn.active { color: #ffffff; }
+.dark .set-toggle { background: #3f3f46; }
+.dark .set-account-avatar { background: #2d1600; }
+.dark .set-btn-outline:hover { background: #27272a; border-color: #ff6b00; }
+
 /* ── WORKFLOWS PAGE ───────────────────────────────────────── */
 .wf-page-grid {
   display: grid;

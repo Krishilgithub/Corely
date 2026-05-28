@@ -20,7 +20,8 @@ export default function DashboardPage() {
       try {
         const res = await fetch(`/api/dashboard?dateRange=${dateRange}`);
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          const data = json.data || json; // fallback in case api doesn't wrap
           if (data.user?.name) {
             setUserName(data.user.name);
           }

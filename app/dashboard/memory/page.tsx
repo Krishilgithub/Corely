@@ -71,7 +71,8 @@ export default function MemoryPage() {
       try {
         const res = await fetch("/api/memory");
         if (res.ok) {
-          const data = await res.json();
+          const json = await res.json();
+          const data = json.data || json;
           if (data.memories) {
             interface ApiMemory {
               id: string;
@@ -306,6 +307,10 @@ export default function MemoryPage() {
     const totalInsight = timelineItems.filter(item => item.category === "insight").length;
     const totalActiveKnowledgeSets = totalKnowledge;
 
+    const retentionScore = Math.min(99, Math.max(65, 70 + Math.floor(totalMemories / 5)));
+    const retentionStatus = retentionScore >= 90 ? "Excellent" : retentionScore >= 80 ? "Good" : "Needs Improvement";
+    const retentionColor = retentionScore >= 90 ? "#10b981" : retentionScore >= 80 ? "#f59e0b" : "#ef4444";
+
     return {
       totalMemories,
       totalDecisions,
@@ -313,7 +318,10 @@ export default function MemoryPage() {
       totalDocuments,
       totalKnowledge,
       totalInsight,
-      totalActiveKnowledgeSets
+      totalActiveKnowledgeSets,
+      retentionScore,
+      retentionStatus,
+      retentionColor
     };
   }, [timelineItems]);
 
@@ -386,7 +394,8 @@ export default function MemoryPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         if (data.memory) {
           const item = data.memory;
           const dateObj = new Date(item.createdAt);
@@ -443,9 +452,10 @@ export default function MemoryPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data.data?.snapshot) {
-          const item = data.data.snapshot;
+        const json = await res.json();
+        const data = json.data || json;
+        if (data.snapshot) {
+          const item = data.snapshot;
           const dateObj = new Date(item.createdAt);
           const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -545,10 +555,10 @@ export default function MemoryPage() {
               <Clock size={20} strokeWidth={2.5} />
             </div>
             <div className="mem-stat-info">
-              <span className="mem-stat-value">{Math.min(99, Math.max(65, 70 + Math.floor(stats.totalMemories / 20)))}%</span>
+              <span className="mem-stat-value">{stats.retentionScore}%</span>
               <span className="mem-stat-label">Context Retention</span>
-              <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                • <span style={{ color: "#10b981", fontWeight: 700 }}>Excellent</span>
+              <span className="mem-stat-trend" style={{ color: stats.retentionColor }}>
+                • <span style={{ color: stats.retentionColor, fontWeight: 700 }}>{stats.retentionStatus}</span>
               </span>
             </div>
           </div>
@@ -669,7 +679,7 @@ export default function MemoryPage() {
               <div className="mem-timeline-line" />
 
               {isLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 32, paddingLeft: 120 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32, paddingLeft: 95 }}>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                       <Skeleton width={48} height={48} borderRadius="50%" />
@@ -686,7 +696,7 @@ export default function MemoryPage() {
                   ))}
                 </div>
               ) : Object.keys(groupedItems).length === 0 ? (
-                <div style={{ padding: "48px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 12, marginLeft: 128, background: "#fafafa" }}>
+                <div style={{ padding: "48px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 12, marginLeft: 103, background: "#fafafa" }}>
                   <Brain size={32} style={{ color: "#a1a1aa", marginBottom: 12 }} />
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>No memory entries found</h3>
                   <p style={{ fontSize: 13, color: "#71717a", margin: 0 }}>Try clearing your search filters or add a new entry.</p>

@@ -12,7 +12,8 @@ export default function SettingsRightSidebar() {
     const fetchWorkspace = async () => {
       try {
         const res = await fetch("/api/settings");
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         if (data.workspace) {
           setWorkspaceData({
             name: data.workspace.name,

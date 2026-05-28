@@ -29,6 +29,8 @@ model Workspace {
   workflowActivities WorkflowActivity[]
   teams              Team[]
   roles              WorkspaceRole[]
+  apiKeys            ApiKey[]
+  auditLogs          AuditLog[]
 
   @@map("workspaces")
 }
@@ -60,6 +62,7 @@ model User {
   createdAt     DateTime       @default(now()) @map("created_at")
   sources       Source[]
   teams         Team[]
+  auditLogs     AuditLog[]
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceRole WorkspaceRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
@@ -249,6 +252,35 @@ model WorkflowActivity {
   workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@map("workflow_activities")
+}
+
+model ApiKey {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  keyHash     String   @map("key_hash")
+  hint        String
+  lastUsedAt  DateTime? @map("last_used_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String
+  details     String
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
 }
 
 model Team {

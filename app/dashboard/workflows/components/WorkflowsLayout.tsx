@@ -49,9 +49,10 @@ export default function WorkflowsLayout() {
     try {
       const res = await fetch("/api/workflows");
       if (res.ok) {
-        const data = await res.json();
-        setWorkflows(data.workflows);
-        setActivityLogs(data.activities);
+        const json = await res.json();
+        const data = json.data || json;
+        setWorkflows(data.workflows || []);
+        setActivityLogs(data.activities || []);
       }
     } catch (e) {
       console.error("Failed to fetch workflows:", e);
@@ -78,7 +79,8 @@ export default function WorkflowsLayout() {
         body: JSON.stringify(newWf)
       });
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         setWorkflows((prev) => [data.workflow, ...prev]);
         triggerToast(`Successfully created workflow: "${newWf.title}"`);
       }
@@ -141,7 +143,8 @@ export default function WorkflowsLayout() {
     try {
       const res = await fetch(`/api/workflows/${id}/run`, { method: "POST" });
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         let wfTitle = "";
         
         setWorkflows((prev) => prev.map((wf) => {

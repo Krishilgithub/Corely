@@ -823,7 +823,8 @@ export default function SourcesMain() {
       if (!workspaceId) return;
       const res = await fetch(`/api/sources?workspaceId=${workspaceId}`);
       if (!res.ok) return;
-      const data = await res.json();
+      const json = await res.json();
+      const data = json.data || json;
       setSources(data.sources ?? []);
     } catch (err) {
       console.error("Failed to fetch sources:", err);
@@ -2380,7 +2381,8 @@ function ManageDocumentsModal({
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data || json;
         setSubmitStep(3); // Finalizing
         setTimeout(() => {
           setDocs((prev) => [data.document, ...prev]);

@@ -13,7 +13,6 @@ import {
   Shield,
   Key,
   Database,
-  CreditCard,
   Settings as SettingsIcon,
   AlertTriangle,
   Mail
@@ -43,14 +42,35 @@ export default function SettingsMain() {
   const [onboardingTips, setOnboardingTips] = useState(true);
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [defaultLlm, setDefaultLlm] = useState("gpt-4o");
+
+  // Password State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passMessage, setPassMessage] = useState("");
+
+  // SSO State
+  const [ssoProviderUrl, setSsoProviderUrl] = useState("");
+  const [ssoDomain, setSsoDomain] = useState("");
+  const [showSsoModal, setShowSsoModal] = useState(false);
+
+  // Advanced State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const tabs = [
     "General",
     "Workspace",
+    "Members",
     "AI & Intelligence",
     "Data & Sources",
+    "API Keys",
     "Security",
     "Notifications",
+    "Audit Logs",
     "Billing",
     "Advanced",
   ];
@@ -62,15 +82,22 @@ export default function SettingsMain() {
   const fetchSettings = async () => {
     try {
       const res = await fetch("/api/settings");
-      const data = await res.json();
+      const json = await res.json();
+      const data = json.data || json;
       if (data.preferences) {
         setTheme(data.preferences.theme || "light");
         setCompactMode(data.preferences.compactMode || false);
         setOnboardingTips(data.preferences.onboardingTips ?? true);
+        setTwoFactorEnabled(data.preferences.twoFactorEnabled || false);
+        setEmailNotifications(data.preferences.emailNotifications ?? true);
       }
       if (data.workspace) {
         setWorkspaceName(data.workspace.name || "");
         setWorkspaceSlug(data.workspace.slug || "");
+        
+        if (data.workspace.settings) {
+          setDefaultLlm(data.workspace.settings.defaultLlm || "gpt-4o");
+        }
       }
     } catch (error) {
       console.error("Failed to fetch settings", error);
@@ -123,6 +150,23 @@ export default function SettingsMain() {
 
   const handleWorkspaceSave = () => {
     saveSettings({ workspaceName, workspaceSlug });
+  };
+
+  const handleToggleTwoFactor = () => {
+    const newVal = !twoFactorEnabled;
+    setTwoFactorEnabled(newVal);
+    saveSettings({ preferences: { twoFactorEnabled: newVal } });
+  };
+
+  const handleToggleEmail = () => {
+    const newVal = !emailNotifications;
+    setEmailNotifications(newVal);
+    saveSettings({ preferences: { emailNotifications: newVal } });
+  };
+
+  const handleLlmChange = (model: string) => {
+    setDefaultLlm(model);
+    saveSettings({ workspaceSettings: { defaultLlm: model } });
   };
 
   if (loading) {
@@ -310,7 +354,17 @@ export default function SettingsMain() {
                   </div>
                   <div className="set-row-right">
                     <div className="set-dropdown" style={{ minWidth: 140 }}>
-                      GPT-4o <ChevronDown size={14} color="#71717a" />
+                      <select 
+                        value={defaultLlm}
+                        onChange={(e) => handleLlmChange(e.target.value)}
+                        style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', color: 'inherit', cursor: 'pointer', appearance: 'none' }}
+                      >
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="claude-3-opus">Claude 3 Opus</option>
+                        <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                      </select>
+                      <ChevronDown size={14} color="#71717a" style={{ position: 'absolute', right: 12, pointerEvents: 'none' }} />
                     </div>
                   </div>
                 </div>
@@ -321,7 +375,8 @@ export default function SettingsMain() {
         {activeTab === "Security" && (
           <div className="set-section">
             <div className="set-section-title">Security Settings</div>
-            <div className="set-card">
+            
+            <div className="set-card" style={{ marginBottom: 24 }}>
               <div className="set-row">
                 <div className="set-row-left">
                   <div className="set-row-icon-wrap">
@@ -333,7 +388,9 @@ export default function SettingsMain() {
                   </div>
                 </div>
                 <div className="set-row-right" style={{ paddingRight: 20 }}>
-                  <div className="set-toggle active"><div className="set-toggle-knob" /></div>
+                  <div className={`set-toggle ${twoFactorEnabled ? 'active' : ''}`} onClick={handleToggleTwoFactor}>
+                    <div className="set-toggle-knob" />
+                  </div>
                 </div>
               </div>
               <div className="set-row">
@@ -347,9 +404,64 @@ export default function SettingsMain() {
                   </div>
                 </div>
                 <div className="set-row-right">
-                  <button className="set-btn-outline" style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e4e4e7', background: 'transparent', cursor: 'pointer' }}>Configure</button>
+                  <button className="set-btn-outline" style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e4e4e7', background: 'transparent', cursor: 'pointer' }} onClick={() => setShowSsoModal(true)}>Configure</button>
                 </div>
               </div>
+            </div>
+
+            <div className="set-section-title">Change Password</div>
+            <div className="set-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label className="set-row-title" style={{ display: 'block', marginBottom: 8 }}>Current Password</label>
+                <input 
+                  type="password" 
+                  value={currentPassword} 
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }}
+                />
+              </div>
+              <div>
+                <label className="set-row-title" style={{ display: 'block', marginBottom: 8 }}>New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }}
+                />
+              </div>
+              {passMessage && <div style={{ fontSize: 13, color: passMessage.includes('Success') ? '#16a34a' : '#ef4444' }}>{passMessage}</div>}
+              <button 
+                className="set-btn-primary" 
+                onClick={async () => {
+                  setPassMessage("");
+                  if (!currentPassword || !newPassword) {
+                    setPassMessage("Please fill out both fields.");
+                    return;
+                  }
+                  try {
+                    const res = await fetch("/api/settings/password", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ currentPassword, newPassword }),
+                    });
+                    if (res.ok) {
+                      setPassMessage("Successfully updated password.");
+                      setCurrentPassword("");
+                      setNewPassword("");
+                    } else {
+                      const data = await res.json();
+                      setPassMessage(data.error || "Failed to update password.");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setPassMessage("An error occurred.");
+                  }
+                }}
+                disabled={saving}
+                style={{ alignSelf: 'flex-start', padding: '10px 20px', background: '#09090b', color: '#fff', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+              >
+                Update Password
+              </button>
             </div>
           </div>
         )}
@@ -369,7 +481,9 @@ export default function SettingsMain() {
                   </div>
                 </div>
                 <div className="set-row-right" style={{ paddingRight: 20 }}>
-                  <div className="set-toggle active"><div className="set-toggle-knob" /></div>
+                  <div className={`set-toggle ${emailNotifications ? 'active' : ''}`} onClick={handleToggleEmail}>
+                    <div className="set-toggle-knob" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -391,7 +505,7 @@ export default function SettingsMain() {
                   </div>
                 </div>
                 <div className="set-row-right">
-                  <button style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', cursor: 'pointer', fontWeight: 500 }}>
+                  <button onClick={() => setShowDeleteModal(true)} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', cursor: 'pointer', fontWeight: 500 }}>
                     Delete Workspace
                   </button>
                 </div>
@@ -400,16 +514,85 @@ export default function SettingsMain() {
           </div>
         )}
 
-        {/* Fallback for Data & Sources, Billing */}
-        {(activeTab === "Data & Sources" || activeTab === "Billing") && (
+        {activeTab === "Members" && (
+          <div className="set-section">
+            <div className="set-section-title">Workspace Members</div>
+            <div className="set-card" style={{ padding: 24, textAlign: 'center', color: '#71717a' }}>
+              <div>Manage who has access to your workspace.</div>
+              <button className="set-btn-outline" style={{ marginTop: 20, padding: '8px 16px', borderRadius: 6, border: '1px solid #e4e4e7', background: 'transparent', cursor: 'pointer' }} onClick={() => window.location.href = '/dashboard/teams'}>
+                Go to Teams Dashboard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "API Keys" && (
+          <div className="set-section">
+            <div className="set-section-title">API Keys</div>
+            <div className="set-card" style={{ padding: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, color: '#71717a' }}>Manage your programmatic access to the Corely API.</div>
+                <button className="set-btn-primary" style={{ padding: '8px 16px', borderRadius: 6 }}>Generate New Key</button>
+              </div>
+              <div style={{ borderTop: '1px solid #e4e4e7', paddingTop: 20, textAlign: 'center', color: '#a1a1aa', fontSize: 13 }}>
+                No API keys generated yet.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "Audit Logs" && (
+          <div className="set-section">
+            <div className="set-section-title">Audit Logs</div>
+            <div className="set-card" style={{ padding: 24 }}>
+              <div style={{ fontSize: 13, color: '#71717a', marginBottom: 20 }}>View recent security and administrative events.</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e4e4e7', textAlign: 'left', color: '#71717a' }}>
+                    <th style={{ padding: '12px 8px' }}>Action</th>
+                    <th style={{ padding: '12px 8px' }}>Actor</th>
+                    <th style={{ padding: '12px 8px' }}>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '12px 8px' }} colSpan={3} align="center" className="text-gray-400">No logs available.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "Billing" && (
+          <div className="set-section">
+            <div className="set-section-title">Billing & Subscription</div>
+            <div className="set-card" style={{ padding: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111111', marginBottom: 4 }} className="set-title">Current Plan: Free</div>
+                  <div style={{ fontSize: 13, color: '#71717a' }}>You are on the free tier. Upgrade to unlock more features.</div>
+                </div>
+                <button className="set-btn-primary" style={{ background: '#09090b', padding: '10px 20px', borderRadius: 8 }}>Upgrade to Pro</button>
+              </div>
+              <div style={{ borderTop: '1px solid #e4e4e7', paddingTop: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#111111' }} className="set-title">Payment Methods</div>
+                <div style={{ fontSize: 13, color: '#71717a' }}>No payment methods added.</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback for Data & Sources */}
+        {(activeTab === "Data & Sources") && (
           <div className="set-section">
             <div className="set-section-title">{activeTab}</div>
             <div className="set-card" style={{ padding: 40, textAlign: 'center', color: '#71717a' }}>
               <div style={{ marginBottom: 12 }}>
-                {activeTab === "Data & Sources" ? <Database size={32} style={{ margin: '0 auto' }}/> : <CreditCard size={32} style={{ margin: '0 auto' }} />}
+                <Database size={32} style={{ margin: '0 auto' }}/>
               </div>
               <div>Manage your {activeTab.toLowerCase()} settings here.</div>
-              <button className="set-btn-outline" style={{ marginTop: 20, padding: '8px 16px', borderRadius: 6, border: '1px solid #e4e4e7', background: 'transparent', cursor: 'pointer' }}>
+              <button className="set-btn-outline" style={{ marginTop: 20, padding: '8px 16px', borderRadius: 6, border: '1px solid #e4e4e7', background: 'transparent', cursor: 'pointer' }} onClick={() => window.location.href = '/dashboard/sources'}>
                 Go to {activeTab} Dashboard
               </button>
             </div>
@@ -417,6 +600,55 @@ export default function SettingsMain() {
         )}
 
       </motion.div>
+
+      {showSsoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="set-card" style={{ padding: 24, width: 400, maxWidth: '90%' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Configure SSO</h3>
+            <p style={{ fontSize: 13, color: '#71717a', marginBottom: 20 }}>Enter your Identity Provider (IdP) details below.</p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>SAML Provider URL</label>
+              <input type="text" value={ssoProviderUrl} onChange={e => setSsoProviderUrl(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }} placeholder="https://idp.example.com/saml2" />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Email Domain</label>
+              <input type="text" value={ssoDomain} onChange={e => setSsoDomain(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }} placeholder="acme.com" />
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button className="set-btn-outline" onClick={() => setShowSsoModal(false)}>Cancel</button>
+              <button className="set-btn-primary" onClick={() => {
+                alert("SSO configuration saved (Mocked)");
+                setShowSsoModal(false);
+              }}>Save Configuration</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="set-card" style={{ padding: 24, width: 400, maxWidth: '90%', border: '1px solid #ef4444' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: '#ef4444' }}>Delete Workspace?</h3>
+            <p style={{ fontSize: 13, color: '#71717a', marginBottom: 20 }}>This action cannot be undone. All data will be permanently lost.</p>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Type &quot;{workspaceName}&quot; to confirm</label>
+              <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }} />
+              {deleteError && <div style={{ fontSize: 13, color: '#ef4444', marginTop: 8 }}>{deleteError}</div>}
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button className="set-btn-outline" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setDeleteError(""); }}>Cancel</button>
+              <button style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 600 }} onClick={async () => {
+                if (deleteConfirmText !== workspaceName) {
+                  setDeleteError("Confirmation text does not match.");
+                  return;
+                }
+                alert("Workspace deletion simulated. Redirecting...");
+                window.location.href = "/";
+              }}>Confirm Deletion</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

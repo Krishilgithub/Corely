@@ -184,8 +184,9 @@ export default function TeamsPage() {
     setLoading(true);
     fetch("/api/teams")
       .then(res => res.json())
-      .then(data => {
-        setTeams(data.data || data || []);
+      .then(json => {
+        const data = json.data || json;
+        setTeams(data.teams || []);
         setLoading(false);
       })
       .catch(err => {
@@ -199,7 +200,10 @@ export default function TeamsPage() {
     if (hasPermission("teams:manage")) {
       fetch("/api/teams/roles")
         .then(res => res.json())
-        .then(data => setRoles(data.data || []));
+        .then(json => {
+          const data = json.data || json;
+          setRoles(data.roles || []);
+        });
     }
   }, [hasPermission]);
 

@@ -285,7 +285,7 @@
 /* The vertical connector line */
 .mem-timeline-line {
   position: absolute;
-  left: 105px;
+  left: 80px;
   top: 10px;
   bottom: 24px;
   width: 2px;
@@ -297,7 +297,7 @@
   font-size: 12.5px;
   font-weight: 700;
   color: #71717a;
-  margin: 20px 0 16px 128px;
+  margin: 20px 0 16px 103px;
   position: relative;
   z-index: 2;
 }
@@ -312,7 +312,7 @@
 }
 
 .mem-timeline-time {
-  width: 85px;
+  width: 60px;
   text-align: right;
   font-size: 12px;
   font-weight: 600;

@@ -40,8 +40,9 @@ export default function TeamDetailsPage() {
         if (res.status === 404) router.push("/dashboard/teams");
         return;
       }
-      const data = await res.json();
-      setTeam(data.data);
+      const json = await res.json();
+      const data = json.data || json;
+      setTeam(data.team || data);
     } catch (e) {
       console.error(e);
     } finally {
