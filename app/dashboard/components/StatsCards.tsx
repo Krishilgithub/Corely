@@ -80,6 +80,7 @@ export default function StatsCards({ data }: { data?: any }) {
               <div className="db-stat-trend">
                 <TrendingUp size={11} />
                 {stat.trend}
+              </div>
             </div>
           </div>
           <ChevronRight size={15} style={{ color: "#d4d4d4", flexShrink: 0 }} />
