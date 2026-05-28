@@ -1,27 +1,45 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --orange-primary: #ff6b00;
-  --orange-hover: #e54e00;
-  --orange-light: #fff3ee;
-  --orange-mid: #ff8a47;
-  --gray-soft: #f5f5f5;
-  --gray-border: #f1f1f1;
-  --gray-muted: #6b7280;
-  --font-display: var(--font-outfit), sans-serif;
-  --font-body: var(--font-inter), sans-serif;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+    
+    --orange-primary: #ff6b00;
+    --orange-hover: #e54e00;
+    --orange-light: #fff3ee;
+    --font-display: var(--font-outfit), sans-serif;
+    --font-body: var(--font-inter), sans-serif;
+  }
 }
 
-@theme {
-  --font-sans: var(--font-inter), sans-serif;
-  --font-geist: var(--font-geist-sans), sans-serif;
-  --color-brand: #ff6b00;
-  --color-brand-light: #fff3ee;
-  --color-border-soft: #f1f1f1;
-  --color-text-primary: #111111;
-  --color-text-secondary: #6b7280;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 /* Subtle Technical Grid Background Overlay */
@@ -1440,6 +1458,34 @@ body {
   .footer-content {
     grid-template-columns: 1fr 1fr;
     gap: 60px;
+  }
+  
+  .pain-cards-row {
+    grid-template-columns: 1fr;
+    border: none;
+    background: transparent;
+    gap: 16px;
+  }
+  
+  .pain-card {
+    border: 1.5px solid var(--gray-border);
+    border-radius: 16px;
+  }
+  
+  .prob-stats-row {
+    flex-direction: column;
+    padding: 16px 0;
+  }
+  
+  .prob-stat-item {
+    padding: 16px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .prob-stats-divider {
+    width: 100%;
+    height: 1.5px;
   }
 }
 

@@ -2214,6 +2214,9 @@
   .db-main-grid { grid-template-columns: 1fr; }
   .db-actions-grid { grid-template-columns: repeat(2, 1fr); }
   .db-greeting-title { font-size: 34px; }
+  .ac-page-grid { grid-template-columns: 1fr; }
+  .wf-page-grid { grid-template-columns: 1fr; }
+  .wf-kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -2261,6 +2264,14 @@
     color: #111;
     margin-right: 12px;
   }
+}
+
+@media (max-width: 640px) {
+  .db-stats-grid { grid-template-columns: 1fr; }
+  .db-actions-grid { grid-template-columns: 1fr; }
+  .wf-kpi-grid { grid-template-columns: 1fr; }
+  .db-greeting-title { font-size: 28px; }
+  .set-account-info { flex-direction: column; align-items: flex-start; }
 }
 
 @media (min-width: 769px) {

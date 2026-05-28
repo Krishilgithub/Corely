@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, TrendingUp } from "lucide-react";
+import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, TrendingUp, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface StatCard {
-  icon: React.ElementType;
+  icon: LucideIcon;
   value: number;
   suffix?: string;
   label: string;

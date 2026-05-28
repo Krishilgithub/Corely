@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Cloud, GitBranch, Mail, Cpu } from "lucide-react";
+import { Cloud, GitBranch, Mail, Cpu, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as React from "react";
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, LucideIcon> = {
   Cloud,
   GitBranch,
   Mail,

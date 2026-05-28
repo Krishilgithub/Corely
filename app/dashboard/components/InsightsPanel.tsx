@@ -9,6 +9,7 @@ import {
   Users,
   CheckCircle2,
   RefreshCw,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -25,7 +26,7 @@ function formatTimeAgo(dateString: string) {
 }
 import * as React from "react";
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, LucideIcon> = {
   TrendingDown,
   Code2,
   DollarSign,
