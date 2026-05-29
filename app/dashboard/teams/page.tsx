@@ -20,6 +20,7 @@ import {
   RefreshCw,
   BarChart2,
   ShieldAlert,
+  Shield,
   ChevronLeft,
   ChevronRight,
   X,
@@ -142,6 +143,10 @@ export default function TeamsPage() {
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [inviteDevPassword, setInviteDevPassword] = useState<string | null>(null);
+
+  // Add Role Modal
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleName, setRoleName] = useState("");
 
   const { hasPermission } = useAuth();
   
@@ -280,6 +285,33 @@ export default function TeamsPage() {
     }
   };
 
+  const handleRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/teams/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: roleName })
+      });
+      if (res.ok) {
+        fetch("/api/teams/roles")
+          .then(res => res.json())
+          .then(json => {
+            const data = json.data || json;
+            setRoles(Array.isArray(data) ? data : (data.roles || []));
+          });
+        triggerToast("Role created successfully!");
+        setShowRoleModal(false);
+        setRoleName("");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleExportCSV = () => {
     if (teams.length === 0) return;
     const headers = ["Name", "Members", "Health", "Collaboration", "Knowledge", "Actions", "Focus"];
@@ -346,6 +378,10 @@ export default function TeamsPage() {
           </button>
           {hasPermission("teams:manage") && (
             <>
+              <button className="tm-btn-secondary" onClick={() => setShowRoleModal(true)}>
+                <Shield size={14} />
+                Add Role
+              </button>
               <button className="tm-btn-secondary" onClick={() => setShowInviteModal(true)}>
                 <Users size={14} />
                 Invite Member
@@ -875,6 +911,48 @@ export default function TeamsPage() {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Creating..." : "Create Team"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add Role Modal ── */}
+      <AnimatePresence>
+        {showRoleModal && (
+          <div className="tm-modal-overlay">
+            <motion.div
+              className="tm-modal-card"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>Create Role</h2>
+                <button onClick={() => setShowRoleModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleRoleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#3f3f46" }}>Role Name</label>
+                  <input
+                    type="text"
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #e4e4e7", borderRadius: 8, fontSize: 14 }}
+                    placeholder="e.g. Editor"
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value)}
+                    required
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  className="tm-btn-primary" 
+                  style={{ width: "100%", justifyContent: "center", padding: "12px", marginTop: 8 }}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating..." : "Create Role"}
                 </button>
               </form>
             </motion.div>

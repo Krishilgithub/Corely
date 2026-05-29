@@ -20,8 +20,9 @@ import {
   AlertCircle,
   Loader2,
   Folder,
-  Check,
   Trash2,
+  UploadCloud,
+  Check,
 } from "lucide-react";
 
 import { useAuth } from "../../../lib/auth-context";
@@ -47,15 +48,8 @@ const NotionIcon = ({ size = 22 }: { size?: number }) => (
   <Image src="/notion.png" alt="Notion" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
-const GmailIcon = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4.5 6.5h15v11h-15v-11Z" fill="#fff" />
-    <path d="M5.2 7.3 12 12.4l6.8-5.1" stroke="#EA4335" strokeWidth="2.2" strokeLinejoin="round" />
-    <path d="M4.5 7.2v9.6c0 .39.31.7.7.7h2.1V9.3L4.5 7.2Z" fill="#4285F4" />
-    <path d="M19.5 7.2v9.6c0 .39-.31.7-.7.7h-2.1V9.3l2.8-2.1Z" fill="#34A853" />
-    <path d="M7.3 9.3 4.5 7.2v-.7c0-.55.63-.87 1.08-.54L7.3 7.25v2.05Z" fill="#C5221F" />
-    <path d="M16.7 9.3 19.5 7.2v-.7c0-.55-.63-.87-1.08-.54L16.7 7.25v2.05Z" fill="#FBBC04" />
-  </svg>
+const GmailIcon = ({ size = 22 }: { size?: number }) => (
+  <Image src="/gmail.png" alt="Gmail" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
 const GitHubIcon = () => (
@@ -64,15 +58,12 @@ const GitHubIcon = () => (
   </svg>
 );
 
-const SlackIcon = () => (
-  <Image src="/image.png" alt="Slack" width={22} height={22} style={{ objectFit: 'contain' }} />
+const SlackIcon = ({ size = 22 }: { size?: number }) => (
+  <Image src="/slack.png" alt="Slack" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
-const LinearIcon = () => (
-  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 3v18h18" stroke="#5E6AD2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="#5E6AD2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
+const LinearIcon = ({ size = 22 }: { size?: number }) => (
+  <Image src="/linear.png" alt="Linear" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
 
@@ -1178,7 +1169,7 @@ export default function SourcesMain() {
 
         {/* Data table */}
         {!loading && filtered.length > 0 && (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ width: "100%" }}>
             <table className="src-table">
             <thead>
               <tr>
@@ -1199,6 +1190,7 @@ export default function SourcesMain() {
                         {source.type === "google_drive" && <GoogleDriveIcon />}
                         {source.type === "notion" && <NotionIcon />}
                         {source.type === "gmail" && <GmailIcon />}
+                        {source.type === "manual_upload" && <UploadCloud color="#71717a" size={22} />}
                       </div>
                       <div>
                         <div className="src-source-name">{source.name}</div>

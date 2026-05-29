@@ -1255,7 +1255,6 @@
   background: #ffffff;
   border: 1px solid #e4e4e7;
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.015);
 }
 .src-table-header {
@@ -1483,7 +1482,8 @@
   gap: 32px;
   max-width: 1200px;
   margin: 0 auto;
-  align-items: start;
+  height: calc(100vh - 150px);
+  overflow: hidden;
 }
 
 /* Vertical Settings Navigation */
@@ -1491,9 +1491,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  position: sticky;
-  top: 24px;
-  align-self: start;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 .set-nav-item {
   padding: 10px 16px;

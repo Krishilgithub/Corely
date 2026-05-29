@@ -29,7 +29,6 @@ const navItems = [
   { icon: Link2, label: "Sources", href: "/dashboard/sources" },
   { icon: Users, label: "Teams", href: "/dashboard/teams" },
   { icon: GitBranch, label: "Workflows", href: "/dashboard/workflows" },
-  { icon: Shield, label: "Security", href: "#" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 

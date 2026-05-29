@@ -28,3 +28,27 @@ export async function GET() {
   }
 }
 
+export async function POST(req: Request) {
+  try {
+    const { workspace } = await auth();
+    const data = await req.json();
+
+    if (!data.name) {
+      return errorResponse("Role name is required", 400);
+    }
+
+    const role = await prisma.workspaceRole.create({
+      data: {
+        workspaceId: workspace.id,
+        name: data.name,
+        permissions: data.permissions || [],
+      },
+    });
+
+    return successResponse(role);
+  } catch (error) {
+    console.error("POST /api/teams/roles error:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+}
+

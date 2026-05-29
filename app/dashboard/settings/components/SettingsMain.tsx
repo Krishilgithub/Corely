@@ -196,7 +196,7 @@ export default function SettingsMain() {
       {/* Right Content */}
       <motion.div
         key={activeTab}
-        style={{ flex: 1, minWidth: 0 }}
+        style={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto", paddingRight: 16 }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}

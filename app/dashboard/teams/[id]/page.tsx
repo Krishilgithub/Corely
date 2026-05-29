@@ -108,39 +108,89 @@ export default function TeamDetailsPage() {
   return (
     <main className="tm-container">
       {/* ── Header ── */}
-      <div className="tm-header-row">
-        <div className="tm-title-wrapper" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div 
+        className="tm-header-row" 
+        style={{ 
+          background: "linear-gradient(to right, #ffffff, #fafafa)",
+          borderRadius: 16,
+          padding: 24,
+          border: "1px solid #e4e4e7",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+          marginBottom: 32,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start"
+        }}
+      >
+        <div className="tm-title-wrapper" style={{ display: "flex", gap: 20 }}>
           <button 
             className="tm-btn-secondary" 
-            style={{ padding: "8px", borderRadius: "8px" }}
+            style={{ padding: "10px", borderRadius: "12px", height: "fit-content", background: "#fff" }}
             onClick={() => router.push("/dashboard/teams")}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={18} />
           </button>
-          <div
-            className="tm-team-icon"
-            style={{ backgroundColor: team.iconBg, color: team.iconColor, width: 40, height: 40 }}
-          >
-            <Users size={20} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 className="tm-title" style={{ marginBottom: 4 }}>
-              {team.name}
-            </h1>
-            <p className="tm-subtitle" style={{ margin: 0 }}>
-              {team.focus} · {team.users?.length || team.members} Members
-            </p>
+          <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+            <div
+              className="tm-team-icon"
+              style={{ 
+                backgroundColor: team.iconBg || "#eff6ff", 
+                color: team.iconColor || "#3b82f6", 
+                width: 56, 
+                height: 56,
+                borderRadius: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 8px 16px rgba(59, 130, 246, 0.15)"
+              }}
+            >
+              <Users size={28} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="tm-title" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.5px", color: "#09090b", marginBottom: 6 }}>
+                {team.name}
+              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ 
+                  display: "inline-flex", 
+                  alignItems: "center", 
+                  gap: 6,
+                  background: "#f4f4f5", 
+                  padding: "4px 10px", 
+                  borderRadius: 20, 
+                  fontSize: 13, 
+                  color: "#52525b",
+                  fontWeight: 500
+                }}>
+                  {team.focus || "General"}
+                </span>
+                <span style={{ color: "#a1a1aa", fontSize: 13 }}>•</span>
+                <span style={{ color: "#52525b", fontSize: 14, fontWeight: 500 }}>
+                  {team.users?.length || team.members} Members
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="tm-header-actions">
+        
+        <div className="tm-header-actions" style={{ display: "flex", gap: 12 }}>
           {hasPermission("teams:manage") && (
             <button 
               className="tm-btn-secondary" 
-              style={{ color: "#ef4444", borderColor: "#fecaca", backgroundColor: "#fef2f2" }}
+              style={{ 
+                color: "#ef4444", 
+                borderColor: "#fecaca", 
+                backgroundColor: "#fff",
+                boxShadow: "0 2px 8px rgba(239, 68, 68, 0.1)",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontWeight: 600
+              }}
               onClick={handleDeleteTeam}
               disabled={isDeleting}
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} style={{ marginRight: 6 }} />
               {isDeleting ? "Deleting..." : "Delete Team"}
             </button>
           )}
