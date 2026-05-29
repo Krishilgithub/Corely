@@ -1,115 +1,66 @@
-"use client";
+import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth-server";
+import { generateDynamicInsights } from "@/lib/insights-generator";
+import DashboardClient from "./DashboardClient";
 
-import StatsCards from "./components/StatsCards";
-import AskCorelyPanel from "./components/AskCorelyPanel";
-import InsightsPanel from "./components/InsightsPanel";
-import AutonomousActions from "./components/AutonomousActions";
-import { Calendar, ChevronDown, ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
-import Link from "next/link";
+export const dynamic = 'force-dynamic';
 
-export default function DashboardPage() {
-  const [userName, setUserName] = useState("Loading...");
-  const [dateRange, setDateRange] = useState("Today");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+export default async function DashboardPage(props: { searchParams?: Promise<{ dateRange?: string }> }) {
+  const { user, workspace } = await auth();
+  const workspaceId = workspace.id;
+
+  // Extract search params dynamically in Next 15+ compatible way
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateRange = searchParams.dateRange || 'Today';
+
+  let gteDate = new Date(0); // All time fallback
+  if (dateRange === 'Today') gteDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  else if (dateRange === 'This Week') gteDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  else if (dateRange === 'This Month') gteDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  // 1. Fetch Stats
+  const totalDocuments = await prisma.document.count({ where: { workspaceId } });
+  const totalSources = await prisma.source.count({ where: { workspaceId } });
+  const recentChatSessions = await prisma.chatSession.count({
+    where: {
+      workspaceId,
+      createdAt: { gte: gteDate }
+    }
+  });
   
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch(`/api/dashboard?dateRange=${dateRange}`);
-        if (res.ok) {
-          const json = await res.json();
-          const data = json.data || json; // fallback in case api doesn't wrap
-          if (data.user?.name) {
-            setUserName(data.user.name);
-          }
-          setDashboardData(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      }
-    };
-    fetchDashboard();
-  }, [dateRange]);
+  // Knowledge Coverage Algorithm
+  const coverage = Math.min(100, Math.max(15, totalSources * 20 + Math.min(20, Math.floor(totalDocuments / 2))));
 
+  // System Health Check
+  const sources = await prisma.source.findMany({ where: { workspaceId } });
+  const hasError = sources.some(s => s.status === 'ERROR');
+  const systemHealth = hasError ? "Degraded" : "Operational";
 
+  // 2. Fetch Insights (limit 4)
+  const allInsights = await generateDynamicInsights(workspaceId);
+  const insights = allInsights.slice(0, 4);
 
-  return (
-    <main className="db-content">
-      {/* ── Greeting Row ── */}
-      <div className="db-greeting-row">
-        <div>
-          <h1 className="db-greeting-title">Good morning, {userName} 👋</h1>
-          <p className="db-greeting-sub">
-            Here&apos;s what Corely discovered across your organization today.
-          </p>
-        </div>
-        <div style={{ position: "relative" }}>
-          <button 
-            className="db-date-btn" 
-            aria-label="Select date"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-          >
-            <Calendar size={13} style={{ color: "#71717a" }} />
-            <span>{dateRange}</span>
-            <ChevronDown size={13} style={{ color: "#a1a1aa" }} />
-          </button>
-          
-          {showDatePicker && (
-            <div style={{
-              position: "absolute", top: "100%", right: 0, marginTop: 8,
-              background: "#fff", border: "1px solid #e4e4e7", borderRadius: 8,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)", zIndex: 10, width: 140,
-              display: "flex", flexDirection: "column", overflow: "hidden"
-            }}>
-              {["Today", "This Week", "This Month", "All Time"].map(option => (
-                <button
-                  key={option}
-                  onClick={() => { setDateRange(option); setShowDatePicker(false); }}
-                  style={{
-                    padding: "8px 12px", textAlign: "left", background: dateRange === option ? "#fafafa" : "transparent",
-                    border: "none", fontSize: 13, color: dateRange === option ? "#ff6b00" : "#3f3f46", cursor: "pointer"
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+  // 3. Fetch Actions (limit 4)
+  const actions = await prisma.dashboardAction.findMany({
+    where: { workspaceId },
+    orderBy: { createdAt: 'desc' },
+    take: 4
+  });
 
-      {/* ── Stats Cards ── */}
-      {/* ── Onboarding Checklist ── */}
-      {dashboardData && dashboardData.stats?.sourcesConnected < 3 && (
-        <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: 20, marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#18181b", display: "flex", alignItems: "center", gap: 8 }}>
-              Getting Started <span style={{ padding: "2px 8px", background: "#fef3c7", color: "#d97706", fontSize: 11, borderRadius: 12 }}>{dashboardData.stats?.sourcesConnected}/3 Sources</span>
-            </h3>
-            <p style={{ margin: "4px 0 0 0", fontSize: 13, color: "#71717a" }}>Connect at least 3 sources to unlock the full power of Corely AI.</p>
-          </div>
-          <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
-            <button className="db-btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              Connect Sources <ArrowRight size={14} />
-            </button>
-          </Link>
-        </div>
-      )}
+  const initialData = {
+    user: {
+      name: user.name || "User"
+    },
+    stats: {
+      documentsIndexed: totalDocuments,
+      sourcesConnected: totalSources,
+      recentChats: recentChatSessions,
+      coverage: coverage
+    },
+    systemHealth,
+    insights,
+    actions
+  };
 
-      {/* ── Stats Cards ── */}
-      <StatsCards data={dashboardData?.stats} />
-
-      {/* ── Main Grid ── */}
-      <div className="db-main-grid">
-        <AskCorelyPanel />
-        <InsightsPanel data={dashboardData?.insights} systemHealth={dashboardData?.systemHealth} />
-      </div>
-
-      {/* ── Autonomous Actions ── */}
-      <AutonomousActions data={dashboardData?.actions} />
-    </main>
-  );
+  return <DashboardClient initialData={initialData} dateRange={dateRange} />;
 }

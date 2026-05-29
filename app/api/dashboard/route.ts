@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { generateDynamicInsights } from "@/lib/insights-generator";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,42 +37,15 @@ export async function GET(request: Request) {
     const systemHealth = hasError ? "Degraded" : "Operational";
 
     // 3. Fetch Insights (limit 4)
-    let insights = await prisma.dashboardInsight.findMany({
-      where: { workspaceId },
-      orderBy: { createdAt: 'desc' },
-      take: 4
-    });
-
-    // Seed dummy insights if none exist so the UI isn't empty
-    if (insights.length === 0) {
-      const dummyInsights = [
-        { workspaceId, priority: "HIGH", title: "Customer churn risk increased", description: "Churn risk has increased by 18% in the last 7 days driven by 3 key accounts.", source: "Salesforce", iconType: "TrendingDown" },
-        { workspaceId, priority: "HIGH", title: "Engineering bottleneck detected", description: "API team is a blocking dependency for 12 projects.", source: "Jira", iconType: "Code2" },
-        { workspaceId, priority: "MEDIUM", title: "Revenue anomaly identified", description: "Mid-market segment revenue dropped by 7% this week.", source: "Looker", iconType: "DollarSign" },
-        { workspaceId, priority: "LOW", title: "Cross-team dependency alert", description: "Design handoff delay affecting product launch timeline.", source: "Notion", iconType: "Users" }
-      ];
-      await prisma.dashboardInsight.createMany({ data: dummyInsights });
-      insights = await prisma.dashboardInsight.findMany({ where: { workspaceId }, orderBy: { createdAt: 'desc' }, take: 4 });
-    }
+    const allInsights = await generateDynamicInsights(workspaceId);
+    const insights = allInsights.slice(0, 4);
 
     // 4. Fetch Actions (limit 4)
-    let actions = await prisma.dashboardAction.findMany({
+    const actions = await prisma.dashboardAction.findMany({
       where: { workspaceId },
       orderBy: { createdAt: 'desc' },
       take: 4
     });
-
-    // Seed dummy actions if none exist
-    if (actions.length === 0) {
-      const dummyActions = [
-        { workspaceId, description: "Updated CRM records", source: "Salesforce", iconType: "Cloud" },
-        { workspaceId, description: "Triggered follow-up workflow", source: "Corely Workflow", iconType: "GitBranch" },
-        { workspaceId, description: "Created executive digest", source: "Email", iconType: "Mail" },
-        { workspaceId, description: "Ran risk analysis pipeline", source: "Corely AI", iconType: "Cpu" }
-      ];
-      await prisma.dashboardAction.createMany({ data: dummyActions });
-      actions = await prisma.dashboardAction.findMany({ where: { workspaceId }, orderBy: { createdAt: 'desc' }, take: 4 });
-    }
 
     return successResponse({
       user: {

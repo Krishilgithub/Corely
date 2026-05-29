@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Sparkles, Bell, ChevronDown, Command, Search, X, Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
@@ -32,9 +33,13 @@ export default function Topbar() {
         setShowSearch((prev) => !prev);
       }
       
-      // Close search on Esc
+      // Close overlays on Esc
       if (e.key === "Escape") {
         setShowSearch(false);
+        setShowNotifs(false);
+        if (typeof document !== "undefined") {
+          document.body.classList.remove("mobile-sidebar-open");
+        }
       }
     };
     
@@ -280,14 +285,14 @@ export default function Topbar() {
       </div>
 
       <AnimatePresence>
-        {showSearch && (
+        {showSearch && typeof document !== "undefined" && createPortal(
           <div 
             className="global-search-overlay" 
             onClick={() => setShowSearch(false)} 
             style={{ 
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-              backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
-              zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' 
+              backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+              zIndex: 99999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' 
             }}
           >
             <motion.div 
@@ -377,7 +382,8 @@ export default function Topbar() {
                 <div>Corely AI</div>
               </div>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
     </motion.header>

@@ -76,6 +76,26 @@ export async function POST(
         .catch((err) => {
           console.error("[Manual Sync] Failed to dynamically load GitHub sync module:", err);
         });
+    } else if (source.type === "slack") {
+      import("@/modules/sources/connectors/slack")
+        .then(({ syncSlack }) => {
+          syncSlack(source.id).catch((err) => {
+            console.error(`[Manual Sync] Direct background sync failed for Slack ${source.id}:`, err);
+          });
+        })
+        .catch((err) => {
+          console.error("[Manual Sync] Failed to dynamically load Slack sync module:", err);
+        });
+    } else if (source.type === "linear") {
+      import("@/modules/sources/connectors/linear")
+        .then(({ syncLinear }) => {
+          syncLinear(source.id).catch((err) => {
+            console.error(`[Manual Sync] Direct background sync failed for Linear ${source.id}:`, err);
+          });
+        })
+        .catch((err) => {
+          console.error("[Manual Sync] Failed to dynamically load Linear sync module:", err);
+        });
     } else {
       console.warn(`[Manual Sync] ⚠️ Ingestion sync for type "${source.type}" is not supported yet.`);
       await prisma.source.update({

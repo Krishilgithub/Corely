@@ -21,6 +21,11 @@ import {
   Users,
   ShieldAlert,
   ArrowRight,
+  Database,
+  Clock,
+  CheckCircle2,
+  FileText,
+  UserPlus
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -42,7 +47,7 @@ import "./insights.css";
 // ── Components ───────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const IconMap: Record<string, any> = { Activity, Code2, DollarSign, Users, ShieldAlert, Sparkles };
+const IconMap: Record<string, any> = { Activity, Code2, DollarSign, Users, ShieldAlert, Sparkles, Database, AlertTriangle, Clock, CheckCircle2, FileText, UserPlus };
 
 export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState("All Insights");
@@ -71,13 +76,11 @@ export default function InsightsPage() {
 
   const tabs = [
     "All Insights",
-    "Strategic",
     "Operational",
-    "Financial",
-    "People",
-    "Customer",
-    "Risk",
+    "Activity",
     "Product",
+    "People",
+    "Risk",
   ];
 
   // ── Computed Stats ────────────────────────────────────────────────────────
@@ -116,10 +119,10 @@ export default function InsightsPage() {
     return Object.entries(counts)
       .map(([name, value]) => {
         let color = "#ff6b00", iconBg = "#eff6ff", iconColor = "#3b82f6";
-        if (name === "Customer") { color = "#ff6b00"; iconBg = "#fef2f2"; iconColor = "#ef4444"; }
-        else if (name === "Financial") { color = "#ff6b00"; iconBg = "#f0fdf4"; iconColor = "#16a34a"; }
-        else if (name === "People") { color = "#8b5cf6"; iconBg = "#f5f3ff"; iconColor = "#8b5cf6"; }
-        else if (name === "Product") { color = "#22c55e"; iconBg = "#ecfeff"; iconColor = "#0891b2"; }
+        if (name === "Activity") { color = "#16a34a"; iconBg = "#f0fdf4"; iconColor = "#16a34a"; }
+        else if (name === "Operational") { color = "#8b5cf6"; iconBg = "#f5f3ff"; iconColor = "#8b5cf6"; }
+        else if (name === "People") { color = "#ea580c"; iconBg = "#fff7ed"; iconColor = "#ea580c"; }
+        else if (name === "Product") { color = "#0891b2"; iconBg = "#ecfeff"; iconColor = "#0891b2"; }
         else if (name === "Risk") { color = "#ef4444"; iconBg = "#fef2f2"; iconColor = "#ef4444"; }
         return { name, value, color, iconBg, iconColor };
       })
@@ -302,13 +305,11 @@ export default function InsightsPage() {
         <div className="in-dropdown" style={{ position: "relative" }}>
           <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
             <option>All Categories</option>
-            <option>Strategic</option>
             <option>Operational</option>
-            <option>Financial</option>
-            <option>People</option>
-            <option>Customer</option>
-            <option>Risk</option>
+            <option>Activity</option>
             <option>Product</option>
+            <option>People</option>
+            <option>Risk</option>
           </select>
           {selectedCategory} <ChevronDown size={14} color="#a1a1aa" />
         </div>
@@ -556,8 +557,7 @@ export default function InsightsPage() {
                       style={{ backgroundColor: cat.iconBg, color: cat.iconColor }}
                     >
                       {cat.name === "Operational" && <Code2 size={10} />}
-                      {cat.name === "Customer" && <Activity size={10} />}
-                      {cat.name === "Financial" && <DollarSign size={10} />}
+                      {cat.name === "Activity" && <Activity size={10} />}
                       {cat.name === "People" && <Users size={10} />}
                       {cat.name === "Product" && <Sparkles size={10} />}
                       {cat.name === "Risk" && <ShieldAlert size={10} />}

@@ -1980,7 +1980,8 @@ function ConfigureSourceModal({
               <span style={{ fontSize: 13.5, color: "#71717a", fontWeight: 500 }}>Fetching source configuration...</span>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0 }}>
+            <>
+            <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
               
               {(sourceType === "google_drive" || sourceType === "github") && (
                 <div style={{ display: "flex", borderBottom: "1px solid #e4e4e7" }}>
@@ -2257,9 +2258,10 @@ function ConfigureSourceModal({
                   </label>
                 </div>
               )}
+              </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", justifyContent: "end", gap: 10, marginTop: 10 }}>
+              <div style={{ display: "flex", justifyContent: "end", gap: 10, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f4f4f5", flexShrink: 0 }}>
                 <button
                   onClick={onClose}
                   disabled={saving}
@@ -2302,7 +2304,7 @@ function ConfigureSourceModal({
                   )}
                 </button>
               </div>
-            </div>
+            </>
           )}
         </motion.div>
       </motion.div>
