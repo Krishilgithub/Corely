@@ -2,6 +2,7 @@ import "../globals.css";
 import "./dashboard.css";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
+import { Toaster } from "sonner";
 
 export const metadata = {
   title: "Dashboard — Corely",
@@ -18,6 +19,7 @@ export default function DashboardLayout({
       <Sidebar />
       <Topbar />
       <div className="db-page-wrapper">{children}</div>
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

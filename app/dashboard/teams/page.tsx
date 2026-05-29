@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "../components/Skeleton";
 import { useAuth } from "../../lib/auth-context";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -216,8 +217,7 @@ export default function TeamsPage() {
   }, []);
 
   const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {

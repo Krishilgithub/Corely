@@ -30,7 +30,9 @@ interface NotionTokenResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const protocol = request.headers.get("x-forwarded-proto") || (request.nextUrl.protocol === "http:" ? "http" : "https");
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const stateRaw = searchParams.get("state");

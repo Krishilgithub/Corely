@@ -1477,23 +1477,23 @@
 
 /* ── SETTINGS PAGE ────────────────────────────────────────── */
 .set-page-grid {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 32px;
+  display: flex;
+  gap: 40px;
   max-width: 1200px;
   margin: 0 auto;
-  height: calc(100vh - 150px);
-  overflow: hidden;
+  align-items: flex-start;
+  min-height: calc(100vh - 150px);
 }
 
 /* Vertical Settings Navigation */
 .set-nav-sidebar {
+  flex-shrink: 0;
+  width: 240px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  height: 100%;
-  overflow-y: auto;
-  padding-right: 8px;
+  position: sticky;
+  top: 100px; /* Offset for header */
 }
 .set-nav-item {
   padding: 10px 16px;

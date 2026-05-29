@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { createNotification } from "@/lib/notifications";
 
 const onboardSchema = z.object({
   email: z.string().email(),
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
     `;
 
     await sendEmail(email, "You've been invited to Corely", html);
+
+    // Create a broadcast notification for the workspace that a new member joined
+    await createNotification({
+      workspaceId: currentUser.workspaceId,
+      title: "New Team Member",
+      message: `${name} has been invited to join the workspace.`,
+      iconType: "UserPlus"
+    });
 
     return successResponse({
       user: {

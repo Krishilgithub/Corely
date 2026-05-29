@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set("scope", "read:user repo read:org");
     authUrl.searchParams.set("redirect_uri", redirectUri);
     authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("prompt", "consent");
 
     return NextResponse.redirect(authUrl.toString());
   } catch (err) {
