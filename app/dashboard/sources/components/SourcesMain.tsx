@@ -39,6 +39,19 @@ interface Source {
   config: { email?: string };
 }
 
+interface Folder {
+  id: string;
+  name: string;
+}
+
+interface Repo {
+  id: string;
+  name: string;
+  fullName: string;
+  private: boolean;
+  updatedAt: string;
+}
+
 // ── Brand Icons ───────────────────────────────────────────────────────────────
 const GoogleDriveIcon = ({ size = 22 }: { size?: number }) => (
   <Image src="/drive.png" alt="Google Drive" width={size} height={size} style={{ objectFit: 'contain' }} />
@@ -1169,8 +1182,8 @@ export default function SourcesMain() {
 
         {/* Data table */}
         {!loading && filtered.length > 0 && (
-          <div style={{ width: "100%" }}>
-            <table className="src-table">
+          <div style={{ width: "100%", overflowX: "auto" }}>
+            <table className="src-table" style={{ minWidth: 800 }}>
             <thead>
               <tr>
                 <th className="src-th">Source</th>
@@ -1178,7 +1191,7 @@ export default function SourcesMain() {
                 <th className="src-th">Status</th>
                 <th className="src-th">Items Indexed</th>
                 <th className="src-th">Last Synced</th>
-                <th className="src-th" style={{ textAlign: "center" }}>Actions</th>
+                <th className="src-th" style={{ textAlign: "right", paddingRight: 24 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1188,6 +1201,7 @@ export default function SourcesMain() {
                     <div className="src-source-cell">
                       <div className="src-source-icon">
                         {source.type === "google_drive" && <GoogleDriveIcon />}
+                        {source.type === "github" && <GitHubIcon />}
                         {source.type === "notion" && <NotionIcon />}
                         {source.type === "gmail" && <GmailIcon />}
                         {source.type === "manual_upload" && <UploadCloud color="#71717a" size={22} />}
@@ -1273,10 +1287,10 @@ export default function SourcesMain() {
                     )}
                   </td>
                   <td className="src-td" style={{ position: "relative" }}>
-                    <div className="src-action-cell" style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", position: "relative" }}>
-                      {source.type === "google_drive" && (
+                    <div className="src-action-cell" style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center", position: "relative" }}>
+                      {(source.type === "google_drive" || source.type === "github") && (
                         <button
-                          title="Configure folder sync restriction"
+                          title="Configure source settings"
                           onClick={() => setConfiguringSourceId(source.id)}
                           style={{
                             border: "1px solid #e4e4e7",
@@ -1292,7 +1306,11 @@ export default function SourcesMain() {
                             color: "#52525b",
                           }}
                         >
-                          <Folder size={12} style={{ color: "#ff6b00" }} />
+                          {source.type === "github" ? (
+                            <Database size={12} style={{ color: "#ff6b00" }} />
+                          ) : (
+                            <Folder size={12} style={{ color: "#ff6b00" }} />
+                          )}
                           Configure
                         </button>
                       )}
@@ -1759,9 +1777,12 @@ function ConfigureSourceModal({
   const [loading, setLoading] = useState(true);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [filteredFolders, setFilteredFolders] = useState<Folder[]>([]);
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [filteredRepos, setFilteredRepos] = useState<Repo[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [syncOption, setSyncOption] = useState<"all" | "folder">("all");
+  const [syncOption, setSyncOption] = useState<"all" | "folder" | "repo">("all");
   const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
+  const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [sourceName, setSourceName] = useState("Google Drive");
   const [sourceType, setSourceType] = useState("google_drive");
@@ -1808,6 +1829,21 @@ function ConfigureSourceModal({
               setFilteredFolders(folderList);
             }
           }
+        } else if (type === "github") {
+          setActiveConfigTab("sync");
+          if (config.selectedRepos && config.selectedRepos.length > 0) {
+            setSyncOption("repo");
+            setSelectedRepoIds(config.selectedRepos);
+          }
+          const reposRes = await fetch(`/api/sources/${sourceId}/github/repos`);
+          if (reposRes.ok) {
+            const reposData = await reposRes.json();
+            if (active) {
+              const repoList = reposData.data || [];
+              setRepos(repoList);
+              setFilteredRepos(repoList);
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to load source configuration data:", err);
@@ -1826,13 +1862,17 @@ function ConfigureSourceModal({
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredFolders(folders);
+      setFilteredRepos(repos);
     } else {
       const query = searchQuery.toLowerCase();
       setFilteredFolders(
         folders.filter((f) => f.name.toLowerCase().includes(query))
       );
+      setFilteredRepos(
+        repos.filter((r) => r.fullName.toLowerCase().includes(query))
+      );
     }
-  }, [searchQuery, folders]);
+  }, [searchQuery, folders, repos]);
 
   // Save the selected option and folder to config, then trigger manual sync
   const handleSave = async () => {
@@ -1851,7 +1891,9 @@ function ConfigureSourceModal({
             folderIds: selectedFolders.map(f => f.id),
             folderNames: selectedFolders.map(f => f.name),
           }),
-          permissions
+          ...(sourceType === "github" && {
+            selectedRepos: syncOption === "repo" ? selectedRepoIds : [],
+          }),
         }),
       });
 
@@ -1940,7 +1982,7 @@ function ConfigureSourceModal({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0 }}>
               
-              {sourceType === "google_drive" && (
+              {(sourceType === "google_drive" || sourceType === "github") && (
                 <div style={{ display: "flex", borderBottom: "1px solid #e4e4e7" }}>
                   <button
                     style={{
@@ -1975,7 +2017,7 @@ function ConfigureSourceModal({
                 </div>
               )}
 
-              {activeConfigTab === "sync" && sourceType === "google_drive" && (
+              {activeConfigTab === "sync" && (sourceType === "google_drive" || sourceType === "github") && (
                 <>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {/* Option 1: Sync Everything */}
@@ -2001,46 +2043,46 @@ function ConfigureSourceModal({
                     style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                   />
                   <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Ingest all files and items</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Ingest all {sourceType === "github" ? "repositories" : "files and items"}</div>
                     <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
-                      Sync all supported documents across the entire Google Drive space.
+                      {sourceType === "github" ? "Sync all repositories you have access to." : "Sync all supported documents across the entire Google Drive space."}
                     </div>
                   </div>
                 </label>
 
-                {/* Option 2: Sync Specific Folder */}
+                {/* Option 2: Sync Specific Folder/Repo */}
                 <label
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
                     padding: "14px 16px",
-                    border: syncOption === "folder" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
+                    border: (syncOption === "folder" || syncOption === "repo") ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
                     borderRadius: 10,
                     cursor: "pointer",
-                    background: syncOption === "folder" ? "#fff3ee" : "#fff",
+                    background: (syncOption === "folder" || syncOption === "repo") ? "#fff3ee" : "#fff",
                     transition: "all 0.15s",
                   }}
                 >
                   <input
                     type="radio"
                     name="syncOption"
-                    value="folder"
-                    checked={syncOption === "folder"}
-                    onChange={() => setSyncOption("folder")}
+                    value={sourceType === "github" ? "repo" : "folder"}
+                    checked={syncOption === "folder" || syncOption === "repo"}
+                    onChange={() => setSyncOption(sourceType === "github" ? "repo" : "folder")}
                     style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                   />
                   <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Sync specific folders</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>Sync specific {sourceType === "github" ? "repositories" : "folders"}</div>
                     <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
-                      Restrict sync scope strictly to specific folders and their nested subfolders.
+                      {sourceType === "github" ? "Restrict sync scope strictly to specific repositories." : "Restrict sync scope strictly to specific folders and their nested subfolders."}
                     </div>
                   </div>
                 </label>
               </div>
 
-              {/* Folder Selector Explorer Section */}
-              {syncOption === "folder" && (
+              {/* Folder/Repo Selector Explorer Section */}
+              {(syncOption === "folder" || syncOption === "repo") && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -2060,7 +2102,7 @@ function ConfigureSourceModal({
                     <Search size={13.5} style={{ color: "#71717a" }} />
                     <input
                       type="text"
-                      placeholder="Search folders..."
+                      placeholder={`Search ${sourceType === "github" ? "repositories" : "folders"}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
@@ -2084,20 +2126,27 @@ function ConfigureSourceModal({
                     overflowY: "auto",
                     background: "#fff"
                   }}>
-                    {filteredFolders.length === 0 ? (
+                    {(sourceType === "github" ? filteredRepos : filteredFolders).length === 0 ? (
                       <div style={{ padding: "30px 16px", color: "#71717a", fontSize: 12.5, textAlign: "center" }}>
-                        No folders found matching &quot;{searchQuery}&quot;
+                        No items found matching &quot;{searchQuery}&quot;
                       </div>
                     ) : (
-                      filteredFolders.map((f) => {
-                        const isSelected = selectedFolderIds.includes(f.id);
+                      (sourceType === "github" ? filteredRepos : filteredFolders).map((fItem) => {
+                        const f = fItem as unknown as Repo & Folder;
+                        const isSelected = sourceType === "github" ? selectedRepoIds.includes(f.fullName) : selectedFolderIds.includes(f.id);
                         return (
                           <div
-                            key={f.id}
+                            key={sourceType === "github" ? f.fullName : f.id}
                             onClick={() => {
-                              setSelectedFolderIds(prev => 
-                                prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]
-                              );
+                              if (sourceType === "github") {
+                                setSelectedRepoIds(prev => 
+                                  prev.includes(f.fullName) ? prev.filter((id: string) => id !== f.fullName) : [...prev, f.fullName]
+                                );
+                              } else {
+                                setSelectedFolderIds(prev => 
+                                  prev.includes(f.id) ? prev.filter((id: string) => id !== f.id) : [...prev, f.id]
+                                );
+                              }
                             }}
                             style={{
                               display: "flex",
@@ -2120,7 +2169,7 @@ function ConfigureSourceModal({
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap"
                               }}>
-                                {f.name}
+                                {sourceType === "github" ? f.fullName : f.name}
                               </span>
                             </div>
                             <div style={{

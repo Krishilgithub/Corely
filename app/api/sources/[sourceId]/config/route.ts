@@ -17,7 +17,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { folderIds, folderNames, permissions } = body as { folderIds?: string[]; folderNames?: string[]; permissions?: string };
+    const { folderIds, folderNames, permissions, selectedRepos } = body as { folderIds?: string[]; folderNames?: string[]; permissions?: string; selectedRepos?: string[] };
 
     const source = await prisma.source.findUnique({
       where: { id: sourceId },
@@ -33,6 +33,7 @@ export async function POST(
       ...(folderIds !== undefined && { folderIds }),
       ...(folderNames !== undefined && { folderNames }),
       ...(permissions !== undefined && { permissions }),
+      ...(selectedRepos !== undefined && { selectedRepos }),
     };
 
     // If folderIds is null/empty, clear it from configuration to sync entire drive

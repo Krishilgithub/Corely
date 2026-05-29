@@ -13,7 +13,9 @@ import { decrypt } from "@/lib/auth-server";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const protocol = request.headers.get("x-forwarded-proto") || (request.nextUrl.protocol === "http:" ? "http" : "https");
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const stateRaw = searchParams.get("state");
@@ -137,18 +139,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // ── Trigger background sync immediately ───────────────────────
-  import("@/modules/sources/connectors/github")
-    .then(({ syncGitHub }) => {
-      syncGitHub(source.id).catch((err) => {
-        console.error(`[GitHub Callback] Background sync failed for ${source.id}:`, err);
-      });
-    })
-    .catch((err) => {
-      console.error("[GitHub Callback] Failed to load GitHub sync module:", err);
-    });
-
-  console.log(`[GitHub Callback] ✅ Source created: ${source.id} — sync triggered`);
+  console.log(`[GitHub Callback] ✅ Source created: ${source.id} — awaiting repo selection`);
 
   return NextResponse.redirect(`${origin}/dashboard/sources?connected=github&sourceId=${source.id}`);
 }

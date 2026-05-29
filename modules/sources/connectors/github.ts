@@ -43,17 +43,35 @@ export async function syncGitHub(sourceId: string): Promise<void> {
   let totalIndexed = 0;
 
   try {
-    // ── 4. Fetch recent repositories ──────────────────────────────────
-    // For MVP, we limit to the 5 most recently updated repos to prevent
-    // massive rate limit exhaustion.
-    const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
-      sort: "updated",
-      per_page: 5,
-    });
+    // ── 4. Fetch target repositories ──────────────────────────────────
+    const config = (source.config as Record<string, any>) || {};
+    let targetRepos = [];
 
-    console.log(`[GitHub] Found ${repos.length} recent repositories to sync.`);
+    if (config.selectedRepos && Array.isArray(config.selectedRepos) && config.selectedRepos.length > 0) {
+      // Sync specific selected repos
+      console.log(`[GitHub] Syncing ${config.selectedRepos.length} specific selected repositories.`);
+      for (const fullName of config.selectedRepos) {
+        const [owner, repoName] = fullName.split("/");
+        try {
+          const { data: repo } = await octokit.rest.repos.get({ owner, repo: repoName });
+          targetRepos.push(repo);
+        } catch (err: any) {
+          console.error(`[GitHub] Error fetching selected repo ${fullName}:`, err.message);
+        }
+      }
+    } else {
+      // For MVP default, we limit to the 5 most recently updated repos
+      console.log(`[GitHub] No specific repos selected. Syncing 5 most recent repositories.`);
+      const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
+        sort: "updated",
+        per_page: 5,
+      });
+      targetRepos = repos;
+    }
 
-    for (const repo of repos) {
+    console.log(`[GitHub] Found ${targetRepos.length} repositories to sync.`);
+
+    for (const repo of targetRepos) {
       console.log(`[GitHub] Syncing repo: ${repo.full_name}`);
       const owner = repo.owner.login;
       const repoName = repo.name;

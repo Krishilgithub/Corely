@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
 
     const clientId = process.env.GITHUB_CLIENT_ID;
     
-    // We dynamically compute the redirect URI so that it works seamlessly on both
-    // localhost and the production domain.
-    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const protocol = request.headers.get("x-forwarded-proto") || (request.nextUrl.protocol === "http:" ? "http" : "https");
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host;
+    const origin = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
     const redirectUri = `${origin}/api/sources/github/callback`;
 
     if (!clientId) {
