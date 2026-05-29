@@ -54,7 +54,43 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    return successResponse({ memories });
+    const syncedDocuments = await prisma.document.findMany({
+      where: { workspaceId: user.workspaceId },
+      select: {
+        id: true,
+        title: true,
+        fileType: true,
+        url: true,
+        indexedAt: true,
+        updatedAt: true,
+        source: {
+          select: {
+            name: true,
+            type: true
+          }
+        }
+      },
+      orderBy: { indexedAt: 'desc' },
+      take: 100
+    });
+
+    const formattedDocs = syncedDocuments.map(doc => ({
+      id: doc.id,
+      createdAt: doc.indexedAt || doc.updatedAt || new Date(),
+      category: "document",
+      title: doc.title || "Untitled Document",
+      content: `Synced document from ${doc.source.name}`,
+      badges: doc.fileType ? [doc.fileType] : [],
+      sourceName: doc.source.name,
+      avatarUrl: null,
+      url: doc.url
+    }));
+
+    const allMemories = [...memories, ...formattedDocs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return successResponse({ memories: allMemories });
   } catch (error) {
     if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);

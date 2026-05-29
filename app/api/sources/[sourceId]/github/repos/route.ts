@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { auth, decrypt } from "@/lib/auth-server";
+import { auth } from "@/lib/auth-server";
+import { decrypt } from "@/lib/crypto";
 
 export async function GET(
   request: NextRequest,

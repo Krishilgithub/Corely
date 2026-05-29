@@ -33,6 +33,7 @@ interface TimelineItem {
   sourceName: string;
   avatarUrl: string;
   date: string;
+  url?: string | null;
 }
 
 interface SnapshotItem {
@@ -83,6 +84,7 @@ export default function MemoryPage() {
               badges: string[];
               sourceName: string;
               avatarUrl: string | null;
+              url?: string | null;
             }
             const mappedList: TimelineItem[] = data.memories.map((item: ApiMemory) => {
               const dateObj = new Date(item.createdAt);
@@ -110,6 +112,7 @@ export default function MemoryPage() {
                 sourceName: item.sourceName,
                 avatarUrl: item.avatarUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
                 date: `${prefix}${dateStr}`,
+                url: item.url,
               };
             });
             setTimelineItems(mappedList);
@@ -1129,8 +1132,15 @@ export default function MemoryPage() {
                 <span style={{ textTransform: "capitalize" }}>{selectedMemory.sourceName}</span>
               </div>
               
-              <div style={{ background: "#f4f4f5", padding: 16, borderRadius: 8, fontSize: 14, color: "#18181b", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              <div style={{ background: "#f4f4f5", padding: 16, borderRadius: 8, fontSize: 14, color: "#18181b", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                 {selectedMemory.content}
+                {selectedMemory.url && (
+                  <div style={{ marginTop: 12 }}>
+                    <a href={selectedMemory.url} target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <FileText size={14} /> Open Document
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="mem-badge-list" style={{ marginTop: 20 }}>
