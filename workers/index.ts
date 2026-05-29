@@ -96,6 +96,18 @@ async function startRealWorker() {
             await syncGitHub(sourceId);
             break;
           }
+          case "sync-slack": {
+            const { sourceId } = job.data as { sourceId: string; workspaceId: string };
+            const { syncSlack } = await import("../modules/sources/connectors/slack");
+            await syncSlack(sourceId);
+            break;
+          }
+          case "sync-linear": {
+            const { sourceId } = job.data as { sourceId: string; workspaceId: string };
+            const { syncLinear } = await import("../modules/sources/connectors/linear");
+            await syncLinear(sourceId);
+            break;
+          }
           default:
             console.warn(`[Worker] ⚠️ Unknown job name: ${job.name}`);
         }

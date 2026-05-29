@@ -19,8 +19,20 @@ export async function GET(request: NextRequest) {
     
     const state = Buffer.from(payload).toString("base64url");
     
-    // Mock redirect to callback
-    return NextResponse.redirect(`${redirectUri}?state=${state}`);
+    const clientId = process.env.LINEAR_CLIENT_ID;
+    if (!clientId) {
+      return NextResponse.json({ error: "Linear Client ID not configured" }, { status: 500 });
+    }
+
+    const authUrl = new URL("https://linear.app/oauth/authorize");
+    authUrl.searchParams.set("client_id", clientId);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", "read");
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("prompt", "consent");
+    
+    return NextResponse.redirect(authUrl.toString());
   } catch (err) {
     console.error("[Linear Connect Error]", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

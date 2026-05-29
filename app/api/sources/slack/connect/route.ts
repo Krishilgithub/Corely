@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
     
     const state = Buffer.from(payload).toString("base64url");
     
-    // Mock redirect to our own callback with the state
-    return NextResponse.redirect(`${redirectUri}?state=${state}`);
+    const clientId = process.env.SLACK_CLIENT_ID;
+    if (!clientId) {
+      return NextResponse.json({ error: "Slack Client ID not configured" }, { status: 500 });
+    }
+
+    const authUrl = new URL("https://slack.com/oauth/v2/authorize");
+    authUrl.searchParams.set("client_id", clientId);
+    authUrl.searchParams.set("scope", "channels:history,channels:read,users:read,groups:read");
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("state", state);
+    
+    return NextResponse.redirect(authUrl.toString());
   } catch (err) {
     console.error("[Slack Connect Error]", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

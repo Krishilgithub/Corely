@@ -23,6 +23,25 @@ export default function Topbar() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // ── Keyboard Shortcuts ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle search with Cmd+K or Ctrl+K
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch((prev) => !prev);
+      }
+      
+      // Close search on Esc
+      if (e.key === "Escape") {
+        setShowSearch(false);
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const fetchNotifications = async () => {
     try {
       const res = await fetch("/api/notifications");
@@ -140,7 +159,7 @@ export default function Topbar() {
           <span className="db-search-text">Ask anything about your company...</span>
         </div>
         <div className="db-search-kbd">
-          <Command size={9} />
+          <Command size={10} />
           <span>K</span>
         </div>
       </button>
@@ -262,47 +281,100 @@ export default function Topbar() {
 
       <AnimatePresence>
         {showSearch && (
-          <div className="global-search-overlay" onClick={() => setShowSearch(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '10vh' }}>
+          <div 
+            className="global-search-overlay" 
+            onClick={() => setShowSearch(false)} 
+            style={{ 
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+              backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+              zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' 
+            }}
+          >
             <motion.div 
               className="global-search-modal"
-              initial={{ scale: 0.95, opacity: 0, y: -20 }}
+              initial={{ scale: 0.96, opacity: 0, y: -10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: -20 }}
+              exit={{ scale: 0.96, opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               onClick={(e) => e.stopPropagation()}
-              style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 640, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}
+              style={{ 
+                background: '#ffffff', borderRadius: 16, width: '100%', maxWidth: 640, 
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)', 
+                overflow: 'hidden', display: 'flex', flexDirection: 'column'
+              }}
             >
               <div style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #f4f4f5' }}>
-                <Search size={20} color="#a1a1aa" style={{ marginRight: 16 }} />
+                <Search size={22} color="#a1a1aa" style={{ marginRight: 16 }} />
                 <input 
                   autoFocus
                   type="text" 
                   placeholder="Ask anything about your company..." 
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, background: 'transparent', color: "#18181b" }} 
+                  style={{ 
+                    flex: 1, border: 'none', outline: 'none', fontSize: 18, 
+                    background: 'transparent', color: "#18181b", fontWeight: 500 
+                  }} 
                 />
-                <button onClick={() => setShowSearch(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6 }}>
-                  <X size={20} color="#a1a1aa" />
+                <button 
+                  onClick={() => setShowSearch(false)} 
+                  style={{ 
+                    background: '#f4f4f5', border: '1px solid #e4e4e7', cursor: 'pointer', 
+                    padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#71717a'
+                  }}
+                >
+                  ESC
                 </button>
               </div>
-              <div style={{ padding: 24, minHeight: 200, color: '#71717a', fontSize: 14 }}>
+              <div style={{ padding: '20px 24px', minHeight: 220, color: '#71717a', fontSize: 14, background: '#fafafa' }}>
                 {searchQuery.trim() ? (
-                  <div style={{ textAlign: 'center', paddingTop: 32 }}>
-                    <Sparkles size={24} color="#ff6b00" style={{ margin: '0 auto 12px' }} />
-                    <p>Searching for &quot;{searchQuery}&quot;...</p>
+                  <div style={{ textAlign: 'center', paddingTop: 40 }}>
+                    <Sparkles size={28} color="#ff6b00" style={{ margin: '0 auto 16px', opacity: 0.8 }} />
+                    <p style={{ fontSize: 16, color: '#18181b', fontWeight: 500 }}>Searching for &quot;{searchQuery}&quot;...</p>
+                    <p style={{ fontSize: 14, color: '#a1a1aa', marginTop: 4 }}>Press Enter to search across all knowledge</p>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontWeight: 600, color: '#3f3f46', marginBottom: 12, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suggested Searches</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontWeight: 600, color: '#a1a1aa', marginBottom: 12, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Suggested Searches
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {['What was the decision on Q3 marketing budget?', 'Find onboarding documents for new engineers', 'Who is the owner of the CRM Update Assistant workflow?'].map(q => (
-                        <button key={q} onClick={() => setSearchQuery(q)} style={{ textAlign: 'left', padding: '8px 12px', background: '#f4f4f5', border: 'none', borderRadius: 8, color: '#3f3f46', cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#e4e4e7'} onMouseOut={e => e.currentTarget.style.background = '#f4f4f5'}>
+                        <button 
+                          key={q} 
+                          onClick={() => setSearchQuery(q)} 
+                          style={{ 
+                            textAlign: 'left', padding: '10px 14px', background: 'transparent', 
+                            border: '1px solid transparent', borderRadius: 8, color: '#3f3f46', 
+                            cursor: 'pointer', transition: 'all 0.15s ease', fontSize: 14,
+                            display: 'flex', alignItems: 'center', gap: 10
+                          }} 
+                          onMouseOver={e => {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = '#e4e4e7';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                          }} 
+                          onMouseOut={e => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <Search size={14} color="#a1a1aa" />
                           {q}
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
+              <div style={{ padding: '12px 24px', borderTop: '1px solid #f4f4f5', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#a1a1aa' }}>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><kbd style={{ background: '#f4f4f5', padding: '2px 6px', borderRadius: 4, border: '1px solid #e4e4e7', fontFamily: 'inherit', color: '#71717a' }}>↵</kbd> to select</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><kbd style={{ background: '#f4f4f5', padding: '2px 6px', borderRadius: 4, border: '1px solid #e4e4e7', fontFamily: 'inherit', color: '#71717a' }}>↓</kbd> <kbd style={{ background: '#f4f4f5', padding: '2px 6px', borderRadius: 4, border: '1px solid #e4e4e7', fontFamily: 'inherit', color: '#71717a' }}>↑</kbd> to navigate</span>
+                </div>
+                <div>Corely AI</div>
               </div>
             </motion.div>
           </div>

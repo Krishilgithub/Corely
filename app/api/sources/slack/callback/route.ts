@@ -25,29 +25,75 @@ export async function GET(request: NextRequest) {
 
     const { workspaceId, userId } = payload as { workspaceId: string; userId: string };
 
-    // Check if Slack source already exists
+    const code = searchParams.get("code");
+    if (!code) {
+      return NextResponse.redirect(`${dashboardUrl}?error=missing_code`);
+    }
+
+    const clientId = process.env.SLACK_CLIENT_ID;
+    const clientSecret = process.env.SLACK_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      console.error("[Slack Callback] Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET");
+      return NextResponse.redirect(`${dashboardUrl}?error=server_configuration`);
+    }
+
+    // Exchange code for access token
+    const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: `${origin}/api/sources/slack/callback`,
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.ok) {
+      console.error("[Slack Callback] Token exchange failed:", tokenData);
+      return NextResponse.redirect(`${dashboardUrl}?error=slack_auth_failed`);
+    }
+
+    const { access_token, team } = tokenData;
+
+    // Check if Slack source already exists to determine update vs create
     const existing = await prisma.source.findFirst({
       where: { workspaceId, type: "slack" }
     });
 
-    if (existing) {
-      return NextResponse.redirect(`${dashboardUrl}?error=already_connected`);
-    }
+    const { encrypt } = await import("@/lib/crypto");
+    const encryptedToken = encrypt(access_token);
 
-    // Create simulated Slack source
-    await prisma.source.create({
-      data: {
-        workspaceId,
-        userId,
-        type: "slack",
-        name: "Slack Workspace",
-        status: "synced", // Mock as synced instantly
-        itemsIndexed: 1420, // Mock some indexed items
-        lastSyncedAt: new Date(),
-        accessToken: "mock-slack-access-token",
-        config: { permissions: "everyone" }
-      },
-    });
+    if (existing) {
+      await prisma.source.update({
+        where: { id: existing.id },
+        data: {
+          accessToken: encryptedToken,
+          name: team?.name || "Slack Workspace",
+          status: "synced",
+          lastSyncedAt: new Date(),
+          errorMessage: null,
+          config: { teamId: team?.id }
+        }
+      });
+    } else {
+      await prisma.source.create({
+        data: {
+          workspaceId,
+          userId,
+          type: "slack",
+          name: team?.name || "Slack Workspace",
+          status: "synced",
+          itemsIndexed: 0,
+          lastSyncedAt: new Date(),
+          accessToken: encryptedToken,
+          config: { teamId: team?.id }
+        },
+      });
+    }
 
     return NextResponse.redirect(`${dashboardUrl}?success=slack_connected`);
   } catch (err) {
