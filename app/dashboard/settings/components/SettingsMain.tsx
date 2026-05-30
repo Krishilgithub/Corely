@@ -180,26 +180,6 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   return (
     <>
-      {/* Left Navigation */}
-      <div className="set-nav-sidebar">
-        <div style={{ marginBottom: 24 }}>
-          <h1 className="set-title" style={{ fontSize: 24 }}>Settings</h1>
-          <p className="set-subtitle" style={{ fontSize: 13 }}>Manage your configurations.</p>
-        </div>
-        {tabConfig.map((tab) => (
-          <Link
-            key={tab.slug}
-            href={`/dashboard/settings/${tab.slug}`}
-            className={`set-nav-item ${activeTab === tab.label ? "active" : ""}`}
-            style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between' }}
-          >
-            {tab.label}
-            {activeTab === tab.label && <ChevronRight size={14} />}
-          </Link>
-        ))}
-      </div>
-
-      {/* Right Content */}
       <motion.div
         key={activeTab}
         style={{ flex: 1, minWidth: 0, paddingRight: 16, paddingBottom: 64 }}

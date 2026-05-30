@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
           <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; letter-spacing: 2px;">${generatedPassword}</p>
         </div>
         <p>Please login and change your password as soon as possible.</p>
-        <a href="http://localhost:3000/login" style="display: inline-block; background-color: #ff6b00; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">Login to Corely</a>
+        <a href="https://corely-khaki.vercel.app/login" style="display: inline-block; background-color: #ff6b00; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">Login to Corely</a>
       </div>
     `;
 
