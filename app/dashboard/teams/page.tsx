@@ -28,6 +28,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "../components/DataTable";
 import "./teams.css";
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -155,6 +157,7 @@ export default function TeamsPage() {
   const [compareTeam1, setCompareTeam1] = useState("");
   const [compareTeam2, setCompareTeam2] = useState("");
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const dynamicPieData = useMemo(() => {
@@ -213,7 +216,6 @@ export default function TeamsPage() {
         setRoles(rolesArr);
       })
       .catch(err => console.error("Failed to fetch roles", err));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -356,6 +358,99 @@ export default function TeamsPage() {
 
   const totalPages = Math.ceil(filteredTeams.length / itemsPerPage) || 1;
   const paginatedTeams = filteredTeams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // ── Table Columns ─────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columns = useMemo<ColumnDef<any, any>[]>(() => [
+    {
+      accessorKey: "name",
+      header: "Team",
+      cell: ({ row }) => {
+        const item = row.original;
+        const IconCmp = IconMap[item.icon] || Users;
+        return (
+          <div className="tm-team-col" style={{ cursor: "pointer" }} onClick={() => router.push(`/dashboard/teams/${item.id}`)}>
+            <div className="tm-team-icon" style={{ backgroundColor: item.iconBg, color: item.iconColor }}>
+              <IconCmp size={18} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div className="tm-team-title">{item.name}</div>
+              <div className="tm-team-desc">{item.members} members</div>
+            </div>
+          </div>
+        );
+      },
+      size: 300,
+    },
+    {
+      accessorKey: "health",
+      header: "Health Score",
+      cell: ({ row }) => <CircularProgress score={row.original.health} color={row.original.healthColor} />,
+      size: 150,
+    },
+    {
+      accessorKey: "collab",
+      header: "Collaboration",
+      cell: ({ getValue }) => <div className="tm-text-center">{getValue<string>()}</div>,
+      size: 150,
+    },
+    {
+      accessorKey: "know",
+      header: "Knowledge Coverage",
+      cell: ({ row }) => <CircularProgress score={row.original.know} color={row.original.knowColor} />,
+      size: 150,
+    },
+    {
+      accessorKey: "actions",
+      header: "Actions (30D)",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="tm-actions-col">
+            <div className="tm-actions-val">{item.actions}</div>
+            <div className="tm-actions-trend" style={{ color: item.isUp ? "#16a34a" : "#ef4444" }}>
+              {item.isUp ? "↑" : "↓"} {Math.abs(item.actionsTrend)}%
+            </div>
+          </div>
+        );
+      },
+      size: 150,
+    },
+    {
+      accessorKey: "focus",
+      header: "Key Focus",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <span className="tm-badge" style={{ backgroundColor: item.focusBg, color: item.focusColor }}>
+            {item.focus}
+          </span>
+        );
+      },
+      size: 120,
+    },
+    {
+      id: "trend",
+      header: "Trend",
+      cell: ({ row }) => {
+        const item = row.original;
+        return item.isUp ? <Sparkline color="#10b981" /> : <SparklineDown color="#ff6b00" />;
+      },
+      size: 100,
+    },
+    {
+      id: "actions-menu",
+      header: "",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <button className="tm-actions-btn" onClick={() => router.push(`/dashboard/teams/${row.original.id}`)}>
+            <MoreHorizontal size={16} />
+          </button>
+        </div>
+      ),
+      size: 60,
+    },
+  ], [router]);
 
   const tabs = ["All Teams", "Performance", "Collaboration", "Knowledge", "At Risk"];
 
@@ -513,42 +608,24 @@ export default function TeamsPage() {
       <div className="tm-main-grid">
         {/* Left Side Table/Grid */}
         <div className="tm-table-container" style={viewMode === "grid" ? { background: "transparent", border: "none" } : {}}>
-          {viewMode === "list" && (
-            <div className="tm-table-header">
-              <div>Team</div>
-              <div>Health Score</div>
-              <div>Collaboration</div>
-              <div>Knowledge Coverage</div>
-              <div>Actions (30D)</div>
-              <div>Key Focus</div>
-              <div>Trend</div>
-              <div></div>
-            </div>
-          )}
-
           {loading ? (
             viewMode === "list" ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <div className="tm-table-row" key={`skel-${i}`}>
-                  <div className="tm-team-col" style={{ gap: 16 }}>
-                    <Skeleton width={36} height={36} borderRadius="8px" />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                      <Skeleton width="60%" height={16} />
-                      <Skeleton width="40%" height={12} />
+              <div style={{ padding: 24 }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div className="tm-table-row" key={`skel-${i}`} style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
+                    <div className="tm-team-col" style={{ gap: 16, flex: 2, display: 'flex' }}>
+                      <Skeleton width={36} height={36} borderRadius="8px" />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                        <Skeleton width="60%" height={16} />
+                        <Skeleton width="40%" height={12} />
+                      </div>
                     </div>
+                    <div style={{ flex: 1 }}><Skeleton width={36} height={36} borderRadius="50%" style={{ margin: '0 auto' }} /></div>
+                    <div className="tm-text-center" style={{ flex: 1 }}><Skeleton width={60} height={16} style={{ display: 'inline-block' }} /></div>
+                    <div style={{ flex: 1 }}><Skeleton width={36} height={36} borderRadius="50%" style={{ margin: '0 auto' }} /></div>
                   </div>
-                  <div><Skeleton width={36} height={36} borderRadius="50%" style={{ margin: '0 auto' }} /></div>
-                  <div className="tm-text-center"><Skeleton width={60} height={16} style={{ display: 'inline-block' }} /></div>
-                  <div><Skeleton width={36} height={36} borderRadius="50%" style={{ margin: '0 auto' }} /></div>
-                  <div className="tm-actions-col">
-                    <Skeleton width={30} height={16} />
-                    <Skeleton width={40} height={12} />
-                  </div>
-                  <div><Skeleton width={70} height={24} borderRadius="12px" /></div>
-                  <div><Skeleton width={60} height={24} /></div>
-                  <div style={{ textAlign: "right" }}><Skeleton width={24} height={24} style={{ display: 'inline-block' }} /></div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -557,72 +634,7 @@ export default function TeamsPage() {
               </div>
             )
           ) : viewMode === "list" ? (
-            paginatedTeams.map((row) => {
-              const IconCmp = IconMap[row.icon] || Users;
-              return (
-                <div 
-                  className="tm-table-row" 
-                  key={row.id} 
-                  style={{ cursor: "pointer" }}
-                  onClick={() => router.push(`/dashboard/teams/${row.id}`)}
-                >
-                  <div className="tm-team-col">
-                    <div
-                      className="tm-team-icon"
-                      style={{ backgroundColor: row.iconBg, color: row.iconColor }}
-                    >
-                      <IconCmp size={18} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <div className="tm-team-title">{row.name}</div>
-                      <div className="tm-team-desc">{row.members} members</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <CircularProgress score={row.health} color={row.healthColor} />
-                  </div>
-
-                  <div className="tm-text-center">{row.collab}</div>
-
-                  <div>
-                    <CircularProgress score={row.know} color={row.knowColor} />
-                  </div>
-
-                  <div className="tm-actions-col">
-                    <div className="tm-actions-val">{row.actions}</div>
-                    <div
-                      className="tm-actions-trend"
-                      style={{ color: row.isUp ? "#16a34a" : "#ef4444" }}
-                    >
-                      {row.isUp ? "↑" : "↓"} {Math.abs(row.actionsTrend)}%
-                    </div>
-                  </div>
-
-                  <div>
-                    <span
-                      className="tm-badge"
-                      style={{ backgroundColor: row.focusBg, color: row.focusColor }}
-                    >
-                      {row.focus}
-                    </span>
-                  </div>
-
-                  <div>
-                    {row.isUp ? <Sparkline color="#10b981" /> : <SparklineDown color="#ff6b00" />}
-                  </div>
-
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      className="tm-actions-btn"
-                      onClick={() => router.push(`/dashboard/teams/${row.id}`)}
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+            <DataTable columns={columns} data={paginatedTeams} />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
               {paginatedTeams.map((row) => {

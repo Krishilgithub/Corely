@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { user, workspace } = await auth();
+    const { workspace } = await auth();
 
     // Verify ownership
     const notif = await prisma.notification.findUnique({ where: { id } });

@@ -12,11 +12,9 @@ import {
   MessageSquare,
   Brain,
   BarChart2,
-  Zap,
   Link2,
   Users,
   GitBranch,
-  Shield,
   Settings,
   ChevronDown,
 } from "lucide-react";

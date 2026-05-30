@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -25,9 +26,7 @@ import {
   Clock,
   CheckCircle2,
   FileText,
-  UserPlus,
-  Mail,
-  HardDrive
+  UserPlus
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -39,8 +38,12 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip
 } from "recharts";
+import { motion } from "framer-motion";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "../components/DataTable";
+import { CustomChartTooltip } from "../components/CustomChartTooltip";
 import "./insights.css";
 
 
@@ -186,6 +189,103 @@ export default function InsightsPage() {
   }, [insights, activeTab, selectedPriority, selectedCategory, selectedSource, searchQuery]);
 
   const visibleInsights = filteredInsights.slice(0, visibleCount);
+
+  // ── Table Columns ─────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columns = useMemo<ColumnDef<any, any>[]>(() => [
+    {
+      accessorKey: "title",
+      header: "Insight",
+      cell: ({ row }) => {
+        const item = row.original;
+        const IconCmp = IconMap[item.icon] || Sparkles;
+        return (
+          <div className="in-insight-col">
+            <div className="in-insight-icon" style={{ backgroundColor: item.iconBg, color: item.iconColor }}>
+              <IconCmp size={16} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div className="in-insight-title">{item.title}</div>
+              <div className="in-insight-desc">{item.desc}</div>
+            </div>
+          </div>
+        );
+      },
+      size: 400,
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <span className="in-badge" style={{ backgroundColor: item.catBg, color: item.catColor }}>
+            {item.category}
+          </span>
+        );
+      },
+      size: 150,
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <span className="in-badge" style={{ backgroundColor: item.priBg, color: item.priColor }}>
+            <span style={{ marginRight: 4 }}>●</span> {item.priority}
+          </span>
+        );
+      },
+      size: 150,
+    },
+    {
+      accessorKey: "impact",
+      header: "Impact",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="in-impact" style={{ color: item.priColor }}>
+            {item.impact} {item.trend === "up" ? "↑" : "↓"}
+          </div>
+        );
+      },
+      size: 100,
+    },
+    {
+      accessorKey: "time",
+      header: "Detected",
+      cell: ({ getValue }) => <div className="in-time">{getValue<string>()}</div>,
+      size: 120,
+    },
+    {
+      accessorKey: "source",
+      header: "Source",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="in-sources">
+            <div className="in-source-avatar" style={{ background: getSourceColor(item.source) }}>
+              {getSourceIcon(item.source)}
+            </div>
+          </div>
+        );
+      },
+      size: 100,
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: () => (
+        <div style={{ textAlign: "right" }}>
+          <button className="in-actions-btn">
+            <MoreHorizontal size={16} />
+          </button>
+        </div>
+      ),
+      size: 60,
+    },
+  ], []);
 
   const handleExport = () => {
     const headers = ["Title", "Category", "Priority", "Impact", "Source", "Time"];
@@ -359,92 +459,32 @@ export default function InsightsPage() {
       <div className="in-main-grid">
         {/* Left Side Table */}
         <div className="in-table-container">
-          <div className="in-table-header">
-            <div>Insight</div>
-            <div>Category</div>
-            <div>Priority</div>
-            <div>Impact</div>
-            <div>Detected</div>
-            <div>Source</div>
-            <div></div>
-          </div>
-
           {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div className="in-table-row" key={`skel-${i}`}>
-                <div className="in-insight-col" style={{ gap: 16 }}>
-                  <Skeleton width={32} height={32} borderRadius="8px" />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                    <Skeleton width="80%" height={16} />
-                    <Skeleton width="95%" height={12} />
+            <div style={{ padding: 24 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div className="in-table-row" key={`skel-${i}`} style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
+                  <div className="in-insight-col" style={{ gap: 16, flex: 2, display: 'flex' }}>
+                    <Skeleton width={32} height={32} borderRadius="8px" />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                      <Skeleton width="80%" height={16} />
+                      <Skeleton width="95%" height={12} />
+                    </div>
                   </div>
+                  <div style={{ flex: 1 }}><Skeleton width={80} height={24} borderRadius="12px" /></div>
+                  <div style={{ flex: 1 }}><Skeleton width={80} height={24} borderRadius="12px" /></div>
+                  <div style={{ flex: 1 }}><Skeleton width={60} height={16} /></div>
                 </div>
-                <div><Skeleton width={80} height={24} borderRadius="12px" /></div>
-                <div><Skeleton width={80} height={24} borderRadius="12px" /></div>
-                <div><Skeleton width={60} height={16} /></div>
-                <div><Skeleton width={60} height={16} /></div>
-                <div><Skeleton width={60} height={24} /></div>
-                <div style={{ textAlign: "right" }}><Skeleton width={24} height={24} style={{ display: 'inline-block' }} /></div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : visibleInsights.length > 0 ? (
-            visibleInsights.map((row) => {
-            const IconCmp = IconMap[row.icon] || Sparkles;
-            return (
-              <div className="in-table-row" key={row.id}>
-                <div className="in-insight-col">
-                  <div
-                    className="in-insight-icon"
-                    style={{ backgroundColor: row.iconBg, color: row.iconColor }}
-                  >
-                    <IconCmp size={16} strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <div className="in-insight-title">{row.title}</div>
-                    <div className="in-insight-desc">{row.desc}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <span
-                    className="in-badge"
-                    style={{ backgroundColor: row.catBg, color: row.catColor }}
-                  >
-                    {row.category}
-                  </span>
-                </div>
-
-                <div>
-                  <span
-                    className="in-badge"
-                    style={{ backgroundColor: row.priBg, color: row.priColor }}
-                  >
-                    <span style={{ marginRight: 4 }}>●</span> {row.priority}
-                  </span>
-                </div>
-
-                <div className="in-impact" style={{ color: row.priColor }}>
-                  {row.impact} {row.trend === "up" ? "↑" : "↓"}
-                </div>
-
-                <div className="in-time">{row.time}</div>
-
-                <div className="in-sources">
-                  <div className="in-source-avatar" style={{ background: getSourceColor(row.source) }}>
-                    {getSourceIcon(row.source)}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <button className="in-actions-btn">
-                    <MoreHorizontal size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })
+            <DataTable columns={columns} data={visibleInsights} />
           ) : (
-            <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}
+            >
               <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
                 {insights.length === 0 ? (
                   <Sparkles size={28} style={{ color: "#ff6b00" }} />
@@ -483,7 +523,7 @@ export default function InsightsPage() {
                   Clear All Filters
                 </button>
               )}
-            </div>
+            </motion.div>
           )}
 
           <div className="in-table-footer">
@@ -573,6 +613,11 @@ export default function InsightsPage() {
             <div style={{ width: "100%", height: 120 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dynamicLineData}>
+                  <defs>
+                    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#ff6b00" floodOpacity="0.3" />
+                    </filter>
+                  </defs>
                   <XAxis
                     dataKey="date"
                     axisLine={false}
@@ -584,17 +629,15 @@ export default function InsightsPage() {
                     hide
                     domain={[0, "dataMax + 10"]}
                   />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-                    itemStyle={{ color: "#18181b", fontWeight: 600 }}
-                  />
+                  <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#f4f4f5', strokeWidth: 1 }} />
                   <Line
                     type="monotone"
                     dataKey="val"
                     stroke="#ff6b00"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 4, fill: "#ff6b00", stroke: "#fff", strokeWidth: 2 }}
+                    activeDot={{ r: 5, fill: "#ff6b00", stroke: "#fff", strokeWidth: 2 }}
+                    filter="url(#shadow)"
                   />
                 </LineChart>
               </ResponsiveContainer>

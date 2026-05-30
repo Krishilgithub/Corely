@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth-server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { user, workspace } = await auth();
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(_request: NextRequest) {
+export async function PATCH() {
   try {
     const { user, workspace } = await auth();
 

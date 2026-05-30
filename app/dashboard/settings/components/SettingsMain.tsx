@@ -18,6 +18,7 @@ import {
   Mail
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface SettingsUpdates {
   preferences?: {
@@ -31,8 +32,24 @@ interface SettingsUpdates {
   [key: string]: unknown;
 }
 
-export default function SettingsMain() {
-  const [activeTab, setActiveTab] = useState("General");
+export default function SettingsMain({ currentTabSlug = "general" }: { currentTabSlug?: string }) {
+  const tabConfig = [
+    { slug: "general", label: "General" },
+    { slug: "workspace", label: "Workspace" },
+    { slug: "members", label: "Members" },
+    { slug: "ai", label: "AI & Intelligence" },
+    { slug: "sources", label: "Data & Sources" },
+    { slug: "api-keys", label: "API Keys" },
+    { slug: "security", label: "Security" },
+    { slug: "notifications", label: "Notifications" },
+    { slug: "audit-logs", label: "Audit Logs" },
+    { slug: "billing", label: "Billing" },
+    { slug: "advanced", label: "Advanced" },
+  ];
+  
+  const currentTabObj = tabConfig.find(t => t.slug === currentTabSlug) || tabConfig[0];
+  const activeTab = currentTabObj.label;
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -61,19 +78,7 @@ export default function SettingsMain() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
-  const tabs = [
-    "General",
-    "Workspace",
-    "Members",
-    "AI & Intelligence",
-    "Data & Sources",
-    "API Keys",
-    "Security",
-    "Notifications",
-    "Audit Logs",
-    "Billing",
-    "Advanced",
-  ];
+  // Removed tabs array as it is replaced by tabConfig
 
   useEffect(() => {
     fetchSettings();
@@ -181,15 +186,16 @@ export default function SettingsMain() {
           <h1 className="set-title" style={{ fontSize: 24 }}>Settings</h1>
           <p className="set-subtitle" style={{ fontSize: 13 }}>Manage your configurations.</p>
         </div>
-        {tabs.map((tab) => (
-          <div
-            key={tab}
-            className={`set-nav-item ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
+        {tabConfig.map((tab) => (
+          <Link
+            key={tab.slug}
+            href={`/dashboard/settings/${tab.slug}`}
+            className={`set-nav-item ${activeTab === tab.label ? "active" : ""}`}
+            style={{ textDecoration: 'none', display: 'flex', justifyContent: 'space-between' }}
           >
-            {tab}
-            {activeTab === tab && <ChevronRight size={14} />}
-          </div>
+            {tab.label}
+            {activeTab === tab.label && <ChevronRight size={14} />}
+          </Link>
         ))}
       </div>
 

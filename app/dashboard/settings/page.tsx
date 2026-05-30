@@ -1,4 +1,4 @@
-import SettingsMain from "./components/SettingsMain";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Settings — Corely Enterprise",
@@ -6,11 +6,5 @@ export const metadata = {
 };
 
 export default function SettingsPage() {
-  return (
-    <main className="db-content">
-      <div className="set-page-grid">
-        <SettingsMain />
-      </div>
-    </main>
-  );
+  redirect("/dashboard/settings/general");
 }

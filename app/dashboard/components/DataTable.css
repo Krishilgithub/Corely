@@ -1,0 +1,69 @@
+/* DataTable.css */
+.dt-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.dt-header {
+  border-bottom: 1px solid #f4f4f5;
+  background: #fafafa;
+}
+
+.dt-header-row {
+  /* empty */
+}
+
+.dt-header-cell {
+  padding: 12px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+  user-select: none;
+}
+
+.dt-header-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dt-body {
+  /* empty */
+}
+
+.dt-row {
+  border-bottom: 1px solid #f4f4f5;
+  transition: background 0.15s;
+}
+.dt-row:last-child {
+  border-bottom: none;
+}
+.dt-row:hover {
+  background: #fafafa;
+}
+
+.dt-row[data-state="selected"] {
+  background: #fff3ee;
+}
+
+.dt-cell {
+  padding: 16px 24px;
+  vertical-align: middle;
+}
+
+.dt-empty {
+  padding: 64px 24px;
+  text-align: center;
+  color: #71717a;
+  font-size: 14px;
+}
