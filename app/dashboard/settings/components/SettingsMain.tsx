@@ -304,7 +304,7 @@ export default function SettingsMain() {
                   type="text" 
                   value={workspaceName} 
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }}
                 />
               </div>
               <div>
@@ -313,14 +313,14 @@ export default function SettingsMain() {
                   type="text" 
                   value={workspaceSlug} 
                   onChange={(e) => setWorkspaceSlug(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #e4e4e7', outline: 'none', background: 'transparent' }}
                 />
               </div>
               <button 
-                className="set-btn-primary" 
+                className="btn-primary" 
                 onClick={handleWorkspaceSave}
                 disabled={saving}
-                style={{ alignSelf: 'flex-start', padding: '10px 20px', background: '#09090b', color: '#fff', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+                style={{ alignSelf: 'flex-start' }}
               >
                 {saving ? 'Saving...' : 'Save Workspace'}
               </button>
@@ -421,7 +421,7 @@ export default function SettingsMain() {
               </div>
               {passMessage && <div style={{ fontSize: 13, color: passMessage.includes('Success') ? '#16a34a' : '#ef4444' }}>{passMessage}</div>}
               <button 
-                className="set-btn-primary" 
+                className="btn-primary" 
                 onClick={async () => {
                   setPassMessage("");
                   if (!currentPassword || !newPassword) {
@@ -448,7 +448,7 @@ export default function SettingsMain() {
                   }
                 }}
                 disabled={saving}
-                style={{ alignSelf: 'flex-start', padding: '10px 20px', background: '#09090b', color: '#fff', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+                style={{ alignSelf: 'flex-start' }}
               >
                 Update Password
               </button>
@@ -522,7 +522,7 @@ export default function SettingsMain() {
             <div className="set-card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div style={{ fontSize: 13, color: '#71717a' }}>Manage your programmatic access to the Corely API.</div>
-                <button className="set-btn-primary" style={{ padding: '8px 16px', borderRadius: 6 }}>Generate New Key</button>
+                <button className="btn-primary">Generate New Key</button>
               </div>
               <div style={{ borderTop: '1px solid #e4e4e7', paddingTop: 20, textAlign: 'center', color: '#a1a1aa', fontSize: 13 }}>
                 No API keys generated yet.
@@ -565,7 +565,7 @@ export default function SettingsMain() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#111111', marginBottom: 4 }} className="set-title">Current Plan: Free</div>
                   <div style={{ fontSize: 13, color: '#71717a' }}>You are on the free tier. Upgrade to unlock more features.</div>
                 </div>
-                <button className="set-btn-primary" style={{ background: '#09090b', padding: '10px 20px', borderRadius: 8 }}>Upgrade to Pro</button>
+                <button className="btn-primary">Upgrade to Pro</button>
               </div>
               <div style={{ borderTop: '1px solid #e4e4e7', paddingTop: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#111111' }} className="set-title">Payment Methods</div>
@@ -608,7 +608,7 @@ export default function SettingsMain() {
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button className="set-btn-outline" onClick={() => setShowSsoModal(false)}>Cancel</button>
-              <button className="set-btn-primary" onClick={() => {
+              <button className="btn-primary" onClick={() => {
                 alert("SSO configuration saved (Mocked)");
                 setShowSsoModal(false);
               }}>Save Configuration</button>
@@ -629,7 +629,7 @@ export default function SettingsMain() {
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button className="set-btn-outline" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); setDeleteError(""); }}>Cancel</button>
-              <button style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 600 }} onClick={async () => {
+              <button className="btn-primary" style={{ background: '#ef4444' }} onClick={async () => {
                 if (deleteConfirmText !== workspaceName) {
                   setDeleteError("Confirmation text does not match.");
                   return;

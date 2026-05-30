@@ -77,7 +77,7 @@ export default function Topbar() {
   // ── Keyboard Shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setShowSearch((prev) => !prev);
         setSearchQuery("");
@@ -285,7 +285,7 @@ export default function Topbar() {
         className="db-search-bar"
         onClick={() => setShowSearch(true)}
         aria-label="Global search"
-        style={{ border: "none", cursor: "pointer", background: "white" }}
+        style={{ border: "none", cursor: "pointer", background: "white", position: "relative", zIndex: 50, pointerEvents: "auto" }}
       >
         <div className="db-search-inner">
           <Sparkles size={14} style={{ color: "#ff6b00", flexShrink: 0 }} />
