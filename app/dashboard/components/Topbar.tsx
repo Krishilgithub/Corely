@@ -62,6 +62,7 @@ const SUGGESTED = [
 export default function Topbar() {
   const { user, workspace } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -73,6 +74,10 @@ export default function Topbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ── Keyboard Shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
@@ -399,7 +404,7 @@ export default function Topbar() {
 
       {/* ── Global Search Modal ───────────────────────────────────────────────── */}
       <AnimatePresence>
-        {showSearch && typeof document !== "undefined" && createPortal(
+        {mounted && showSearch && createPortal(
           <div
             className="global-search-overlay"
             onClick={handleClose}
