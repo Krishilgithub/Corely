@@ -232,6 +232,7 @@
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 24px;
+  align-items: start;
 }
 
 /* ── Table Area ── */

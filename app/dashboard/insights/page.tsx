@@ -25,7 +25,9 @@ import {
   Clock,
   CheckCircle2,
   FileText,
-  UserPlus
+  UserPlus,
+  Mail,
+  HardDrive
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -43,6 +45,26 @@ import "./insights.css";
 
 
 
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function getSourceIcon(sourceName: string) {
+  if (!sourceName) return <Database size={12} />;
+  const s = sourceName.toLowerCase();
+  if (s.includes("slack")) return <img src="/slack.png" alt="Slack" style={{ width: 14, height: 14, objectFit: "contain" }} />;
+  if (s.includes("gmail") || s.includes("mail")) return <img src="/gmail.png" alt="Gmail" style={{ width: 14, height: 14, objectFit: "contain" }} />;
+  if (s.includes("notion")) return <img src="/notion.png" alt="Notion" style={{ width: 14, height: 14, objectFit: "contain" }} />;
+  if (s.includes("drive")) return <img src="/drive.png" alt="Drive" style={{ width: 14, height: 14, objectFit: "contain" }} />;
+  if (s.includes("linear")) return <img src="/linear.png" alt="Linear" style={{ width: 14, height: 14, objectFit: "contain" }} />;
+  return <Database size={12} />;
+}
+
+function getSourceColor(sourceName: string) {
+  if (!sourceName) return "#4a154b";
+  const s = sourceName.toLowerCase();
+  if (s.includes("github")) return "#24292e";
+  if (s.includes("slack") || s.includes("gmail") || s.includes("mail") || s.includes("notion") || s.includes("drive") || s.includes("linear")) return "transparent";
+  return "#ff6b00";
+}
 
 // ── Components ───────────────────────────────────────────────────────────────
 
@@ -408,7 +430,9 @@ export default function InsightsPage() {
                 <div className="in-time">{row.time}</div>
 
                 <div className="in-sources">
-                  <div className="in-source-avatar" style={{ background: "#4a154b" }}>{row.source ? row.source[0] : "S"}</div>
+                  <div className="in-source-avatar" style={{ background: getSourceColor(row.source) }}>
+                    {getSourceIcon(row.source)}
+                  </div>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
