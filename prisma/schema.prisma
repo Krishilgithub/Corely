@@ -252,7 +252,7 @@ model WorkflowActivity {
   workflowId    String @map("workflow_id") @db.Uuid
   workflowTitle String @map("workflow_title")
   status        String @default("success") // success, running, failed
-  timestamp     String // e.g. "2 min ago" (for simulation UI)
+  timestamp     DateTime @default(now()) @map("timestamp")
 
   createdAt DateTime @default(now()) @map("created_at")
 

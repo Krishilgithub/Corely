@@ -12,6 +12,7 @@ import {
   Filter
 } from "lucide-react";
 import { ActivityItem } from "./WorkflowsLayout";
+import { formatDistanceToNow } from "date-fns";
 
 // ── Icons Helper ─────────────────────────────────────────────────────────────
 const getActivityIcon = (status: ActivityItem["status"], size = 16) => {
@@ -118,7 +119,11 @@ export default function WorkflowsRightSidebar({
                       {log.status === "success" ? "Executed successfully" : log.status === "running" ? "Running" : "Failed"}
                     </div>
                   </div>
-                  <div className="wf-activity-time">{log.timestamp}</div>
+                  <div className="wf-activity-time">
+                    {log.timestamp
+                      ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })
+                      : "Just now"}
+                  </div>
                 </div>
               </div>
             ))

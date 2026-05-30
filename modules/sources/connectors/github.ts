@@ -43,6 +43,22 @@ export async function syncGitHub(sourceId: string): Promise<void> {
   let totalIndexed = 0;
 
   try {
+    // ── Check GitHub rate limit before starting ──────────────────────────
+    const { data: rateLimit } = await octokit.rest.rateLimit.get();
+    const remaining = rateLimit.rate.remaining;
+    const resetAt = new Date(rateLimit.rate.reset * 1000);
+    console.log(`[GitHub] Rate limit: ${remaining} requests remaining, resets at ${resetAt.toISOString()}`);
+
+    if (remaining < 50) {
+      const waitMs = resetAt.getTime() - Date.now();
+      if (waitMs > 0 && waitMs < 5 * 60 * 1000) { // Wait up to 5 min
+        console.warn(`[GitHub] Rate limit low (${remaining}), waiting ${Math.ceil(waitMs / 1000)}s for reset...`);
+        await new Promise(r => setTimeout(r, waitMs + 2000));
+      } else if (remaining < 10) {
+        throw new Error(`GitHub API rate limit critical (${remaining} remaining). Sync aborted. Resets at ${resetAt.toISOString()}`);
+      }
+    }
+
     // ── 4. Fetch target repositories ──────────────────────────────────
     const config = (source.config as Record<string, any>) || {};
     let targetRepos = [];
@@ -55,16 +71,16 @@ export async function syncGitHub(sourceId: string): Promise<void> {
         try {
           const { data: repo } = await octokit.rest.repos.get({ owner, repo: repoName });
           targetRepos.push(repo);
-        } catch (err: any) {
-          console.error(`[GitHub] Error fetching selected repo ${fullName}:`, err.message);
+        } catch (err) {
+          console.error(`[GitHub] Error fetching selected repo ${fullName}:`, (err as Error).message);
         }
       }
     } else {
-      // For MVP default, we limit to the 5 most recently updated repos
-      console.log(`[GitHub] No specific repos selected. Syncing 5 most recent repositories.`);
+      // Sync 30 most recently updated repos (raised from 5)
+      console.log(`[GitHub] No specific repos selected. Syncing 30 most recent repositories.`);
       const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
         sort: "updated",
-        per_page: 5,
+        per_page: 30,
       });
       targetRepos = repos;
     }
@@ -103,22 +119,38 @@ export async function syncGitHub(sourceId: string): Promise<void> {
         }
       }
 
-      // 4b. Sync recent Issues
+      // 4b. Sync recent Issues (raised from 20 → 100)
       try {
         const { data: issues } = await octokit.rest.issues.listForRepo({
           owner,
           repo: repoName,
           state: "all",
           sort: "updated",
-          per_page: 20, // Limit for MVP
+          per_page: 100,
         });
 
         for (const issue of issues) {
           // GitHub's API returns PRs as issues too, we skip PRs here and handle them later
           if (issue.pull_request) continue;
 
-          const rawContent = `Issue: ${issue.title}\nState: ${issue.state}\nAuthor: ${issue.user?.login}\n\n${issue.body || "No description provided."}`;
-          
+          const labels = issue.labels
+            ?.map((l) => (typeof l === "string" ? l : l.name))
+            .filter(Boolean)
+            .join(", ");
+          const rawContent = [
+            `Issue: ${issue.title}`,
+            `State: ${issue.state}`,
+            `Author: ${issue.user?.login || "Unknown"}`,
+            `Assignee: ${issue.assignee?.login || "Unassigned"}`,
+            labels ? `Labels: ${labels}` : null,
+            `URL: ${issue.html_url}`,
+            `Updated: ${issue.updated_at}`,
+            "",
+            issue.body || "No description provided.",
+          ]
+            .filter(l => l !== null)
+            .join("\n");
+
           const indexed = await indexDocument(
             {
               externalId: `issue_${issue.id}`,
@@ -137,7 +169,7 @@ export async function syncGitHub(sourceId: string): Promise<void> {
         console.error(`[GitHub] Error fetching issues for ${repo.full_name}:`, err.message);
       }
 
-      // 4c. Sync recent Pull Requests
+      // 4c. Sync recent Pull Requests (raised from 15 → 50)
       try {
         const { data: pulls } = await octokit.rest.pulls.list({
           owner,
@@ -145,11 +177,20 @@ export async function syncGitHub(sourceId: string): Promise<void> {
           state: "all",
           sort: "updated",
           direction: "desc",
-          per_page: 15, // Limit for MVP
+          per_page: 50,
         });
 
         for (const pr of pulls) {
-          const rawContent = `Pull Request: ${pr.title}\nState: ${pr.state}\nAuthor: ${pr.user?.login}\n\n${pr.body || "No description provided."}`;
+          const rawContent = [
+            `PR #${pr.number}: ${pr.title}`,
+            `State: ${pr.state}`,
+            `Author: ${pr.user?.login || "Unknown"}`,
+            `Base: ${pr.base?.ref} ← Head: ${pr.head?.ref}`,
+            `URL: ${pr.html_url}`,
+            `Merged: ${pr.merged_at ? new Date(pr.merged_at).toLocaleDateString() : "Not merged"}`,
+            "",
+            pr.body || "No description provided.",
+          ].join("\n");
           
           const indexed = await indexDocument(
             {

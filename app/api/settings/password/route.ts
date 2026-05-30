@@ -5,9 +5,11 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(6),
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
 });
 
 export async function POST(req: NextRequest) {
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const result = passwordSchema.safeParse(body);
     if (!result.success) {
-      return errorResponse("Invalid payload", 400);
+      return errorResponse(result.error.issues[0].message, 400);
     }
 
     const { currentPassword, newPassword } = result.data;
@@ -32,13 +34,31 @@ export async function POST(req: NextRequest) {
       return errorResponse("Current password is incorrect.", 400);
     }
 
-    // Hash new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    if (currentPassword === newPassword) {
+      return errorResponse("New password must be different from your current password.", 400);
+    }
+
+    // Hash new password with stronger cost factor
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
       where: { id: user.id },
       data: { passwordHash: hashedNewPassword },
     });
+
+    // Write audit log (non-fatal)
+    try {
+      await prisma.auditLog.create({
+        data: {
+          workspaceId: user.workspaceId,
+          userId: user.id,
+          action: "password_changed",
+          details: JSON.stringify({ timestamp: new Date().toISOString() }),
+        },
+      });
+    } catch {
+      // Non-fatal
+    }
 
     return successResponse({ success: true, message: "Password updated successfully" });
   } catch (error) {

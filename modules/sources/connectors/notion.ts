@@ -359,6 +359,9 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
       return await fn();
     } catch (err) {
       const status = (err as { status?: number }).status;
+      if (status === 401) {
+        throw new Error("401 Re-Auth Required: The access token has expired or been revoked. Please reconnect Notion.");
+      }
       if (status === 429 && attempt < retries - 1) {
         const delay = 1000 * 2 ** attempt; // 1s, 2s, 4s
         console.warn(`[Notion] Rate limited — retrying in ${delay}ms`);

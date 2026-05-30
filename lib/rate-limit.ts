@@ -14,29 +14,46 @@ if (redis) {
   });
 }
 
+// In-memory fallback when Redis is offline
+const memoryStore = new Map<string, { count: number; resetAt: number }>();
+
 export async function rateLimit(
   identifier: string,
   limit: number,
   windowSecs: number
 ): Promise<{ success: boolean; remaining: number }> {
-  if (!redis) {
-    return { success: true, remaining: limit };
-  }
+  // Try Redis first
+  if (redis) {
+    try {
+      const key = `rate_limit:${identifier}`;
+      const current = await redis.incr(key);
 
-  try {
-    const key = `rate_limit:${identifier}`;
-    const current = await redis.incr(key);
+      if (current === 1) {
+        await redis.expire(key, windowSecs);
+      }
 
-    if (current === 1) {
-      await redis.expire(key, windowSecs);
+      return {
+        success: current <= limit,
+        remaining: Math.max(0, limit - current),
+      };
+    } catch {
+      // Redis failed — fall through to in-memory fallback
     }
-
-    return {
-      success: current <= limit,
-      remaining: Math.max(0, limit - current),
-    };
-  } catch {
-    // Graceful fallback if Redis throws an error (e.g. connection refused)
-    return { success: true, remaining: limit };
   }
+
+  // In-memory fallback (fails CLOSED — enforces limits even without Redis)
+  const now = Date.now();
+  const key = identifier;
+  const entry = memoryStore.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    memoryStore.set(key, { count: 1, resetAt: now + windowSecs * 1000 });
+    return { success: true, remaining: limit - 1 };
+  }
+
+  entry.count++;
+  return {
+    success: entry.count <= limit,
+    remaining: Math.max(0, limit - entry.count),
+  };
 }

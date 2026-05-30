@@ -11,6 +11,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -262,35 +263,59 @@ export default function AskRightSidebar({
                   })}
                 </span>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleDeleteSession(session.id);
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  padding: "4px",
-                  cursor: "pointer",
-                  color: "#a1a1aa",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "4px",
-                  transition: "all 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "#ef4444";
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(239, 68, 68, 0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa";
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }}
-                title="Delete Conversation"
-              >
-                <Trash2 size={13} />
-              </button>
+              <div style={{ display: "flex", gap: 2 }}>
+                {/* Export button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const a = document.createElement("a");
+                    a.href = `/api/chats/${session.id}/export`;
+                    a.download = `corely-${session.title.slice(0, 20)}.md`;
+                    a.click();
+                  }}
+                  style={{
+                    background: "transparent", border: "none", padding: "4px",
+                    cursor: "pointer", color: "#a1a1aa", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    borderRadius: "4px", transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#3b82f6";
+                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(59, 130, 246, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa";
+                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  }}
+                  title="Export as Markdown"
+                >
+                  <Download size={12} />
+                </button>
+                {/* Delete button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDeleteSession(session.id);
+                  }}
+                  style={{
+                    background: "transparent", border: "none", padding: "4px",
+                    cursor: "pointer", color: "#a1a1aa", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    borderRadius: "4px", transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#ef4444";
+                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(239, 68, 68, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa";
+                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  }}
+                  title="Delete Conversation"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

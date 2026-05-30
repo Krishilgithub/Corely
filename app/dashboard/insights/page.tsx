@@ -420,8 +420,45 @@ export default function InsightsPage() {
             );
           })
           ) : (
-            <div style={{ padding: "40px 0", textAlign: "center", color: "#71717a" }}>
-              No insights found for these filters.
+            <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
+                {insights.length === 0 ? (
+                  <Sparkles size={28} style={{ color: "#ff6b00" }} />
+                ) : (
+                  <Search size={28} style={{ color: "#71717a" }} />
+                )}
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>
+                {insights.length === 0 ? "No insights generated yet" : "No insights match your filters"}
+              </h3>
+              <p style={{ fontSize: 14, color: "#71717a", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
+                {insights.length === 0 
+                  ? "Corely needs more data to generate organizational insights. Connect more tools or wait for the next analysis cycle."
+                  : "Try adjusting your search query, or clear your filters to see all available insights."}
+              </p>
+              
+              {insights.length === 0 ? (
+                <div style={{ marginTop: 24 }}>
+                  <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
+                    <button className="in-btn-primary" style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}>
+                      Connect Data Sources
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <button 
+                  className="in-btn-secondary" 
+                  style={{ padding: "8px 16px", borderRadius: 8, fontWeight: 600, marginTop: 20 }}
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedPriority("All Priority");
+                    setSelectedCategory("All Categories");
+                    setSelectedSource("All Sources");
+                  }}
+                >
+                  Clear All Filters
+                </button>
+              )}
             </div>
           )}
 

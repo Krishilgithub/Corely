@@ -23,9 +23,11 @@ import {
   Trash2,
   UploadCloud,
   Check,
+  History,
 } from "lucide-react";
 
 import { useAuth } from "../../../lib/auth-context";
+import SyncHistoryModal from "./SyncHistoryModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Source {
@@ -790,6 +792,7 @@ export default function SourcesMain() {
   // New state for tabs, dropdowns, toast notifications, and disconnect modals
   const [activeTab, setActiveTab] = useState<"all" | "synced" | "syncing">("all");
   const [activeDropdownSourceId, setActiveDropdownSourceId] = useState<string | null>(null);
+  const [viewingHistorySourceId, setViewingHistorySourceId] = useState<string | null>(null);
   const [disconnectingSource, setDisconnectingSource] = useState<Source | null>(null);
   const [managingSource, setManagingSource] = useState<Source | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -1438,6 +1441,37 @@ export default function SourcesMain() {
                             <RefreshCw size={13} className={source.status === "syncing" ? "animate-spin" : ""} />
                             Sync Now
                           </button>
+                          <button
+                            onClick={() => {
+                              setViewingHistorySourceId(source.id);
+                              setActiveDropdownSourceId(null);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "8px 12px",
+                              background: "none",
+                              border: "none",
+                              borderRadius: 6,
+                              width: "100%",
+                              textAlign: "left",
+                              fontSize: 12.5,
+                              fontWeight: 500,
+                              color: "#3f3f46",
+                              cursor: "pointer",
+                              transition: "background 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#f4f4f5";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "none";
+                            }}
+                          >
+                            <History size={13} style={{ color: "#ff6b00" }} />
+                            View Sync History
+                          </button>
                           {source.type === "google_drive" && (
                             <button
                               onClick={() => {
@@ -1753,6 +1787,14 @@ export default function SourcesMain() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── Sync History Modal ── */}
+      {viewingHistorySourceId && (
+        <SyncHistoryModal
+          sourceId={viewingHistorySourceId}
+          onClose={() => setViewingHistorySourceId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1786,8 +1828,9 @@ function ConfigureSourceModal({
   const [saving, setSaving] = useState(false);
   const [sourceName, setSourceName] = useState("Google Drive");
   const [sourceType, setSourceType] = useState("google_drive");
-  const [activeConfigTab, setActiveConfigTab] = useState<"sync" | "permissions">("permissions");
+  const [activeConfigTab, setActiveConfigTab] = useState<"sync" | "schedule" | "permissions">("sync");
   const [permissions, setPermissions] = useState<"everyone" | "admins">("everyone");
+  const [syncSchedule, setSyncSchedule] = useState<"hourly" | "daily" | "weekly" | "manual">("daily");
 
   // Load existing source configuration and list of folders
   useEffect(() => {
@@ -1805,6 +1848,9 @@ function ConfigureSourceModal({
         const config = sourceData.config || {};
         if (config.permissions) {
           setPermissions(config.permissions);
+        }
+        if (config.syncSchedule) {
+          setSyncSchedule(config.syncSchedule);
         }
         
         const type = sourceData.type || "google_drive";
@@ -1894,6 +1940,8 @@ function ConfigureSourceModal({
           ...(sourceType === "github" && {
             selectedRepos: syncOption === "repo" ? selectedRepoIds : [],
           }),
+          syncSchedule,
+          permissions,
         }),
       });
 
@@ -1998,7 +2046,22 @@ function ConfigureSourceModal({
                     }}
                     onClick={() => setActiveConfigTab("sync")}
                   >
-                    Sync Settings
+                    Scope
+                  </button>
+                  <button
+                    style={{
+                      padding: "8px 16px",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: activeConfigTab === "schedule" ? "2px solid #18181b" : "2px solid transparent",
+                      color: activeConfigTab === "schedule" ? "#18181b" : "#71717a",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer"
+                    }}
+                    onClick={() => setActiveConfigTab("schedule")}
+                  >
+                    Schedule
                   </button>
                   <button
                     style={{
@@ -2194,6 +2257,49 @@ function ConfigureSourceModal({
                 </motion.div>
               )}
               </>
+              )}
+
+              {activeConfigTab === "schedule" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", marginBottom: 4 }}>Sync Schedule</div>
+                  
+                  {[
+                    { id: "hourly", label: "Hourly", desc: "Sync updates every hour for real-time relevance." },
+                    { id: "daily", label: "Daily (Midnight)", desc: "Sync once per day during off-hours." },
+                    { id: "weekly", label: "Weekly", desc: "Sync once a week (Sundays)." },
+                    { id: "manual", label: "Manual Only", desc: "Never sync automatically. Only sync when triggered manually." }
+                  ].map((option) => (
+                    <label
+                      key={option.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 16px",
+                        border: syncSchedule === option.id ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
+                        borderRadius: 10,
+                        cursor: "pointer",
+                        background: syncSchedule === option.id ? "#fff3ee" : "#fff",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="syncSchedule"
+                        value={option.id}
+                        checked={syncSchedule === option.id}
+                        onChange={() => setSyncSchedule(option.id as "hourly" | "daily" | "weekly" | "manual")}
+                        style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
+                      />
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111" }}>{option.label}</div>
+                        <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>
+                          {option.desc}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               )}
 
               {activeConfigTab === "permissions" && (

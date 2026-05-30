@@ -34,14 +34,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
     });
 
-    // Create activity log
+    // Create activity log with real DateTime
     const activity = await prisma.workflowActivity.create({
       data: {
         workspaceId: workspace.id,
         workflowId: id,
         workflowTitle: workflow.title,
         status: "success",
-        timestamp: "Just now",
+        // timestamp defaults to now() via schema
       },
     });
 

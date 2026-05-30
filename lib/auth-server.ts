@@ -62,16 +62,26 @@ export async function auth() {
     throw new Error("User not found");
   }
 
+  // Auto-heal: if admin user has no roleId, assign the Admin workspace role
+  if (user.role === "admin" && !user.roleId) {
+    const adminRole = await prisma.workspaceRole.findFirst({
+      where: { workspaceId: user.workspaceId, name: "Admin" },
+    });
+    if (adminRole) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { roleId: adminRole.id },
+      });
+      user.roleId = adminRole.id;
+      user.workspaceRole = adminRole;
+    }
+  }
+
   return { user, workspace: user.workspace };
 }
 
 export async function requirePermission(permission: Permission) {
   const { user } = await auth();
-  
-  // Backwards compatibility for MVP Admin users who haven't been assigned a strict roleId yet
-  if (user.role === "admin" && !user.roleId) {
-    return user; 
-  }
   
   if (!user.workspaceRole || !hasPermission(user.workspaceRole.permissions, permission)) {
     throw new Error("Forbidden: Insufficient permissions");

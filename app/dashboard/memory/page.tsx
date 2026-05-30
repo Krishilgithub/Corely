@@ -18,6 +18,7 @@ import {
   Zap,
   Users,
   CheckCircle2,
+  Database,
 } from "lucide-react";
 import { Skeleton } from "../components/Skeleton";
 import "./memory.css";
@@ -699,10 +700,51 @@ export default function MemoryPage() {
                   ))}
                 </div>
               ) : Object.keys(groupedItems).length === 0 ? (
-                <div style={{ padding: "48px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 12, marginLeft: 103, background: "#fafafa" }}>
-                  <Brain size={32} style={{ color: "#a1a1aa", marginBottom: 12 }} />
-                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>No memory entries found</h3>
-                  <p style={{ fontSize: 13, color: "#71717a", margin: 0 }}>Try clearing your search filters or add a new entry.</p>
+                <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, marginLeft: 103, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
+                    {timelineItems.length === 0 ? (
+                      <Database size={28} style={{ color: "#ff6b00" }} />
+                    ) : (
+                      <Search size={28} style={{ color: "#71717a" }} />
+                    )}
+                  </div>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>
+                    {timelineItems.length === 0 ? "Your Memory is empty" : "No entries match your filters"}
+                  </h3>
+                  <p style={{ fontSize: 14, color: "#71717a", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
+                    {timelineItems.length === 0 
+                      ? "Corely builds your institutional memory automatically by syncing with your tools."
+                      : "Try adjusting your search query, or clear your filters to see all memory entries."}
+                  </p>
+                  
+                  {timelineItems.length === 0 ? (
+                    <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+                      <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
+                        <button className="mem-btn-primary" style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}>
+                          Connect Data Sources
+                        </button>
+                      </Link>
+                      <button 
+                        className="mem-btn-secondary" 
+                        style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}
+                        onClick={() => setShowAddModal(true)}
+                      >
+                        Add Manual Entry
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      className="mem-btn-secondary" 
+                      style={{ padding: "8px 16px", borderRadius: 8, fontWeight: 600, marginTop: 20 }}
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedSource("all");
+                        handleCategoryChange("all");
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  )}
                 </div>
               ) : (
                 Object.keys(groupedItems).map((date) => (

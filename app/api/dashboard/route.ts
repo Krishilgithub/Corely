@@ -40,12 +40,50 @@ export async function GET(request: Request) {
     const allInsights = await generateDynamicInsights(workspaceId);
     const insights = allInsights.slice(0, 4);
 
-    // 4. Fetch Actions (limit 4)
-    const actions = await prisma.dashboardAction.findMany({
-      where: { workspaceId },
-      orderBy: { createdAt: 'desc' },
-      take: 4
+    // 4. Build Real Autonomous Actions from actual system events
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recentActions: any[] = [];
+
+    // a) Recently synced sources
+    const recentlySynced = await prisma.source.findMany({
+      where: { workspaceId, lastSyncedAt: { not: null } },
+      orderBy: { lastSyncedAt: 'desc' },
+      take: 2,
+      select: { name: true, type: true, lastSyncedAt: true, itemsIndexed: true }
     });
+    for (const s of recentlySynced) {
+      recentActions.push({
+        id: `sync-${s.type}-${s.lastSyncedAt}`,
+        description: `Synced ${s.itemsIndexed} items from ${s.name}`,
+        source: s.name,
+        iconType: s.type === 'github' ? 'Github' : s.type === 'slack' ? 'Hash' : s.type === 'notion' ? 'FileText' : 'RefreshCw',
+        createdAt: s.lastSyncedAt,
+      });
+    }
+
+    // b) Recent AI chat sessions
+    const recentChats = await prisma.chatSession.findMany({
+      where: { workspaceId },
+      orderBy: { updatedAt: 'desc' },
+      take: 2,
+      select: { title: true, updatedAt: true }
+    });
+    for (const chat of recentChats) {
+      if (chat.title !== 'New Conversation') {
+        recentActions.push({
+          id: `chat-${chat.updatedAt}`,
+          description: `AI answered: "${chat.title.slice(0, 50)}"`,
+          source: 'Corely AI',
+          iconType: 'MessageSquare',
+          createdAt: chat.updatedAt,
+        });
+      }
+    }
+
+    // Sort by most recent and take top 4
+    const actions = recentActions
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 4);
 
     return successResponse({
       user: {

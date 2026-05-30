@@ -106,6 +106,15 @@ export async function syncGoogleDrive(sourceId: string): Promise<void> {
     }
   });
 
+  try {
+    await oauth2Client.getAccessToken();
+  } catch (err: any) {
+    if (err.message && (err.message.includes("invalid_grant") || err.message.includes("revoked") || err.response?.status === 401)) {
+      throw new Error("401 Re-Auth Required: The access token has expired or been revoked. Please reconnect Google Drive.");
+    }
+    throw err;
+  }
+
   const driveClient = google.drive({ version: "v3", auth: oauth2Client });
 
   // ── 3. Mark source as syncing ───────────────────────────────

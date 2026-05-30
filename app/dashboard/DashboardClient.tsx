@@ -9,17 +9,60 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Good night";
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function DashboardClient({ initialData, dateRange }: { initialData: any, dateRange: string }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
   
+  if (initialData?.stats?.sourcesConnected === 0) {
+    return (
+      <main className="db-content" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh" }}>
+        <div style={{ maxWidth: 640, width: "100%", background: "#fff", border: "1px solid #e4e4e7", borderRadius: 24, padding: "48px 40px", textAlign: "center", boxShadow: "0 12px 32px rgba(0,0,0,0.05)" }}>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#fff3ee", margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 40 }}>👋</span>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            Welcome to Corely, {initialData?.user?.name || "User"}!
+          </h1>
+          <p style={{ fontSize: 15, color: "#52525b", lineHeight: 1.6, marginBottom: 40, maxWidth: 500, margin: "0 auto 40px" }}>
+            Your institutional memory is currently empty. To get started, connect your first data source. Corely will automatically sync your documents, discussions, and decisions.
+          </p>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 40 }}>
+            <div style={{ padding: 20, border: "1px solid #e4e4e7", borderRadius: 12, textAlign: "left" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 4 }}>1. Connect Data</div>
+              <div style={{ fontSize: 13, color: "#71717a" }}>Link Google Drive, Notion, Slack, or GitHub.</div>
+            </div>
+            <div style={{ padding: 20, border: "1px solid #e4e4e7", borderRadius: 12, textAlign: "left" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 4 }}>2. Auto-sync</div>
+              <div style={{ fontSize: 13, color: "#71717a" }}>We build your semantic knowledge graph securely.</div>
+            </div>
+          </div>
+          
+          <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
+            <button style={{ background: "#ff6b00", color: "#fff", border: "none", borderRadius: 12, padding: "16px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, transition: "transform 0.15s", boxShadow: "0 4px 12px rgba(255,107,0,0.2)" }}>
+              Connect First Source <ArrowRight size={16} />
+            </button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="db-content">
       {/* ── Greeting Row ── */}
       <div className="db-greeting-row">
         <div>
-          <h1 className="db-greeting-title">Good morning, {initialData?.user?.name || "User"} 👋</h1>
+          <h1 className="db-greeting-title">{getTimeGreeting()}, {initialData?.user?.name || "User"} 👋</h1>
           <p className="db-greeting-sub">
             Here&apos;s what Corely discovered across your organization today.
           </p>

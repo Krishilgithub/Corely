@@ -309,7 +309,30 @@ export default function WorkflowsMain({
         </div>
       </motion.div>
 
-      {/* ── 2. KPI Cards Grid ── */}
+      {/* ── Beta Notice Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+        style={{
+          background: "#fffbeb",
+          border: "1px solid #fde68a",
+          borderRadius: 10,
+          padding: "12px 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <AlertTriangle size={16} style={{ color: "#d97706", flexShrink: 0 }} />
+        <div style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
+          <strong>Workflows is in Beta.</strong>{" "}
+          You can create, organize, and run workflow definitions — the full execution engine (trigger automation, action dispatch) is coming soon.
+          Executions are currently logged for tracking purposes only.
+        </div>
+      </motion.div>
+
+
       <motion.div
         className="wf-kpi-grid"
         initial={{ opacity: 0, y: 10 }}

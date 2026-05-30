@@ -33,7 +33,7 @@ export interface ActivityItem {
   workflowId: string;
   workflowTitle: string;
   status: "success" | "running" | "failed";
-  timestamp: string;
+  timestamp: string; // ISO date string
 }
 
 
