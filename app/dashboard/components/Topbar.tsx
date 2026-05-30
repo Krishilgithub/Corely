@@ -403,9 +403,8 @@ export default function Topbar() {
       </div>
 
       {/* ── Global Search Modal ───────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {mounted && showSearch && createPortal(
-          <div
+      {mounted && showSearch && createPortal(
+        <div
             className="global-search-overlay"
             onClick={handleClose}
             style={{
@@ -610,8 +609,7 @@ export default function Topbar() {
             </motion.div>
           </div>,
           document.body
-        )}
-      </AnimatePresence>
+      )}
     </motion.header>
   );
 }
