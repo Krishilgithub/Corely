@@ -181,7 +181,7 @@ export default function TeamDetailsPage() {
               style={{ 
                 color: "#ef4444", 
                 borderColor: "#fecaca", 
-                backgroundcolor: "#ffffff",
+                backgroundColor: "var(--db-panel)",
                 boxShadow: "0 2px 8px rgba(239, 68, 68, 0.1)",
                 padding: "8px 16px",
                 borderRadius: "8px",
