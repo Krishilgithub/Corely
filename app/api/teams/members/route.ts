@@ -113,3 +113,30 @@ export async function POST(request: NextRequest) {
     return errorResponse("Internal server error", 500);
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const currentUser = await requirePermission(Permissions.TEAMS_MANAGE);
+    
+    const users = await prisma.user.findMany({
+      where: { workspaceId: currentUser.workspaceId },
+      include: { workspaceRole: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const members = users.map(user => ({
+      id: user.id,
+      name: user.name || "Unknown",
+      email: user.email,
+      role: user.workspaceRole?.name || user.role || "Member",
+      joinedAt: new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      status: "active",
+      initials: (user.name || user.email).slice(0, 2).toUpperCase(),
+    }));
+
+    return successResponse({ members });
+  } catch (error) {
+    console.error("GET members error:", error);
+    return errorResponse("Internal server error", 500);
+  }
+}

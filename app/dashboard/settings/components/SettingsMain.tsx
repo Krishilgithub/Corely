@@ -45,20 +45,7 @@ interface AuditEvent {
 }
 
 // ── Dummy Data (replaces API placeholders) ────────────────────────────────────
-const MOCK_MEMBERS: Member[] = [
-  { id: "1", name: "Krishil Agrawal", email: "krishil@corely.ai", role: "Owner", joinedAt: "Jan 12, 2025", status: "active", initials: "KA" },
-  { id: "2", name: "Sarah Chen", email: "sarah@corely.ai", role: "Admin", joinedAt: "Feb 3, 2025", status: "active", initials: "SC" },
-  { id: "3", name: "Marcus Powell", email: "marcus@corely.ai", role: "Member", joinedAt: "Mar 18, 2025", status: "active", initials: "MP" },
-  { id: "4", name: "Invited User", email: "invite@partner.com", role: "Member", joinedAt: "—", status: "invited", initials: "?" },
-];
-
-const MOCK_AUDIT: AuditEvent[] = [
-  { id: "1", actor: "Krishil Agrawal", action: "Connected source", resource: "Google Drive", timestamp: "2 min ago", status: "success" },
-  { id: "2", actor: "Sarah Chen", action: "Invited member", resource: "invite@partner.com", timestamp: "1 hr ago", status: "success" },
-  { id: "3", actor: "System", action: "Sync completed", resource: "Notion Workspace", timestamp: "3 hr ago", status: "success" },
-  { id: "4", actor: "Marcus Powell", action: "Exported memory", resource: "Q1 decisions.csv", timestamp: "Yesterday", status: "success" },
-  { id: "5", actor: "System", action: "Failed webhook", resource: "Slack #general", timestamp: "Yesterday", status: "failure" },
-];
+// Mock data removed, fetching from real API endpoints now.
 
 // ── Role Badge ────────────────────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
@@ -108,8 +95,11 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
   const [showNewPw, setShowNewPw] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // API Keys state
+  // Dynamic state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditEvent[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+
   const [showNewKeyModal, setShowNewKeyModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
@@ -122,24 +112,55 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch("/api/settings");
-      const json = await res.json();
-      const data = json.data || json;
-      if (data.preferences) {
-        setCompactMode(data.preferences.compactMode || false);
-        setOnboardingTips(data.preferences.onboardingTips ?? true);
-        setTwoFactorEnabled(data.preferences.twoFactorEnabled || false);
-        setEmailNotifications(data.preferences.emailNotifications ?? true);
-      }
-      if (data.workspace) {
-        setWorkspaceName(data.workspace.name || "");
-        setWorkspaceSlug(data.workspace.slug || "");
-        if (data.workspace.settings) {
-          setDefaultLlm(data.workspace.settings.defaultLlm || "gpt-4o");
+      const [settingsRes, membersRes, auditRes, keysRes] = await Promise.all([
+        fetch("/api/settings"),
+        fetch("/api/teams/members"),
+        fetch("/api/audit-logs"),
+        fetch("/api/settings/api-keys")
+      ]);
+
+      if (settingsRes.ok) {
+        const json = await settingsRes.json();
+        const data = json.data || json;
+        if (data.preferences) {
+          setCompactMode(data.preferences.compactMode || false);
+          setOnboardingTips(data.preferences.onboardingTips ?? true);
+          setTwoFactorEnabled(data.preferences.twoFactorEnabled || false);
+          setEmailNotifications(data.preferences.emailNotifications ?? true);
+        }
+        if (data.workspace) {
+          setWorkspaceName(data.workspace.name || "");
+          setWorkspaceSlug(data.workspace.slug || "");
+          if (data.workspace.settings) {
+            setDefaultLlm(data.workspace.settings.defaultLlm || "gpt-4o");
+          }
         }
       }
+
+      if (membersRes.ok) {
+        const d = await membersRes.json();
+        setMembers(d.data?.members || []);
+      }
+      
+      if (auditRes.ok) {
+        const d = await auditRes.json();
+        const mappedLogs = (d.data?.logs || []).map((l: { id: string, action: string, details: string, createdAt: string, user?: { name: string, email: string } }) => ({
+          id: l.id,
+          actor: l.user ? l.user.name || l.user.email : "System",
+          action: l.action,
+          resource: l.details,
+          timestamp: new Date(l.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          status: "success"
+        }));
+        setAuditLogs(mappedLogs);
+      }
+
+      if (keysRes.ok) {
+        const d = await keysRes.json();
+        setApiKeys(d.data?.apiKeys || []);
+      }
     } catch (e) {
-      console.error("Failed to fetch settings", e);
+      console.error("Failed to fetch settings data", e);
     } finally {
       setLoading(false);
     }
@@ -174,25 +195,39 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
   const generateApiKey = async () => {
     if (!newKeyName.trim()) return;
     setGeneratingKey(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const fakeKey = `crl_live_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-    const newKey: ApiKey = {
-      id: Date.now().toString(),
-      name: newKeyName.trim(),
-      prefix: fakeKey.slice(0, 12) + "…",
-      createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      lastUsed: null,
-      scopes: ["read", "write"],
-    };
-    setApiKeys((prev) => [newKey, ...prev]);
-    setNewKeyValue(fakeKey);
-    setGeneratingKey(false);
-    toast.success("API key generated — copy it now, it won't be shown again");
+    try {
+      const res = await fetch("/api/settings/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newKeyName.trim() }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setApiKeys((prev) => [data.apiKey, ...prev]);
+        setNewKeyValue(data.rawKey);
+        toast.success("API key generated — copy it now, it won't be shown again");
+      } else {
+        toast.error("Failed to generate API key");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    } finally {
+      setGeneratingKey(false);
+    }
   };
 
-  const revokeKey = (id: string) => {
-    setApiKeys((prev) => prev.filter((k) => k.id !== id));
-    toast.success("API key revoked");
+  const revokeKey = async (id: string) => {
+    try {
+      const res = await fetch(`/api/settings/api-keys?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setApiKeys((prev) => prev.filter((k) => k.id !== id));
+        toast.success("API key revoked");
+      } else {
+        toast.error("Failed to revoke API key");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    }
   };
 
   if (loading) {
@@ -285,14 +320,14 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-card-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <p className="settings-card-title">Team Members</p>
-                <p className="settings-card-subtitle">{MOCK_MEMBERS.length} members total</p>
+                <p className="settings-card-subtitle">{members.length} members total</p>
               </div>
               <button className="settings-btn settings-btn-primary" style={{ gap: 6 }}>
                 <Plus size={14} /> Invite Member
               </button>
             </div>
             <div>
-              {MOCK_MEMBERS.map((m) => (
+              {members.map((m) => (
                 <div key={m.id} className="settings-row">
                   <div className="settings-row-left">
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: m.status === "invited" ? "#f4f4f5" : "linear-gradient(135deg, #ff6b00, #ff9240)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: m.status === "invited" ? "#a1a1aa" : "#fff", flexShrink: 0 }}>
@@ -619,7 +654,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             </div>
             <button className="settings-btn settings-btn-default" style={{ gap: 6 }}>Export CSV</button>
           </div>
-          {MOCK_AUDIT.map((event) => (
+          {auditLogs.map((event) => (
             <div key={event.id} className="settings-row">
               <div className="settings-row-left">
                 <div className="settings-row-icon" style={{ background: event.status === "success" ? "#f0fdf4" : "#fef2f2", color: event.status === "success" ? "#16a34a" : "#ef4444" }}>
@@ -633,6 +668,11 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               <span style={{ fontSize: 12, color: "#a1a1aa", whiteSpace: "nowrap", flexShrink: 0 }}>{event.timestamp}</span>
             </div>
           ))}
+          {auditLogs.length === 0 && (
+            <div style={{ padding: "40px", textAlign: "center", color: "#a1a1aa", fontSize: 14 }}>
+              No audit logs found.
+            </div>
+          )}
         </div>
       )}
 
