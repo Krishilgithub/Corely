@@ -4,10 +4,11 @@ import { motion } from "framer-motion";
 import {
   AlignJustify, Lightbulb, ChevronDown, Shield, Key, Settings as SettingsIcon,
   AlertTriangle, Mail, Copy, Plus, Trash2, Eye, EyeOff, Users, Activity,
-  Clock, CheckCircle2, XCircle, Building2,
+  Clock, CheckCircle2, XCircle, Building2, Moon, Sun
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface SettingsUpdates {
   preferences?: { theme?: string; compactMode?: boolean; onboardingTips?: boolean; [key: string]: unknown };
@@ -105,6 +106,10 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
   const [newKeyValue, setNewKeyValue] = useState<string | null>(null);
   const [generatingKey, setGeneratingKey] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     fetchSettings();
@@ -277,6 +282,22 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className={`settings-toggle ${compactMode ? "on" : ""}`} onClick={() => toggle(compactMode, setCompactMode, "compactMode")}>
               <div className="settings-toggle-knob" />
             </div>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-left">
+              <div className="settings-row-icon">
+                {mounted && resolvedTheme === "dark" ? <Moon size={17} /> : <Sun size={17} />}
+              </div>
+              <div>
+                <p className="settings-row-label">Dark Mode</p>
+                <p className="settings-row-desc">Switch between light and dark themes.</p>
+              </div>
+            </div>
+            {mounted && (
+              <div className={`settings-toggle ${resolvedTheme === "dark" ? "on" : ""}`} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+                <div className="settings-toggle-knob" />
+              </div>
+            )}
           </div>
           <div className="settings-row">
             <div className="settings-row-left">

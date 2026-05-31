@@ -13,6 +13,7 @@ const APP_ICONS = [
   { icon: "/notion.png", name: "Notion", radius: 250, duration: 35, delay: 22.5 },
   
   { icon: "/gmail.png", name: "Gmail", radius: 350, duration: 45, delay: 0 },
+  { icon: "/file.svg", name: "Manual Documents", radius: 350, duration: 45, delay: 22.5 },
 ];
 
 export default function IntegrationSection() {

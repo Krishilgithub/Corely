@@ -333,21 +333,7 @@ export default function Topbar() {
       {/* Right Actions */}
       <div className="db-topbar-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         
-        {/* Theme Toggle Button */}
-        {mounted && (
-          <button
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 32, height: 32, borderRadius: 8,
-              background: "var(--db-bg)", border: "1px solid var(--db-border)",
-              color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
-            }}
-            aria-label="Toggle Theme"
-          >
-            {resolvedTheme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-        )}
+
 
         {/* Help Button */}
         <button

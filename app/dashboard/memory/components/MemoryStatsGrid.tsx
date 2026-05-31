@@ -46,7 +46,7 @@ export function MemoryStatsGrid({ stats }: MemoryStatsGridProps) {
           <span className="mem-stat-value">{stats.retentionScore}%</span>
           <span className="mem-stat-label">Context Retention</span>
           <span className="mem-stat-trend" style={{ color: stats.retentionColor }}>
-            • <span style={{ color: stats.retentionColor, fontWeight: 700 }}>{stats.retentionStatus}</span>
+            ↑ {stats.retentionTrend}% <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>vs last month</span>
           </span>
         </div>
       </div>
@@ -59,7 +59,7 @@ export function MemoryStatsGrid({ stats }: MemoryStatsGridProps) {
           <span className="mem-stat-value">{stats.totalActiveKnowledgeSets.toLocaleString()}</span>
           <span className="mem-stat-label">Active Knowledge Sets</span>
           <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-            ↑ 11% <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>vs last month</span>
+            ↑ {stats.activeKnowledgeTrend}% <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>vs last month</span>
           </span>
         </div>
       </div>

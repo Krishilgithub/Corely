@@ -29,6 +29,8 @@ export interface MemoryStats {
   retentionScore: number;
   retentionStatus: string;
   retentionColor: string;
+  retentionTrend: number;
+  activeKnowledgeTrend: number;
 }
 
 export interface SourceChartData {
