@@ -2,6 +2,7 @@ import { requirePermission } from "@/lib/auth-server";
 import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { generateDynamicInsights } from "@/lib/insights-generator";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
