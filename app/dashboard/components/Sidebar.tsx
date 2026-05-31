@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Home,
   MessageSquare,
@@ -35,6 +35,26 @@ export default function Sidebar() {
   const router = useRouter();
   const { user } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [usage, setUsage] = useState({
+    plan: "Free",
+    isEnterprise: false,
+    usagePercent: 0,
+    docsIndexed: 0,
+    documentLimit: 100,
+    queriesThisMonth: 0,
+    queryLimit: 500,
+  });
+
+  useEffect(() => {
+    fetch("/api/usage")
+      .then(res => res.json())
+      .then(data => {
+        if (data.data) {
+          setUsage(data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch usage:", err));
+  }, []);
 
   return (
     <>
@@ -89,18 +109,21 @@ export default function Sidebar() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.35 }}
           >
-            <div className="db-plan-tag">Enterprise Plan</div>
-            <div className="db-plan-name">Unlimited insights</div>
+            <div className="db-plan-tag">{usage.isEnterprise ? "Enterprise Plan" : "Free Plan"}</div>
+            <div className="db-plan-name">{usage.isEnterprise ? "Unlimited insights" : "Basic insights"}</div>
             <div className="db-plan-row">
               <span>Usage this month</span>
-              <span className="db-plan-usage-pct">78%</span>
+              <span className="db-plan-usage-pct">{usage.usagePercent}%</span>
             </div>
             <div className="db-plan-bar-bg">
               <motion.div
                 className="db-plan-bar-fill"
                 initial={{ width: 0 }}
-                animate={{ width: "78%" }}
+                animate={{ width: `${usage.usagePercent}%` }}
                 transition={{ delay: 0.7, duration: 1.2, ease: "easeOut" }}
+                style={{ 
+                  background: usage.usagePercent > 90 ? "#ef4444" : usage.usagePercent > 75 ? "#f59e0b" : "#ff6b00" 
+                }}
               />
             </div>
           </motion.div>
