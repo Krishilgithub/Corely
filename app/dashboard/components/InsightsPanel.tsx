@@ -80,9 +80,9 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
       {/* Insights List */}
       <div className="db-panel-body">
         {loading ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "#71717a" }}>Loading insights...</div>
+          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>Loading insights...</div>
         ) : insights.length === 0 ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "#71717a" }}>No insights found.</div>
+          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>No insights found.</div>
         ) : (
           insights.map((ins, i) => {
             const Icon = iconMap[ins.iconType] || TrendingDown;
@@ -136,7 +136,7 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
         </div>
         <div className="db-status-row">
           <RefreshCw size={12} style={{ color: "#a1a1aa" }} />
-          <span style={{ color: "#71717a", fontSize: "12px" }}>Data synced just now</span>
+          <span style={{ color: "var(--db-text-muted)", fontSize: "12px" }}>Data synced just now</span>
         </div>
       </div>
     </motion.div>

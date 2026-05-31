@@ -33,6 +33,15 @@
     
     --gray-border: #e4e4e7;
     --gray-soft: #f4f4f5;
+
+    /* Dashboard Semantic Tokens */
+    --db-bg: #fafafa;
+    --db-panel: #ffffff;
+    --db-text: #111111;
+    --db-text-muted: #71717a;
+    --db-border: #e4e4e7;
+    --db-border-light: rgba(0,0,0,0.06);
+    --db-hover: #f5f5f5;
   }
 
   .dark {
@@ -62,6 +71,15 @@
     
     --gray-border: #27272a;
     --gray-soft: #18181b;
+
+    /* Dashboard Semantic Tokens */
+    --db-bg: #09090b;
+    --db-panel: #18181b;
+    --db-text: #f4f4f5;
+    --db-text-muted: #a1a1aa;
+    --db-border: #27272a;
+    --db-border-light: rgba(255,255,255,0.08);
+    --db-hover: #27272a;
   }
 }
 

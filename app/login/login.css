@@ -304,3 +304,85 @@
 .login-back-btn:hover {
   color: #111;
 }
+
+/* ── Error & Success Banners ── */
+.login-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.login-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+/* ── Password Visibility Toggle ── */
+.login-password-wrapper {
+  position: relative;
+}
+
+.login-password-wrapper .form-input {
+  padding-right: 44px;
+}
+
+.login-eye-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.login-eye-btn:hover {
+  color: #52525b;
+}
+
+/* ── Remember Me ── */
+.login-remember-row {
+  margin-top: -4px;
+}
+
+.login-remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #52525b;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.login-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  accent-color: #ff6b00;
+  cursor: pointer;
+  flex-shrink: 0;
+}

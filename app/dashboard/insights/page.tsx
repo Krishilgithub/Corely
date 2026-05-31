@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "../components/Skeleton";
 import {
   Sparkles,
-  Upload,
+  Download,
   Zap,
   AlertTriangle,
   CheckCircle,
@@ -316,7 +316,7 @@ export default function InsightsPage() {
         </div>
         <div className="in-header-actions">
           <button className="in-btn-secondary" onClick={handleExport}>
-            <Upload size={14} />
+            <Download size={14} />
             Export
           </button>
           <Link href="/dashboard/ask-corely?q=Analyze+my+recent+insights" style={{ textDecoration: "none" }}>
@@ -483,19 +483,19 @@ export default function InsightsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}
+              style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "var(--db-bg)", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}
             >
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
                 {insights.length === 0 ? (
                   <Sparkles size={28} style={{ color: "#ff6b00" }} />
                 ) : (
-                  <Search size={28} style={{ color: "#71717a" }} />
+                  <Search size={28} style={{ color: "var(--db-text-muted)" }} />
                 )}
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", marginBottom: 8 }}>
                 {insights.length === 0 ? "No insights generated yet" : "No insights match your filters"}
               </h3>
-              <p style={{ fontSize: 14, color: "#71717a", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
                 {insights.length === 0 
                   ? "Corely needs more data to generate organizational insights. Connect more tools or wait for the next analysis cycle."
                   : "Try adjusting your search query, or clear your filters to see all available insights."}
@@ -576,7 +576,7 @@ export default function InsightsPage() {
                   <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>
                     {insights.length}
                   </div>
-                  <div style={{ fontSize: 11, color: "#71717a", fontWeight: 500 }}>
+                  <div style={{ fontSize: 11, color: "var(--db-text-muted)", fontWeight: 500 }}>
                     Total
                   </div>
                 </div>
@@ -589,7 +589,7 @@ export default function InsightsPage() {
                       style={{ backgroundColor: d.color }}
                     />
                     <span style={{ width: 16, fontWeight: 700 }}>{d.value}</span>
-                    <span style={{ color: "#71717a" }}>{d.name}</span>
+                    <span style={{ color: "var(--db-text-muted)" }}>{d.name}</span>
                   </div>
                 ))}
               </div>
@@ -636,7 +636,7 @@ export default function InsightsPage() {
                     stroke="#ff6b00"
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 5, fill: "#ff6b00", stroke: "#fff", strokeWidth: 2 }}
+                    activeDot={{ r: 5, fill: "#ff6b00", stroke: "var(--db-panel)", strokeWidth: 2 }}
                     filter="url(#shadow)"
                   />
                 </LineChart>

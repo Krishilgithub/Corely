@@ -3,6 +3,7 @@ import "./dashboard.css";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "../../components/ThemeProvider";
 
 export const metadata = {
   title: "Dashboard — Corely",
@@ -15,11 +16,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="db-layout">
-      <Sidebar />
-      <Topbar />
-      <div className="db-page-wrapper">{children}</div>
-      <Toaster position="bottom-right" richColors />
-    </div>
+    <ThemeProvider>
+      <div className="db-layout">
+        <Sidebar />
+        <Topbar />
+        <div className="db-page-wrapper">{children}</div>
+        <Toaster position="bottom-right" richColors />
+      </div>
+    </ThemeProvider>
   );
 }

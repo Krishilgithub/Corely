@@ -1,5 +1,7 @@
 import { successResponse, errorResponse } from "@/lib/api-response";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   try {
     // 1. Verify Notion webhook signature

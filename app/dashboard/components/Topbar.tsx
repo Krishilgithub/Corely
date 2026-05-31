@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings
+  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import HelpModal from "./HelpModal";
 
 interface AppNotification {
   id: string;
@@ -53,10 +54,17 @@ function getSourceIcon(type?: string) {
   return <FileText size={13} />;
 }
 
-const SUGGESTED = [
+const SUGGESTED_SEARCHES = [
   "What was the decision on the Q3 roadmap?",
   "Find onboarding docs for new engineers",
   "What are the open bugs from last sprint?",
+];
+
+const QUICK_ACTIONS = [
+  { id: "action-ask", label: "Ask Corely AI", icon: <Sparkles size={14} />, href: "/dashboard/ask-corely" },
+  { id: "action-sources", label: "Connect Data Source", icon: <Database size={14} />, href: "/dashboard/sources" },
+  { id: "action-invite", label: "Invite Team Members", icon: <UserPlus size={14} />, href: "/dashboard/settings/members" },
+  { id: "action-settings", label: "Workspace Settings", icon: <Settings size={14} />, href: "/dashboard/settings" },
 ];
 
 export default function Topbar() {
@@ -71,6 +79,7 @@ export default function Topbar() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,8 +165,17 @@ export default function Topbar() {
   }, [searchQuery, performSearch]);
 
   // ── Arrow key navigation ─────────────────────────────────────────────────
+  const getActionResults = (q: string) => {
+    if (!q.trim()) return QUICK_ACTIONS;
+    const lowerQ = q.toLowerCase();
+    return QUICK_ACTIONS.filter(a => a.label.toLowerCase().includes(lowerQ));
+  };
+
+  const currentActionResults = getActionResults(searchQuery);
+  const totalItems = currentActionResults.length + searchResults.length;
+
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    const maxIdx = searchResults.length - 1;
+    const maxIdx = totalItems - 1;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex(i => Math.min(i + 1, maxIdx));
@@ -166,12 +184,18 @@ export default function Topbar() {
       setSelectedIndex(i => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (searchResults[selectedIndex]?.metadata?.url) {
-        window.open(searchResults[selectedIndex].metadata.url!, "_blank");
-      } else if (searchQuery.trim()) {
-        // Navigate to Ask Corely with the query
+      if (selectedIndex < currentActionResults.length) {
+        const action = currentActionResults[selectedIndex];
         setShowSearch(false);
-        router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
+        router.push(action.href);
+      } else {
+        const resIdx = selectedIndex - currentActionResults.length;
+        if (searchResults[resIdx]?.metadata?.url) {
+          window.open(searchResults[resIdx].metadata.url!, "_blank");
+        } else if (searchQuery.trim()) {
+          setShowSearch(false);
+          router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
+        }
       }
     }
   };
@@ -239,7 +263,7 @@ export default function Topbar() {
       case "Cpu": return { bg: "#eff6ff", color: "#3b82f6" };
       case "UserPlus": return { bg: "#f5f3ff", color: "#8b5cf6" };
       case "Database": return { bg: "#fff7ed", color: "#f97316" };
-      default: return { bg: "#f4f4f5", color: "#71717a" };
+      default: return { bg: "#f4f4f5", color: "var(--db-text-muted)" };
     }
   };
 
@@ -281,7 +305,7 @@ export default function Topbar() {
 
         {/* Workspace Switcher */}
         <button className="db-ws-btn" aria-label="Switch workspace">
-          <Building2 size={13} style={{ color: "#71717a" }} />
+          <Building2 size={13} style={{ color: "var(--db-text-muted)" }} />
           <span>{workspace?.name || "Workspace"}</span>
           <ChevronDown size={12} style={{ color: "#a1a1aa" }} />
         </button>
@@ -306,6 +330,15 @@ export default function Topbar() {
 
       {/* Right Actions */}
       <div className="db-topbar-right">
+        {/* Help Button */}
+        <button
+          className="db-notif-btn"
+          aria-label="Help & Shortcuts"
+          onClick={() => setShowHelp(true)}
+        >
+          <HelpCircle size={15} />
+        </button>
+
         {/* Notifications */}
         <div style={{ position: "relative" }}>
           <button
@@ -328,7 +361,7 @@ export default function Topbar() {
                 transition={{ duration: 0.15 }}
                 style={{
                   position: "absolute", top: "100%", right: 0, marginTop: 12,
-                  background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12,
+                  background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
                   boxShadow: "0 10px 30px rgba(0,0,0,0.08)", zIndex: 50, width: 320,
                   display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: 400
                 }}
@@ -355,7 +388,7 @@ export default function Topbar() {
                           style={{
                             padding: "12px 16px", borderBottom: "1px solid #f4f4f5",
                             display: "flex", gap: 12,
-                            background: notif.isRead ? "transparent" : "#fafafa",
+                            background: notif.isRead ? "transparent" : "var(--db-bg)",
                             cursor: "pointer", transition: "background 0.2s"
                           }}
                         >
@@ -364,7 +397,7 @@ export default function Topbar() {
                           </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: notif.isRead ? 500 : 600, color: "#18181b" }}>{notif.title}</div>
-                            <div style={{ fontSize: 12, color: "#71717a", marginTop: 2, lineHeight: 1.4 }}>{notif.message}</div>
+                            <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2, lineHeight: 1.4 }}>{notif.message}</div>
                             <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
                               {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                             </div>
@@ -378,7 +411,7 @@ export default function Topbar() {
                   )}
                 </div>
                 {notifications.length > 0 && unreadCount > 0 && (
-                  <div style={{ padding: "8px 16px", background: "#fafafa", borderTop: "1px solid #e4e4e7", textAlign: "center" }}>
+                  <div style={{ padding: "8px 16px", background: "var(--db-bg)", borderTop: "1px solid #e4e4e7", textAlign: "center" }}>
                     <span style={{ fontSize: 12, color: "#ff6b00", fontWeight: 600, cursor: "pointer" }} onClick={markAllAsRead}>
                       Mark all as read
                     </span>
@@ -397,7 +430,7 @@ export default function Topbar() {
               width: 34, height: 34, borderRadius: "50%",
               background: "linear-gradient(135deg, #ff6b00, #ff9240)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 900, color: "#fff",
+              fontSize: 13, fontWeight: 900, color: "var(--db-panel)",
               cursor: "pointer", border: "1px solid rgba(0,0,0,0.06)",
               boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
             }}
@@ -415,14 +448,14 @@ export default function Topbar() {
                 transition={{ duration: 0.15 }}
                 style={{
                   position: "absolute", top: "100%", right: 0, marginTop: 12,
-                  background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12,
+                  background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
                   boxShadow: "0 10px 30px rgba(0,0,0,0.08)", zIndex: 50, width: 220,
                   display: "flex", flexDirection: "column", overflow: "hidden"
                 }}
               >
                 <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111" }}>{user?.name || "User"}</div>
-                  <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>{user?.email}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "var(--db-text)" }}>{user?.name || "User"}</div>
+                  <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>{user?.email}</div>
                 </div>
                 <div style={{ padding: "8px" }}>
                   <Link href="/dashboard/settings" onClick={() => setShowUserMenu(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, color: "#3f3f46", fontSize: 13, textDecoration: "none", fontWeight: 500 }} className="hover:bg-zinc-50">
@@ -468,7 +501,7 @@ export default function Topbar() {
               transition={{ duration: 0.15, ease: "easeOut" }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "#ffffff", borderRadius: 16, width: "100%", maxWidth: 660,
+                background: "var(--db-panel)", borderRadius: 16, width: "100%", maxWidth: 660,
                 boxShadow: "0 30px 60px -12px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.06)",
                 overflow: "hidden", display: "flex", flexDirection: "column"
               }}
@@ -504,7 +537,7 @@ export default function Topbar() {
                   style={{
                     background: "#f4f4f5", border: "1px solid #e4e4e7", cursor: "pointer",
                     padding: "3px 7px", display: "flex", alignItems: "center", justifyContent: "center",
-                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: "#71717a", marginLeft: 8
+                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: "var(--db-text-muted)", marginLeft: 8
                   }}
                 >
                   ESC
@@ -512,24 +545,24 @@ export default function Topbar() {
               </div>
 
               {/* Results Area */}
-              <div style={{ maxHeight: 420, overflowY: "auto", background: "#fafafa" }}>
+              <div style={{ maxHeight: 420, overflowY: "auto", background: "var(--db-bg)" }}>
                 {searchError && (
                   <div style={{ padding: "20px 24px", textAlign: "center", color: "#ef4444", fontSize: 14 }}>
                     {searchError}
                   </div>
                 )}
 
-                {!searchError && searchQuery.trim() && !isSearching && searchResults.length === 0 && (
+                {!searchError && searchQuery.trim() && !isSearching && searchResults.length === 0 && currentActionResults.length === 0 && (
                   <div style={{ padding: "32px 24px", textAlign: "center" }}>
                     <Search size={32} color="#d4d4d8" style={{ margin: "0 auto 12px" }} />
-                    <p style={{ fontSize: 15, color: "#71717a", fontWeight: 500 }}>No results found for &ldquo;{searchQuery}&rdquo;</p>
+                    <p style={{ fontSize: 15, color: "var(--db-text-muted)", fontWeight: 500 }}>No results found for &ldquo;{searchQuery}&rdquo;</p>
                     <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 6 }}>Try connecting more sources or rephrasing your query</p>
                     <Link
                       href={`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`}
                       onClick={handleClose}
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 6, marginTop: 16,
-                        padding: "8px 16px", background: "#ff6b00", color: "#fff",
+                        padding: "8px 16px", background: "#ff6b00", color: "var(--db-panel)",
                         borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none"
                       }}
                     >
@@ -544,7 +577,7 @@ export default function Topbar() {
                       Suggested Searches
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {SUGGESTED.map(q => (
+                      {SUGGESTED_SEARCHES.map(q => (
                         <button
                           key={q}
                           onClick={() => setSearchQuery(q)}
@@ -555,8 +588,8 @@ export default function Topbar() {
                             display: "flex", alignItems: "center", gap: 10
                           }}
                           onMouseOver={e => {
-                            e.currentTarget.style.background = "#fff";
-                            e.currentTarget.style.borderColor = "#e4e4e7";
+                            e.currentTarget.style.background = "var(--db-panel)";
+                            e.currentTarget.style.borderColor = "var(--db-border)";
                           }}
                           onMouseOut={e => {
                             e.currentTarget.style.background = "transparent";
@@ -571,61 +604,100 @@ export default function Topbar() {
                   </div>
                 )}
 
-                {searchResults.length > 0 && (
+                {(currentActionResults.length > 0 || searchResults.length > 0) && (
                   <div style={{ padding: "8px 0" }}>
-                    <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "0 20px 8px" }}>
-                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} found
-                    </div>
-                    {searchResults.map((result, idx) => {
-                      const meta = result.metadata || {};
-                      const isSelected = idx === selectedIndex;
-                      const sourceType = meta.file_type || meta.source_type || "document";
-                      return (
-                        <div
-                          key={result.id}
-                          onClick={() => {
-                            if (meta.url) {
-                              window.open(meta.url, "_blank");
-                            } else {
-                              router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
-                              handleClose();
-                            }
-                          }}
-                          onMouseEnter={() => setSelectedIndex(idx)}
-                          style={{
-                            padding: "12px 20px", cursor: "pointer",
-                            background: isSelected ? "#fff7ed" : "transparent",
-                            borderLeft: isSelected ? "3px solid #ff6b00" : "3px solid transparent",
-                            transition: "all 0.1s",
-                            display: "flex", flexDirection: "column", gap: 4,
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                background: isSelected ? "#fff" : "#f4f4f5",
-                                color: isSelected ? "#ff6b00" : "#71717a",
-                                borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 600
-                              }}>
-                                {getSourceIcon(sourceType)}
-                                {sourceType.replace(/_/g, " ")}
-                              </span>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#18181b" }}>
-                                {meta.document_title || "Untitled Document"}
+                    {currentActionResults.length > 0 && (
+                      <>
+                        <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 20px 4px" }}>
+                          Quick Actions
+                        </div>
+                        {currentActionResults.map((action, idx) => {
+                          const isSelected = idx === selectedIndex;
+                          return (
+                            <div
+                              key={action.id}
+                              onClick={() => {
+                                handleClose();
+                                router.push(action.href);
+                              }}
+                              onMouseEnter={() => setSelectedIndex(idx)}
+                              style={{
+                                padding: "10px 20px", cursor: "pointer",
+                                background: isSelected ? "#fff7ed" : "transparent",
+                                borderLeft: isSelected ? "3px solid #ff6b00" : "3px solid transparent",
+                                transition: "all 0.1s", display: "flex", alignItems: "center", gap: 12
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: isSelected ? "var(--db-panel)" : "#f4f4f5", color: isSelected ? "#ff6b00" : "var(--db-text-muted)", borderRadius: 6 }}>
+                                {action.icon}
+                              </div>
+                              <span style={{ fontSize: 13.5, fontWeight: 500, color: isSelected ? "#18181b" : "#3f3f46" }}>
+                                {action.label}
                               </span>
                             </div>
-                            {meta.url && <ExternalLink size={12} color="#a1a1aa" style={{ flexShrink: 0 }} />}
-                          </div>
-                          <p style={{ fontSize: 12, color: "#71717a", lineHeight: 1.5, margin: 0 }}>
-                            {highlightSnippet(result.content, searchQuery)}
-                          </p>
-                          <div style={{ fontSize: 11, color: "#a1a1aa" }}>
-                            Relevance: {Math.round(result.similarity * 100)}%
-                          </div>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {searchResults.length > 0 && (
+                      <>
+                        <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 20px 4px" }}>
+                          Knowledge Results ({searchResults.length})
                         </div>
-                      );
-                    })}
+                        {searchResults.map((result, resIdx) => {
+                          const idx = currentActionResults.length + resIdx;
+                          const meta = result.metadata || {};
+                          const isSelected = idx === selectedIndex;
+                          const sourceType = meta.file_type || meta.source_type || "document";
+                          return (
+                            <div
+                              key={result.id}
+                              onClick={() => {
+                                if (meta.url) {
+                                  window.open(meta.url, "_blank");
+                                } else {
+                                  router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
+                                  handleClose();
+                                }
+                              }}
+                              onMouseEnter={() => setSelectedIndex(idx)}
+                              style={{
+                                padding: "12px 20px", cursor: "pointer",
+                                background: isSelected ? "#fff7ed" : "transparent",
+                                borderLeft: isSelected ? "3px solid #ff6b00" : "3px solid transparent",
+                                transition: "all 0.1s",
+                                display: "flex", flexDirection: "column", gap: 4,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{
+                                    display: "inline-flex", alignItems: "center", gap: 4,
+                                    background: isSelected ? "var(--db-panel)" : "#f4f4f5",
+                                    color: isSelected ? "#ff6b00" : "var(--db-text-muted)",
+                                    borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 600
+                                  }}>
+                                    {getSourceIcon(sourceType)}
+                                    {sourceType.replace(/_/g, " ")}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: "#18181b" }}>
+                                    {meta.document_title || "Untitled Document"}
+                                  </span>
+                                </div>
+                                {meta.url && <ExternalLink size={12} color="#a1a1aa" style={{ flexShrink: 0 }} />}
+                              </div>
+                              <p style={{ fontSize: 12, color: "var(--db-text-muted)", lineHeight: 1.5, margin: 0 }}>
+                                {highlightSnippet(result.content, searchQuery)}
+                              </p>
+                              <div style={{ fontSize: 11, color: "#a1a1aa" }}>
+                                Relevance: {Math.round(result.similarity * 100)}%
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -633,17 +705,17 @@ export default function Topbar() {
               {/* Footer */}
               <div style={{
                 padding: "10px 20px", borderTop: "1px solid #f0f0f0",
-                background: "#fff", display: "flex", alignItems: "center",
+                background: "var(--db-panel)", display: "flex", alignItems: "center",
                 justifyContent: "space-between", fontSize: 12, color: "#a1a1aa"
               }}>
                 <div style={{ display: "flex", gap: 14 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "#71717a" }}>↵</kbd>
+                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↵</kbd>
                     to open
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "#71717a" }}>↓</kbd>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "#71717a" }}>↑</kbd>
+                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↓</kbd>
+                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↑</kbd>
                     navigate
                   </span>
                 </div>
@@ -656,6 +728,7 @@ export default function Topbar() {
           </div>,
           document.body
       )}
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </motion.header>
   );
 }

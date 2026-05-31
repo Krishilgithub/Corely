@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import "./login.css";
@@ -11,6 +11,9 @@ import "./login.css";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -19,10 +22,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
-
+    setError(null);
     setIsSubmitting(true);
     try {
       await login(email, password);
+    } catch {
+      setError("Invalid email or password. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -31,7 +36,7 @@ export default function LoginPage() {
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    
+    setError(null);
     setIsSubmitting(true);
     try {
       await fetch("/api/auth/forgot-password", {
@@ -39,10 +44,9 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      // We always show success regardless of user existence for security
       setResetSent(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError("Failed to send reset email. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -58,7 +62,7 @@ export default function LoginPage() {
 
       <AnimatePresence mode="wait">
         {!isForgotPassword ? (
-          <motion.div 
+          <motion.div
             key="login"
             className="login-card"
             initial={{ opacity: 0, y: 20 }}
@@ -74,8 +78,23 @@ export default function LoginPage() {
                 </div>
               </Link>
               <h1 className="login-title">Welcome back</h1>
-              <p className="login-subtitle">Sign in to your enterprise intelligence layer</p>
+              <p className="login-subtitle">Sign in to your enterprise workspace</p>
             </div>
+
+            {/* Error Banner */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="login-error-banner"
+                >
+                  <AlertCircle size={15} />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form className="login-form" onSubmit={handleSubmit}>
               <div className="form-group">
@@ -86,8 +105,9 @@ export default function LoginPage() {
                   className="form-input"
                   placeholder="you@company.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -98,26 +118,49 @@ export default function LoginPage() {
                     Forgot password?
                   </button>
                 </div>
-                <input
-                  id="password"
-                  type="password"
-                  className="form-input"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="login-password-wrapper">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    className="form-input"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="login-eye-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
-              <button 
-                type="submit" 
+              <div className="login-remember-row">
+                <label className="login-remember-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="login-checkbox"
+                  />
+                  <span>Remember me for 30 days</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
                 className="login-btn"
                 disabled={isSubmitting || isLoading}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={18} className="login-spinner" />
-                    Signing in...
+                    Signing in…
                   </>
                 ) : (
                   "Sign in to workspace"
@@ -125,10 +168,8 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* OAuth buttons hidden as requested */}
-
             <div className="login-footer">
-              Don&apos;t have an account? <Link href="/signup">Sign up</Link>
+              Don&apos;t have an account? <Link href="/signup">Create account</Link>
             </div>
           </motion.div>
         ) : (
@@ -147,42 +188,53 @@ export default function LoginPage() {
               </div>
               <h1 className="login-title">Reset password</h1>
               <p className="login-subtitle">
-                {resetSent 
-                  ? "Check your email for a link to reset your password. If it doesn't appear within a few minutes, check your spam folder." 
-                  : "Enter your email address and we'll send you a link to reset your password."}
+                {resetSent
+                  ? "Check your inbox for a reset link."
+                  : "Enter your work email and we'll send you a reset link."}
               </p>
             </div>
 
-            {!resetSent ? (
-              <form className="login-form" onSubmit={handleResetSubmit}>
-                <div className="form-group">
-                  <label htmlFor="reset-email" className="form-label">Email address</label>
-                  <input
-                    id="reset-email"
-                    type="email"
-                    className="form-input"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <button type="submit" className="login-btn" disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 size={18} className="login-spinner animate-spin" /> : "Send reset link"}
-                </button>
-              </form>
-            ) : (
+            {resetSent ? (
               <div className="login-form">
+                <div className="login-success-banner">
+                  <CheckCircle size={15} />
+                  <span>Reset link sent to <strong>{email}</strong></span>
+                </div>
                 <button type="button" className="login-btn" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
-                  Back to login
+                  Back to sign in
                 </button>
               </div>
-            )}
-            
-            {!resetSent && (
-              <div className="login-footer">
-                Remember your password? <button type="button" className="login-text-btn" onClick={() => setIsForgotPassword(false)}>Log in</button>
-              </div>
+            ) : (
+              <>
+                <AnimatePresence>
+                  {error && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="login-error-banner">
+                      <AlertCircle size={15} /><span>{error}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <form className="login-form" onSubmit={handleResetSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="reset-email" className="form-label">Work Email</label>
+                    <input
+                      id="reset-email"
+                      type="email"
+                      className="form-input"
+                      placeholder="you@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="login-btn" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 size={18} className="login-spinner animate-spin" /> : "Send reset link"}
+                  </button>
+                </form>
+                <div className="login-footer">
+                  Remember your password?{" "}
+                  <button type="button" className="login-text-btn" onClick={() => setIsForgotPassword(false)}>Sign in</button>
+                </div>
+              </>
             )}
           </motion.div>
         )}

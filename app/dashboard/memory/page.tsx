@@ -19,30 +19,14 @@ import {
   Users,
   CheckCircle2,
   Database,
+  Download,
 } from "lucide-react";
 import { Skeleton } from "../components/Skeleton";
+import { MemoryStatsGrid } from "./components/MemoryStatsGrid";
+import { MemoryRightSidebar } from "./components/MemoryRightSidebar";
+import { AddMemoryModal } from "./components/AddMemoryModal";
+import { TimelineItem, SnapshotItem } from "./types";
 import "./memory.css";
-
-// ── Types and Interfaces ────────────────────────────────────────────────────
-interface TimelineItem {
-  id: string;
-  time: string;
-  category: "decision" | "discussion" | "document" | "insight" | "knowledge";
-  title: string;
-  content: string;
-  badges: string[];
-  sourceName: string;
-  avatarUrl: string;
-  date: string;
-  url?: string | null;
-}
-
-interface SnapshotItem {
-  id: string;
-  title: string;
-  date: string;
-  isLatest?: boolean;
-}
 
 export default function MemoryPage() {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
@@ -489,6 +473,28 @@ export default function MemoryPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    const headers = ["ID", "Title", "Category", "Source", "Date", "Time", "Content"];
+    const rows = timelineItems.map(item => [
+      item.id,
+      `"${item.title.replace(/"/g, '""')}"`,
+      item.category,
+      item.sourceName,
+      `"${item.date}"`,
+      item.time,
+      `"${item.content.replace(/"/g, '""').replace(/\n/g, ' ')}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "corely_memory_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <main className="db-content">
       <div className="mem-container">
@@ -518,6 +524,10 @@ export default function MemoryPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <button className="mem-add-btn" onClick={handleExportCSV} style={{ background: "#fff", color: "#111", border: "1px solid #e4e4e7" }}>
+              <Download size={15} strokeWidth={2.5} />
+              <span>Export CSV</span>
+            </button>
             <button className="mem-add-btn" onClick={() => setShowAddModal(true)}>
               <Plus size={15} strokeWidth={2.5} />
               <span>Add to Memory</span>
@@ -526,60 +536,7 @@ export default function MemoryPage() {
         </div>
 
         {/* ── 2. Summary Stats Cards ── */}
-        <div className="mem-stats-grid">
-          {/* Card 1 */}
-          <div className="mem-stat-card">
-            <div className="mem-stat-icon-wrapper" style={{ background: "#fff3ee", color: "#ff6b00" }}>
-              <Brain size={20} strokeWidth={2.5} />
-            </div>
-            <div className="mem-stat-info">
-              <span className="mem-stat-value">{stats.totalMemories.toLocaleString()}</span>
-              <span className="mem-stat-label">Memory Items</span>
-              <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                ↑ {Math.max(1, Math.round(stats.totalMemories * 0.12))}% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
-              </span>
-            </div>
-          </div>
-          {/* Card 2 */}
-          <div className="mem-stat-card">
-            <div className="mem-stat-icon-wrapper" style={{ background: "#f5f3ff", color: "#a855f7" }}>
-              <Sparkles size={20} strokeWidth={2.5} />
-            </div>
-            <div className="mem-stat-info">
-              <span className="mem-stat-value">{stats.totalDecisions.toLocaleString()}</span>
-              <span className="mem-stat-label">Decisions Captured</span>
-              <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                ↑ {Math.max(1, Math.round(stats.totalDecisions * 0.15))}% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
-              </span>
-            </div>
-          </div>
-          {/* Card 3 */}
-          <div className="mem-stat-card">
-            <div className="mem-stat-icon-wrapper" style={{ background: "#eff6ff", color: "#3b82f6" }}>
-              <Clock size={20} strokeWidth={2.5} />
-            </div>
-            <div className="mem-stat-info">
-              <span className="mem-stat-value">{stats.retentionScore}%</span>
-              <span className="mem-stat-label">Context Retention</span>
-              <span className="mem-stat-trend" style={{ color: stats.retentionColor }}>
-                • <span style={{ color: stats.retentionColor, fontWeight: 700 }}>{stats.retentionStatus}</span>
-              </span>
-            </div>
-          </div>
-          {/* Card 4 */}
-          <div className="mem-stat-card">
-            <div className="mem-stat-icon-wrapper" style={{ background: "#ecfdf5", color: "#10b981" }}>
-              <ShieldAlert size={20} strokeWidth={2.5} />
-            </div>
-            <div className="mem-stat-info">
-              <span className="mem-stat-value">{stats.totalActiveKnowledgeSets.toLocaleString()}</span>
-              <span className="mem-stat-label">Active Knowledge Sets</span>
-              <span className="mem-stat-trend" style={{ color: "#10b981" }}>
-                ↑ 11% <span style={{ color: "#71717a", fontWeight: 500 }}>vs last month</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <MemoryStatsGrid stats={stats} />
 
         {/* ── 3. Main Dashboard Grid ── */}
         <div className="mem-main-grid">
@@ -857,202 +814,13 @@ export default function MemoryPage() {
           </div>
 
           {/* ── Right Column: Sidebar Panels ── */}
-          <div className="mem-right-column">
-            
-            {/* Panel 1: Memory Insights */}
-            <div className="mem-sidebar-card">
-              <div className="mem-sidebar-card-header">
-                <span className="mem-sidebar-card-title">Memory Insights</span>
-                <a href="#" className="mem-sidebar-view-all">View all</a>
-              </div>
-
-              <div className="mem-insights-banner">
-                <div className="mem-insights-banner-header">
-                  <Sparkles size={14} fill="#ff6b00" />
-                  <span className="mem-insights-banner-title">Corely learns and remembers</span>
-                </div>
-                <p className="mem-insights-banner-desc">
-                  I&apos;ve identified {stats.totalInsight > 0 ? stats.totalInsight : 12} new connections across your data this week.
-                </p>
-                <Link href="/dashboard/insights" style={{ textDecoration: 'none' }}>
-                  <button className="mem-insights-btn">
-                    See insights →
-                  </button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Panel 2: Memory by Category */}
-            <div className="mem-sidebar-card">
-              <div className="mem-sidebar-card-header">
-                <span className="mem-sidebar-card-title">Memory by Category</span>
-                <a href="#" className="mem-sidebar-view-all">View all</a>
-              </div>
-
-              <div className="mem-category-list">
-                {/* Decisions */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <CheckCircle2 size={12} style={{ color: "#ff6b00" }} />
-                      <span>Decisions</span>
-                    </div>
-                    <span className="mem-category-value">{stats.totalDecisions.toLocaleString()}</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#ff6b00", width: `${stats.totalMemories > 0 ? (stats.totalDecisions / stats.totalMemories) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                {/* Discussions */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <MessageSquare size={12} style={{ color: "#8b5cf6" }} />
-                      <span>Discussions</span>
-                    </div>
-                    <span className="mem-category-value">{stats.totalDiscussions.toLocaleString()}</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#8b5cf6", width: `${stats.totalMemories > 0 ? (stats.totalDiscussions / stats.totalMemories) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                {/* Documents */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <FileText size={12} style={{ color: "#3b82f6" }} />
-                      <span>Documents</span>
-                    </div>
-                    <span className="mem-category-value">{stats.totalDocuments.toLocaleString()}</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#3b82f6", width: `${stats.totalMemories > 0 ? (stats.totalDocuments / stats.totalMemories) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                {/* People / Knowledge */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <Users size={12} style={{ color: "#10b981" }} />
-                      <span>Knowledge Sets</span>
-                    </div>
-                    <span className="mem-category-value">{stats.totalKnowledge.toLocaleString()}</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#10b981", width: `${stats.totalMemories > 0 ? (stats.totalKnowledge / stats.totalMemories) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                {/* Projects / Insights */}
-                <div className="mem-category-item">
-                  <div className="mem-category-row-top">
-                    <div className="mem-category-name-wrapper">
-                      <Zap size={12} style={{ color: "#f59e0b" }} />
-                      <span>Insights</span>
-                    </div>
-                    <span className="mem-category-value">{stats.totalInsight.toLocaleString()}</span>
-                  </div>
-                  <div className="mem-category-bar-bg">
-                    <div className="mem-category-bar-fill" style={{ background: "#f59e0b", width: `${stats.totalMemories > 0 ? (stats.totalInsight / stats.totalMemories) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-
-              </div>
-            </div>
-
-            {/* Panel 2.5: Memory Sources Donut */}
-            <div className="mem-sidebar-card">
-              <div className="mem-sidebar-card-header">
-                <span className="mem-sidebar-card-title">Memory Sources</span>
-              </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0" }}>
-                <div style={{ position: "relative", width: 140, height: 140 }}>
-                  <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      stroke="#e4e4e7"
-                      strokeWidth="11"
-                    />
-                    {sourceChartData.map((s, i) => (
-                      <circle
-                        key={i}
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke={s.color}
-                        strokeWidth="11"
-                        strokeDasharray={s.dash}
-                        strokeDashoffset={s.offset}
-                        style={{ transition: "all 0.5s ease" }}
-                      />
-                    ))}
-                  </svg>
-                  <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: "#18181b", lineHeight: 1 }}>{stats.totalMemories}</div>
-                    <div style={{ fontSize: 11, color: "#71717a", fontWeight: 500, marginTop: 4 }}>Sources</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", justifyContent: "center", marginTop: 24, width: "100%" }}>
-                  {sourceChartData.map((s, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
-                      <span style={{ fontWeight: 600, color: "#18181b" }}>{s.count}</span>
-                      <span style={{ color: "#71717a", textTransform: "capitalize" }}>{s.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Panel 3: Recent Snapshots */}
-            <div className="mem-sidebar-card">
-              <div className="mem-sidebar-card-header">
-                <span className="mem-sidebar-card-title">Recent Snapshots</span>
-                <a href="#" className="mem-sidebar-view-all">View all</a>
-              </div>
-
-              <div className="mem-snapshot-list">
-                {snapshots.map((snap) => (
-                  <div key={snap.id} className="mem-snapshot-item" style={{ position: "relative" }}>
-                    <div className="mem-snapshot-item-left">
-                      <div className="mem-snapshot-icon-wrapper">
-                        <FileText size={16} />
-                      </div>
-                      <div className="mem-snapshot-meta">
-                        <span className="mem-snapshot-title">{snap.title}</span>
-                        <span className="mem-snapshot-date">{snap.date}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      {snap.isLatest && <span className="mem-snapshot-badge">Latest</span>}
-                      <button
-                        className="mem-snapshot-delete-btn"
-                        onClick={() => handleDeleteSnapshot(snap.id)}
-                        title="Delete snapshot"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button className="mem-snapshot-create-btn" onClick={handleCreateSnapshot}>
-                Create Snapshot
-              </button>
-            </div>
-
-          </div>
+          <MemoryRightSidebar 
+            stats={stats}
+            sourceChartData={sourceChartData}
+            snapshots={snapshots}
+            handleCreateSnapshot={handleCreateSnapshot}
+            handleDeleteSnapshot={handleDeleteSnapshot}
+          />
 
         </div>
 
@@ -1061,98 +829,22 @@ export default function MemoryPage() {
       {/* ── 4. Interactive "+ Add to Memory" Modal form ── */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="mem-modal-overlay">
-            <motion.div
-              className="mem-modal-card"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <h2 className="mem-modal-title">Add to Memory</h2>
-              
-              <form onSubmit={handleAddMemorySubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div className="mem-form-group">
-                  <label className="mem-form-label">Event Category</label>
-                  <select
-                    className="mem-form-select"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value as TimelineItem["category"])}
-                  >
-                    <option value="decision">Decision Captured</option>
-                    <option value="discussion">Discussion Summary</option>
-                    <option value="document">Document Added</option>
-                    <option value="insight">Insight Generated</option>
-                    <option value="knowledge">Knowledge Update</option>
-                  </select>
-                </div>
-
-                <div className="mem-form-group">
-                  <label className="mem-form-label">Title / Event Type</label>
-                  <input
-                    type="text"
-                    className={`mem-form-input ${formErrors.title ? "error" : ""}`}
-                    placeholder="e.g. Decision Captured"
-                    value={newTitle}
-                    onChange={(e) => {
-                      setNewTitle(e.target.value);
-                      if (formErrors.title) setFormErrors({ ...formErrors, title: undefined });
-                    }}
-                  />
-                  {formErrors.title && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.title}</span>}
-                </div>
-
-                <div className="mem-form-group">
-                  <label className="mem-form-label">Content Description</label>
-                  <textarea
-                    className={`mem-form-textarea ${formErrors.content ? "error" : ""}`}
-                    placeholder="Provide description of what happened..."
-                    value={newContent}
-                    onChange={(e) => {
-                      setNewContent(e.target.value);
-                      if (formErrors.content) setFormErrors({ ...formErrors, content: undefined });
-                    }}
-                  />
-                  {formErrors.content && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.content}</span>}
-                </div>
-
-                <div className="mem-form-group">
-                  <label className="mem-form-label">Badge Tag</label>
-                  <input
-                    type="text"
-                    className="mem-form-input"
-                    placeholder="e.g. Marketing Strategy"
-                    value={newBadge}
-                    onChange={(e) => setNewBadge(e.target.value)}
-                  />
-                </div>
-
-                <div className="mem-form-group">
-                  <label className="mem-form-label">Data Source</label>
-                  <select
-                    className="mem-form-select"
-                    value={newSource}
-                    onChange={(e) => setNewSource(e.target.value)}
-                  >
-                    <option value="Notion">Notion</option>
-                    <option value="Slack">Slack</option>
-                    <option value="Google Drive">Google Drive</option>
-                    <option value="Corely AI">Corely AI</option>
-                    <option value="HR System">HR System</option>
-                  </select>
-                </div>
-
-                <div className="mem-modal-actions">
-                  <button type="button" className="mem-cancel-btn" onClick={() => setShowAddModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="mem-submit-btn">
-                    Save Memory
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+          <AddMemoryModal
+            newCategory={newCategory}
+            setNewCategory={setNewCategory}
+            newTitle={newTitle}
+            setNewTitle={setNewTitle}
+            newContent={newContent}
+            setNewContent={setNewContent}
+            newBadge={newBadge}
+            setNewBadge={setNewBadge}
+            newSource={newSource}
+            setNewSource={setNewSource}
+            formErrors={formErrors}
+            setFormErrors={setFormErrors}
+            handleAddMemorySubmit={handleAddMemorySubmit}
+            setShowAddModal={setShowAddModal}
+          />
         )}
       </AnimatePresence>
 
