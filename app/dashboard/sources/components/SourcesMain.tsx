@@ -14,6 +14,7 @@ import {
   Search,
   Filter,
   List,
+  LayoutGrid,
   MoreHorizontal,
   X,
   CheckCircle2,
@@ -712,6 +713,9 @@ export default function SourcesMain() {
   // New state for tabs, dropdowns, toast notifications, and disconnect modals
   const [activeTab, setActiveTab] = useState<"all" | "synced" | "syncing">("all");
   const [activeDropdownSourceId, setActiveDropdownSourceId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filterType, setFilterType] = useState<string | "all">("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [viewingHistorySourceId, setViewingHistorySourceId] = useState<string | null>(null);
   const [disconnectingSource, setDisconnectingSource] = useState<Source | null>(null);
   const [managingSource, setManagingSource] = useState<Source | null>(null);
@@ -730,8 +734,12 @@ export default function SourcesMain() {
 
   // Close active actions dropdown if user clicks anywhere outside in window
   useEffect(() => {
-    const handleOutsideClick = () => {
+    const handleOutsideClick = (e: MouseEvent) => {
       setActiveDropdownSourceId(null);
+      const target = e.target as HTMLElement;
+      if (!target.closest('.src-filter-container')) {
+        setShowFilterDropdown(false);
+      }
     };
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
@@ -834,6 +842,7 @@ export default function SourcesMain() {
       if (activeTab === "syncing") return s.status === "syncing";
       return true;
     })
+    .filter((s) => filterType === "all" || s.type === filterType)
     .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const totalIndexed = sources.reduce((sum, s) => sum + s.itemsIndexed, 0);
@@ -1032,11 +1041,56 @@ export default function SourcesMain() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="src-filter-btn">
-              <Filter size={14} /> Filter
-            </button>
-            <button className="src-list-btn">
-              <List size={14} />
+            <div style={{ position: "relative" }} className="src-filter-container">
+              <button 
+                className={`src-filter-btn ${filterType !== "all" ? "active-filter" : ""}`}
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                style={filterType !== "all" ? { background: "#eff6ff", color: "#2563eb", borderColor: "#bfdbfe" } : {}}
+              >
+                <Filter size={14} /> {filterType === "all" ? "Filter" : filterType.replace("_", " ")}
+              </button>
+              
+              {showFilterDropdown && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: 6,
+                  background: "var(--db-panel)",
+                  border: "1px solid #e4e4e7",
+                  borderRadius: 8,
+                  padding: 4,
+                  minWidth: 140,
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                  zIndex: 50,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2
+                }}>
+                  <button 
+                    onClick={() => { setFilterType("all"); setShowFilterDropdown(false); }}
+                    style={{ padding: "6px 12px", textAlign: "left", fontSize: 13, background: filterType === "all" ? "#f4f4f5" : "transparent", border: "none", borderRadius: 6, cursor: "pointer" }}
+                  >
+                    All Types
+                  </button>
+                  {Array.from(new Set(sources.map(s => s.type))).map(type => (
+                    <button 
+                      key={type}
+                      onClick={() => { setFilterType(type); setShowFilterDropdown(false); }}
+                      style={{ padding: "6px 12px", textAlign: "left", fontSize: 13, background: filterType === type ? "#f4f4f5" : "transparent", border: "none", borderRadius: 6, cursor: "pointer", textTransform: "capitalize" }}
+                    >
+                      {type.replace("_", " ")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button 
+              className="src-list-btn"
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+              title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+            >
+              {viewMode === "grid" ? <List size={14} /> : <LayoutGrid size={14} />}
             </button>
           </div>
         </div>
@@ -1105,9 +1159,23 @@ export default function SourcesMain() {
 
         {/* Data table */}
         {!loading && filtered.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20, width: "100%" }}>
+          <motion.div 
+            layout
+            style={{ 
+              display: "grid", 
+              gridTemplateColumns: viewMode === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr", 
+              gap: 20, 
+              width: "100%" 
+            }}
+          >
+            <AnimatePresence mode="popLayout">
             {filtered.map((source) => (
-              <div
+              <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
                 key={source.id}
                 style={{
                   border: "1px solid #e4e4e7",
@@ -1411,9 +1479,10 @@ export default function SourcesMain() {
                     {source.status === "syncing" ? "Syncing..." : "Sync"}
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+            </AnimatePresence>
+          </motion.div>
         )}
 
         {filtered.length > 0 && (

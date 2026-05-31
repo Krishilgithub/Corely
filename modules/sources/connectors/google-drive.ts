@@ -256,6 +256,22 @@ async function processFile(
       { fileId: file.id, alt: "media" },
       { responseType: "arraybuffer" }
     );
+
+    // --- Polyfill missing DOM APIs for pdf.js in Node ---
+    if (typeof globalThis.DOMMatrix === "undefined") {
+      globalThis.DOMMatrix = class DOMMatrix {
+        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+        constructor() {}
+      } as any;
+    }
+    if (typeof globalThis.ImageData === "undefined") {
+      globalThis.ImageData = class ImageData {} as any;
+    }
+    if (typeof globalThis.Path2D === "undefined") {
+      globalThis.Path2D = class Path2D {} as any;
+    }
+    // ----------------------------------------------------
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pdfImport = require("pdf-parse");
     const PDFParseClass = pdfImport.PDFParse || (typeof pdfImport === "function" ? pdfImport : pdfImport.default);

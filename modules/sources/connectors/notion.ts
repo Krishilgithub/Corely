@@ -82,7 +82,6 @@ export async function syncNotion(sourceId: string): Promise<void> {
     do {
       const dbSearch = await withRetry(() =>
         notion.search({
-          filter: { value: "database" as any, property: "object" },
           page_size: 100,
           start_cursor: dbCursor,
         })

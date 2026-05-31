@@ -19,9 +19,9 @@ export async function syncGmail(sourceId: string): Promise<void> {
 
   const clientId = process.env.GMAIL_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GMAIL_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GMAIL_REDIRECT_URI;
+  const redirectUri = process.env.GMAIL_REDIRECT_URI ?? `${process.env.NEXT_PUBLIC_APP_URL}/api/sources/gmail/callback`;
 
-  if (!clientId || !clientSecret || !redirectUri) {
+  if (!clientId || !clientSecret || !redirectUri || redirectUri.includes("undefined")) {
     throw new Error("Gmail OAuth is not configured");
   }
 
