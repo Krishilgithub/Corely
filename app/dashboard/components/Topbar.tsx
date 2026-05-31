@@ -87,19 +87,36 @@ export default function Topbar() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   useEffect(() => {
     setMounted(true);
+    // Initial fetch to check sync status
+    const checkSyncStatus = async () => {
+      try {
+        const res = await fetch("/api/sources");
+        if (res.ok) {
+          const data = await res.json();
+          const syncing = data.data?.sources?.some((s: { status: string }) => s.status === "syncing" || s.status === "pending");
+          setIsSyncing(!!syncing);
+        }
+      } catch (e) {
+        console.error("Failed to fetch sync status", e);
+      }
+    };
+    checkSyncStatus();
+    
+    // Poll every 10s if syncing
+    const interval = setInterval(() => {
+      checkSyncStatus();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   // ── Keyboard Shortcuts ───────────────────────────────────────────────────
+  // Cmd+K shortcut moved to global CommandPalette component
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowSearch((prev) => !prev);
-        setSearchQuery("");
-        setSearchResults([]);
-      }
       if (e.key === "Escape") {
         setShowSearch(false);
         setShowNotifs(false);
@@ -333,7 +350,11 @@ export default function Topbar() {
       {/* Right Actions */}
       <div className="db-topbar-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         
-
+        {isSyncing && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#ff6b00", background: "var(--orange-light)", padding: "4px 10px", borderRadius: 100 }}>
+            <Loader2 size={12} className="animate-spin" /> Syncing...
+          </div>
+        )}
 
         {/* Help Button */}
         <button

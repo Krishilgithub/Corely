@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -713,100 +713,72 @@ export default function MemoryPage() {
                   )}
                 </div>
               ) : (
-                Object.keys(groupedItems).map((date) => (
-                  <div key={date}>
-                    <div className="mem-timeline-group-header">{date}</div>
-                    
-                    {groupedItems[date].map((item) => {
-                      const cfg = getCategoryDetails(item.category);
-                      const isOld = !item.date.includes("Today") && !item.date.includes("Yesterday");
-                      return (
-                        <motion.div
-                          key={item.id}
-                          className="mem-timeline-row"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <div className="mem-timeline-time">{item.time}</div>
-                          
-                          <div className="mem-timeline-node-container">
-                            <div
-                              className="mem-timeline-node"
-                              style={{
-                                borderColor: cfg.iconBorder,
-                                background: cfg.iconBg,
-                                color: cfg.iconColor,
-                              }}
-                            >
-                              {cfg.icon}
-                            </div>
-                          </div>
-
-                          <div 
-                            className="mem-timeline-card" 
-                            style={{ cursor: "pointer", opacity: isOld ? 0.85 : 1 }}
-                            onClick={() => setSelectedMemory(item)}
-                          >
-                            <div className="mem-card-left">
-                              <div className="mem-card-meta">
-                                <span style={{ color: cfg.iconColor }}>{item.title}</span>
-                              </div>
-                              <p className="mem-card-content">{item.content}</p>
-                              
-                              <div className="mem-badge-list">
-                                {item.badges.map((b) => (
-                                  <span
-                                    key={b}
-                                    className="mem-badge"
-                                    style={{
-                                      background: cfg.badgeBg,
-                                      color: cfg.badgeColor,
-                                    }}
-                                  >
-                                    {b}
-                                  </span>
-                                ))}
-                                {isOld && (
-                                  <span className="mem-badge" style={{ background: "#f4f4f5", color: "var(--db-text-muted)", border: "1px solid #e4e4e7" }}>
-                                    Aged
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="mem-card-right">
-                              <div className="mem-source-badge">
-                                <div className="mem-source-icon-wrap">
-                                  {getSourceIcon(item.sourceName)}
-                                </div>
-                                <span>{item.sourceName}</span>
-                              </div>
-                              
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={item.avatarUrl}
-                                className="mem-participant-avatar"
-                                alt="User avatar"
-                              />
-
-                              <button
-                                className="mem-card-action-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteItem(item.id);
-                                }}
-                                title="Delete entry"
+                <div className="mem-data-table-container">
+                  <table className="mem-data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 40 }}></th>
+                        <th>Title & Snippet</th>
+                        <th style={{ width: 140 }}>Source</th>
+                        <th style={{ width: 80 }}>Time</th>
+                        <th style={{ width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(groupedItems).map((date) => (
+                        <Fragment key={date}>
+                          <tr className="mem-table-group-header">
+                            <td colSpan={5}>{date}</td>
+                          </tr>
+                          {groupedItems[date].map((item) => {
+                            const cfg = getCategoryDetails(item.category);
+                            const isOld = !item.date.includes("Today") && !item.date.includes("Yesterday");
+                            return (
+                              <tr
+                                key={item.id}
+                                className={`mem-table-row ${isOld ? "mem-table-row-old" : ""}`}
+                                onClick={() => setSelectedMemory(item)}
                               >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                ))
+                                <td className="mem-td-category">
+                                  <div className="mem-table-icon" style={{ background: cfg.iconBg, color: cfg.iconColor, borderColor: cfg.iconBorder }}>
+                                    {cfg.icon}
+                                  </div>
+                                </td>
+                                <td className="mem-td-title">
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                    <span style={{ color: "#18181b", fontWeight: 600, fontSize: 13 }}>{item.title}</span>
+                                    <span className="mem-table-content-preview">{item.content}</span>
+                                  </div>
+                                </td>
+                                <td className="mem-td-source">
+                                  <div className="mem-source-badge">
+                                    <div className="mem-source-icon-wrap" style={{ opacity: 0.8 }}>{getSourceIcon(item.sourceName)}</div>
+                                    <span style={{ fontSize: 12, fontWeight: 500 }}>{item.sourceName}</span>
+                                  </div>
+                                </td>
+                                <td className="mem-td-date">
+                                  <span style={{ fontSize: 12, color: "var(--db-text-muted)" }}>{item.time}</span>
+                                </td>
+                                <td className="mem-td-actions">
+                                  <button
+                                    className="mem-card-action-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteItem(item.id);
+                                    }}
+                                    title="Delete entry"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               {/* Load More Button */}
