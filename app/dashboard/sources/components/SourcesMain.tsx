@@ -611,6 +611,87 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: 
             </div>
           </div>
 
+          {/* Manual Upload Card */}
+          <div
+            style={{
+              border: "1.5px solid #e4e4e7",
+              borderRadius: 12,
+              padding: "20px",
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "#10b981";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #d1fae5";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    background: "#ecfdf5",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <UploadCloud size={22} color="#10b981" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Manual Upload</div>
+                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
+                    Upload documents directly
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  document.getElementById("manual-upload-input")?.click();
+                  onClose();
+                }}
+                style={{
+                  padding: "8px 18px",
+                  background: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.15s",
+                }}
+              >
+                Upload File
+              </button>
+            </div>
+            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {["PDF", "DOCX", "TXT", "Markdown", "CSV"].map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#52525b",
+                    background: "#f4f4f5",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
 
           </div>
         </motion.div>
