@@ -26,60 +26,29 @@ export default function SettingsSidebar() {
   const currentTabSlug = pathname.split("/").pop() || "general";
   
   return (
-    <div className="set-nav-sidebar" style={{ 
-      position: "sticky", 
-      top: "0px", 
-      display: "flex", 
-      flexDirection: "column", 
-      gap: "2px",
-      paddingRight: "8px"
-    }}>
-      <div style={{ marginBottom: 28, paddingLeft: 12 }}>
-        <h1 className="set-title" style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: "-0.5px", marginBottom: 6 }}>Settings</h1>
-        <p className="set-subtitle" style={{ fontSize: 13, color: "#71717a", fontWeight: 500 }}>Manage your preferences and workspace configurations.</p>
+    <div className="settings-sidebar-nav">
+      <div className="settings-sidebar-header">
+        <h1 className="settings-sidebar-title">Settings</h1>
+        <p className="settings-sidebar-subtitle">Manage your workspace preferences</p>
       </div>
       
-      {tabConfig.map((tab) => {
-        const isActive = currentTabSlug === tab.slug;
-        const Icon = tab.icon;
-        
-        return (
-          <Link
-            key={tab.slug}
-            href={`/dashboard/settings/${tab.slug}`}
-            style={{ 
-              textDecoration: 'none', 
-              display: 'flex', 
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              color: isActive ? '#ff6b00' : '#52525b',
-              background: isActive ? '#fff3ee' : 'transparent',
-              fontWeight: isActive ? 600 : 500,
-              fontSize: '13.5px',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseOver={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = '#f4f4f5';
-                e.currentTarget.style.color = '#111';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#52525b';
-              }
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Icon size={16} strokeWidth={isActive ? 2.5 : 2} style={{ opacity: isActive ? 1 : 0.7 }} />
-              {tab.label}
-            </div>
-          </Link>
-        );
-      })}
+      <nav className="settings-nav-list">
+        {tabConfig.map((tab) => {
+          const isActive = currentTabSlug === tab.slug;
+          const Icon = tab.icon;
+          
+          return (
+            <Link
+              key={tab.slug}
+              href={`/dashboard/settings/${tab.slug}`}
+              className={`settings-nav-item ${isActive ? "active" : ""}`}
+            >
+              <Icon size={16} className="settings-nav-icon" />
+              <span>{tab.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

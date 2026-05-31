@@ -3,11 +3,15 @@ import React from "react";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="db-content" style={{ minHeight: "calc(100vh - 60px)", overflowY: "scroll" }}>
-      <div className="set-page-grid" style={{ alignItems: "flex-start", minHeight: 600 }}>
-        <SettingsSidebar />
-        {children}
+    <div className="settings-outer">
+      <div className="settings-layout">
+        <aside className="settings-sidebar-col">
+          <SettingsSidebar />
+        </aside>
+        <div className="settings-main-col">
+          {children}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

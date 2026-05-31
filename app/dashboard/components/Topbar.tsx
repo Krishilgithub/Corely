@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2
+  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
 import { formatDistanceToNow } from "date-fns";
@@ -70,6 +70,7 @@ export default function Topbar() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +92,7 @@ export default function Topbar() {
       if (e.key === "Escape") {
         setShowSearch(false);
         setShowNotifs(false);
+        setShowUserMenu(false);
         if (typeof document !== "undefined") {
           document.body.classList.remove("mobile-sidebar-open");
         }
@@ -388,17 +390,61 @@ export default function Topbar() {
         </div>
 
         {/* Avatar */}
-        <div
-          style={{
-            width: 34, height: 34, borderRadius: "50%",
-            background: "linear-gradient(135deg, #ff6b00, #ff9240)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13, fontWeight: 900, color: "#fff",
-            cursor: "pointer", border: "1.5px solid #ebebeb",
-          }}
-          aria-label="User profile"
-        >
-          {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
+        <div style={{ position: "relative" }}>
+          <div
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            style={{
+              width: 34, height: 34, borderRadius: "50%",
+              background: "linear-gradient(135deg, #ff6b00, #ff9240)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 900, color: "#fff",
+              cursor: "pointer", border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+            }}
+            aria-label="User profile"
+          >
+            {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
+          </div>
+
+          <AnimatePresence>
+            {showUserMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: "absolute", top: "100%", right: 0, marginTop: 12,
+                  background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)", zIndex: 50, width: 220,
+                  display: "flex", flexDirection: "column", overflow: "hidden"
+                }}
+              >
+                <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111" }}>{user?.name || "User"}</div>
+                  <div style={{ fontSize: 12, color: "#71717a", marginTop: 2 }}>{user?.email}</div>
+                </div>
+                <div style={{ padding: "8px" }}>
+                  <Link href="/dashboard/settings" onClick={() => setShowUserMenu(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, color: "#3f3f46", fontSize: 13, textDecoration: "none", fontWeight: 500 }} className="hover:bg-zinc-50">
+                    <Settings size={14} /> Settings
+                  </Link>
+                </div>
+                <div style={{ padding: "8px", borderTop: "1px solid #f0f0f0" }}>
+                  <button 
+                    onClick={async () => {
+                      await fetch("/api/auth/logout", { method: "POST" });
+                      router.push("/login");
+                      router.refresh();
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 12px", borderRadius: 6, color: "#ef4444", fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
+                    className="hover:bg-red-50"
+                  >
+                    Log out
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
