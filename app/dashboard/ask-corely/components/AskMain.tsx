@@ -66,7 +66,7 @@ const PRESET_PROMPTS = [
   },
   {
     icon: <Target size={15} style={{ color: "#ff6b00" }} />,
-    text: "What decisions need attention today?",
+    text: "How did we decide on the new API design?",
   },
 ];
 
@@ -731,7 +731,54 @@ export default function AskMain({
                     <div className="ac-response-context" style={{ lineHeight: "1.6", margin: 0 }}>
                       {msg.text ? (
                         <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-100 prose-pre:text-zinc-900 prose-a:text-orange-600">
-                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          <ReactMarkdown
+                            components={{
+                              a: ({ node, ...props }) => {
+                                const href = props.href || "";
+                                if (href.startsWith("#source-")) {
+                                  const sourceId = href.replace("#source-", "");
+                                  return (
+                                    <a
+                                      href={`#ref-${msg.id}-${sourceId}`}
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        minWidth: "16px",
+                                        height: "16px",
+                                        borderRadius: "50%",
+                                        background: "#ffefd6",
+                                        color: "#ff6b00",
+                                        fontSize: "10px",
+                                        fontWeight: 800,
+                                        textDecoration: "none",
+                                        marginLeft: "4px",
+                                        verticalAlign: "super",
+                                        cursor: "pointer",
+                                        border: "1px solid #ffcc99",
+                                        lineHeight: 1
+                                      }}
+                                      title="Jump to source"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        const el = document.getElementById(`ref-${msg.id}-${sourceId}`);
+                                        if (el) {
+                                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                                          el.style.boxShadow = "0 0 0 2px #ff6b00, 0 0 20px rgba(255, 107, 0, 0.3)";
+                                          setTimeout(() => { el.style.boxShadow = "none"; }, 1500);
+                                        }
+                                      }}
+                                    >
+                                      {sourceId}
+                                    </a>
+                                  );
+                                }
+                                return <a {...props} target="_blank" rel="noopener noreferrer" />;
+                              },
+                            }}
+                          >
+                            {msg.text.replace(/\[(\d+)\]/g, " [[$1]](#source-$1) ")}
+                          </ReactMarkdown>
                         </div>
                       ) : (
                         <ThinkingState sources={msg.sources} />
@@ -753,6 +800,7 @@ export default function AskMain({
                             return (
                               <a
                                 key={i}
+                                id={`ref-${msg.id}-${i + 1}`}
                                 href={src.url || "#"}
                                 target={src.url ? "_blank" : "_self"}
                                 rel="noopener noreferrer"
@@ -768,9 +816,15 @@ export default function AskMain({
                                   borderRadius: "6px",
                                   fontSize: "12px",
                                   color: "var(--db-text)",
-                                  transition: "all 0.2s",
+                                  transition: "all 0.3s ease",
                                 }}
                               >
+                                <span style={{
+                                  background: "#f4f4f5", color: "#a1a1aa", fontSize: "10px", 
+                                  fontWeight: 800, padding: "1px 5px", borderRadius: "4px", marginRight: "4px"
+                                }}>
+                                  {i + 1}
+                                </span>
                                 <FileText size={11} style={{ marginRight: 2 }} />
                                 <span style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {src.title}
