@@ -30,7 +30,7 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           style={{
-            position: "fixed", top: 24, right: 24, zIndex: 9999, background: "var(--db-text)", color: "var(--db-panel)",
+            position: "fixed", top: 24, right: 24, zIndex: 9999, background: "var(--db-text)", color: "#ffffff",
             padding: "14px 20px", borderRadius: 12, display: "flex", alignItems: "center", gap: 10,
             fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.25)"
           }}
@@ -118,7 +118,7 @@ export default function ProfilePage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
                 <div style={{ position: "relative" }}>
-                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #ff6b00, #ff9240)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 800, color: "var(--db-panel)", boxShadow: "0 8px 24px rgba(255, 107, 0, 0.2)" }}>
+                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #ff6b00, #ff9240)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 800, color: "#ffffff", boxShadow: "0 8px 24px rgba(255, 107, 0, 0.2)" }}>
                     {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </div>
                   <button style={{ position: "absolute", bottom: -4, right: -4, width: 32, height: 32, borderRadius: "50%", background: "var(--db-panel)", border: "1px solid #e4e4e7", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", color: "#52525b" }}>
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                   onClick={handleSave}
                   disabled={isSaving}
                   style={{
-                    background: "var(--db-text)", color: "var(--db-panel)", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
+                    background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
                   }}
                 >
                   {isSaving ? "Saving..." : "Save Changes"}
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                     onClick={handleSave}
                     disabled={isSaving}
                     style={{
-                      background: "var(--db-text)", color: "var(--db-panel)", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", marginTop: 8, width: "fit-content", opacity: isSaving ? 0.7 : 1
+                      background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", marginTop: 8, width: "fit-content", opacity: isSaving ? 0.7 : 1
                     }}
                   >
                     {isSaving ? "Updating..." : "Update Password"}
@@ -249,7 +249,7 @@ export default function ProfilePage() {
                   <AlertTriangle size={18} /> Danger Zone
                 </h3>
                 <p style={{ margin: "0 0 20px", fontSize: 13, color: "#991b1b" }}>Once you delete your account, there is no going back. Please be certain.</p>
-                <button style={{ background: "#dc2626", color: "var(--db-panel)", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                <button style={{ background: "#dc2626", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                   Delete Account
                 </button>
               </div>
@@ -283,7 +283,7 @@ export default function ProfilePage() {
                   onClick={handleSave}
                   disabled={isSaving}
                   style={{
-                    background: "var(--db-text)", color: "var(--db-panel)", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
+                    background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
                   }}
                 >
                   {isSaving ? "Saving..." : "Save Preferences"}

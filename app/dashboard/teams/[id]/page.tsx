@@ -125,7 +125,7 @@ export default function TeamDetailsPage() {
         <div className="tm-title-wrapper" style={{ display: "flex", gap: 20 }}>
           <button 
             className="tm-btn-secondary" 
-            style={{ padding: "10px", borderRadius: "12px", height: "fit-content", background: "#fff" }}
+            style={{ padding: "10px", borderRadius: "12px", height: "fit-content", background: "var(--db-panel)" }}
             onClick={() => router.push("/dashboard/teams")}
           >
             <ChevronLeft size={18} />
@@ -181,7 +181,7 @@ export default function TeamDetailsPage() {
               style={{ 
                 color: "#ef4444", 
                 borderColor: "#fecaca", 
-                backgroundColor: "#fff",
+                backgroundcolor: "#ffffff",
                 boxShadow: "0 2px 8px rgba(239, 68, 68, 0.1)",
                 padding: "8px 16px",
                 borderRadius: "8px",
@@ -201,8 +201,8 @@ export default function TeamDetailsPage() {
         {/* Members List */}
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Team Members</h2>
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e4e4e7", overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.5fr auto", padding: "16px 20px", borderBottom: "1px solid #e4e4e7", backgroundColor: "#fafafa", fontSize: 13, fontWeight: 500, color: "#71717a" }}>
+          <div style={{ background: "var(--db-panel)", borderRadius: 16, border: "1px solid #e4e4e7", overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.5fr auto", padding: "16px 20px", borderBottom: "1px solid #e4e4e7", backgroundColor: "var(--db-bg)", fontSize: 13, fontWeight: 500, color: "var(--db-text-muted)" }}>
               <div>Member</div>
               <div>Email</div>
               <div>Workspace Role</div>
@@ -213,7 +213,7 @@ export default function TeamDetailsPage() {
               team.users.map((member: any) => (
                 <div key={member.id} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.5fr auto", padding: "16px 20px", borderBottom: "1px solid #f4f4f5", alignItems: "center", fontSize: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#e4e4e7", color: "#52525b", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "var(--db-border)", color: "#52525b", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 12 }}>
                       {member.name ? member.name.charAt(0).toUpperCase() : "U"}
                     </div>
                     <span style={{ fontWeight: 500 }}>{member.name || "Unknown User"}</span>
@@ -243,7 +243,7 @@ export default function TeamDetailsPage() {
                 </div>
               ))
             ) : (
-              <div style={{ padding: 40, textAlign: "center", color: "#71717a" }}>
+              <div style={{ padding: 40, textAlign: "center", color: "var(--db-text-muted)" }}>
                 <Users size={32} style={{ margin: "0 auto 12px", opacity: 0.2 }} />
                 <p>No members assigned to this team yet.</p>
               </div>

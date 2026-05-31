@@ -150,7 +150,7 @@ export default function Sidebar() {
                     left: 0,
                     right: 0,
                     marginBottom: 8,
-                    background: "#fff",
+                    background: "var(--db-panel)",
                     borderRadius: 8,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     border: "1px solid #e4e4e7",

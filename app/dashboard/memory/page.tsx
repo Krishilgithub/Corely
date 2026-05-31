@@ -326,7 +326,7 @@ export default function MemoryPage() {
     
     let cumulativePercent = 0;
     const colorMap: Record<string, string> = {
-      notion: "#111111",
+      notion: "var(--db-text)",
       slack: "#4a154b",
       "google drive": "#34a853",
       "corely ai": "#ff6b00"
@@ -524,7 +524,7 @@ export default function MemoryPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="mem-add-btn" onClick={handleExportCSV} style={{ background: "#fff", color: "#111", border: "1px solid #e4e4e7" }}>
+            <button className="mem-add-btn" onClick={handleExportCSV} style={{ background: "var(--db-panel)", color: "var(--db-text)", border: "1px solid #e4e4e7" }}>
               <Download size={15} strokeWidth={2.5} />
               <span>Export CSV</span>
             </button>
@@ -657,18 +657,18 @@ export default function MemoryPage() {
                   ))}
                 </div>
               ) : Object.keys(groupedItems).length === 0 ? (
-                <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, marginLeft: 103, background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
+                <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, marginLeft: 103, background: "var(--db-bg)", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--db-shadow)", marginBottom: 20 }}>
                     {timelineItems.length === 0 ? (
                       <Database size={28} style={{ color: "#ff6b00" }} />
                     ) : (
-                      <Search size={28} style={{ color: "#71717a" }} />
+                      <Search size={28} style={{ color: "var(--db-text-muted)" }} />
                     )}
                   </div>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", marginBottom: 8 }}>
                     {timelineItems.length === 0 ? "Your Memory is empty" : "No entries match your filters"}
                   </h3>
-                  <p style={{ fontSize: 14, color: "#71717a", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
                     {timelineItems.length === 0 
                       ? "Corely builds your institutional memory automatically by syncing with your tools."
                       : "Try adjusting your search query, or clear your filters to see all memory entries."}
@@ -759,7 +759,7 @@ export default function MemoryPage() {
                                   </span>
                                 ))}
                                 {isOld && (
-                                  <span className="mem-badge" style={{ background: "#f4f4f5", color: "#71717a", border: "1px solid #e4e4e7" }}>
+                                  <span className="mem-badge" style={{ background: "#f4f4f5", color: "var(--db-text-muted)", border: "1px solid #e4e4e7" }}>
                                     Aged
                                   </span>
                                 )}
@@ -860,7 +860,7 @@ export default function MemoryPage() {
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <h2 className="mem-modal-title" style={{ marginBottom: 4 }}>{selectedMemory.title}</h2>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, fontSize: 13, color: "#71717a" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, fontSize: 13, color: "var(--db-text-muted)" }}>
                 <span>{selectedMemory.date} at {selectedMemory.time}</span>
                 <span>•</span>
                 <span style={{ textTransform: "capitalize" }}>{selectedMemory.sourceName}</span>

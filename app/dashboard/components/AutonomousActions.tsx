@@ -44,7 +44,7 @@ export default function AutonomousActions({ data }: { data?: Action[] }) {
     >
       {/* Header */}
       <div className="db-actions-header">
-        <span style={{ fontSize: "14px", fontWeight: 700, color: "#111111" }}>
+        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--db-text)" }}>
           Autonomous Actions
         </span>
         <Link
@@ -63,9 +63,9 @@ export default function AutonomousActions({ data }: { data?: Action[] }) {
       {/* Actions Grid */}
       <div className="db-actions-grid">
         {loading ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "#71717a" }}>Loading actions...</div>
+          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>Loading actions...</div>
         ) : actions.length === 0 ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "#71717a" }}>No actions found.</div>
+          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>No actions found.</div>
         ) : (
           actions.map((action, i) => {
             const Icon = iconMap[action.iconType] || Cloud;

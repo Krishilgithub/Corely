@@ -3,7 +3,7 @@
 /* Filter Bar Panel */
 .wf-filter-bar {
   background: #fbfbfb;
-  border-bottom: 1.5px solid #e4e4e7;
+  border-bottom: 1.5px solid var(--db-border);
   width: 100%;
   overflow: hidden;
 }
@@ -24,14 +24,14 @@
 .wf-filter-label {
   font-size: 11px;
   font-weight: 700;
-  color: #71717a;
+  color: var(--db-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .wf-filter-select {
-  background: #ffffff;
-  border: 1.5px solid #e4e4e7;
+  background: var(--db-panel);
+  border: 1.5px solid var(--db-border);
   border-radius: 6px;
   padding: 5px 10px;
   font-size: 12.5px;
@@ -76,8 +76,8 @@
 }
 
 .wf-grid-card {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--db-panel);
+  border: 1px solid var(--db-border);
   border-radius: 12px;
   padding: 18px;
   display: flex;
@@ -110,12 +110,12 @@
 .wf-grid-card-title {
   font-size: 13.5px;
   font-weight: 750;
-  color: #111111;
+  color: var(--db-text);
 }
 
 .wf-grid-card-desc {
   font-size: 12px;
-  color: #71717a;
+  color: var(--db-text-muted);
   line-height: 1.5;
   margin: 0;
   flex: 1;
@@ -157,7 +157,7 @@
 }
 
 .wf-more-btn:hover {
-  color: #111111;
+  color: var(--db-text);
   background: #f4f4f5;
 }
 
@@ -170,10 +170,10 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--db-panel);
+  border: 1px solid var(--db-border);
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 24px var(--db-shadow);
   width: 140px;
   z-index: 1000;
   padding: 4px;
@@ -201,7 +201,7 @@
 
 .wf-actions-dropdown-item:hover {
   background: #f4f4f5;
-  color: #111111;
+  color: var(--db-text);
 }
 
 .wf-actions-dropdown-item.delete {
@@ -229,8 +229,8 @@
 }
 
 .wf-modal-card {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--db-panel);
+  border: 1px solid var(--db-border);
   border-radius: 14px;
   width: 480px;
   max-width: 90%;
@@ -244,7 +244,7 @@
 .wf-modal-title {
   font-size: 18px;
   font-weight: 800;
-  color: #111111;
+  color: var(--db-text);
   margin: 0;
 }
 
@@ -261,12 +261,12 @@
 }
 
 .wf-form-input, .wf-form-select, .wf-form-textarea {
-  background: #ffffff;
-  border: 1.5px solid #e4e4e7;
+  background: var(--db-panel);
+  border: 1.5px solid var(--db-border);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #111111;
+  color: var(--db-text);
   outline: none;
   transition: border-color 0.2s ease;
 }
@@ -294,7 +294,7 @@
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--db-text-muted);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
@@ -302,7 +302,7 @@
 
 .wf-cancel-btn:hover {
   background: #f4f4f5;
-  color: #111111;
+  color: var(--db-text);
 }
 
 .wf-submit-btn {
@@ -335,7 +335,7 @@
 }
 
 .wf-toast {
-  background: #111111;
+  background: var(--db-text);
   color: #ffffff;
   padding: 10px 16px;
   border-radius: 8px;

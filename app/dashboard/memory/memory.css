@@ -93,14 +93,14 @@
   align-items: center;
   gap: 8px;
   background: var(--db-text);
-  color: var(--db-panel);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px var(--db-shadow);
   transition: all 0.2s ease;
 }
 
@@ -337,7 +337,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px var(--db-shadow);
   margin-top: 4px;
 }
 
@@ -784,7 +784,7 @@
 
 .mem-submit-btn {
   background: #ff6b00;
-  color: var(--db-panel);
+  color: #ffffff;
   border: none;
   padding: 8px 16px;
   font-size: 13px;

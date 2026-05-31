@@ -11,16 +11,16 @@ export const CustomChartTooltip = ({ active, payload, label }: any) => {
         style={{
           background: "rgba(255, 255, 255, 0.8)",
           backdropFilter: "blur(12px)",
-          border: "1px solid rgba(0,0,0,0.05)",
+          border: "1px solid var(--db-border-light)",
           borderRadius: "8px",
           padding: "8px 12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+          boxShadow: "0 4px 12px var(--db-shadow)",
           fontSize: "12px",
           fontWeight: 600,
           color: "#18181b",
         }}
       >
-        <p style={{ margin: 0, color: "#71717a", fontSize: "10px", marginBottom: "4px" }}>
+        <p style={{ margin: 0, color: "var(--db-text-muted)", fontSize: "10px", marginBottom: "4px" }}>
           {label}
         </p>
         <p style={{ margin: 0 }}>

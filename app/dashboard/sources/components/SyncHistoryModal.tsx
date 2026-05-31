@@ -83,7 +83,7 @@ export default function SyncHistoryModal({
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           onClick={(e) => e.stopPropagation()}
           style={{
-            background: "#fff",
+            background: "var(--db-panel)",
             borderRadius: 24,
             padding: "32px",
             width: "100%",
@@ -98,9 +98,9 @@ export default function SyncHistoryModal({
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: "-0.02em" }}>Sync History</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--db-text)", letterSpacing: "-0.02em" }}>Sync History</h2>
               {data && (
-                <p style={{ fontSize: 13, color: "#71717a", marginTop: 4 }}>
+                <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4 }}>
                   Activity log for {data.source.name}
                 </p>
               )}
@@ -124,7 +124,7 @@ export default function SyncHistoryModal({
           {loading ? (
             <div style={{ padding: 40, textAlign: "center" }}>
               <Loader2 size={24} className="animate-spin" style={{ color: "#ff6b00", margin: "0 auto 16px" }} />
-              <div style={{ color: "#71717a", fontSize: 13, fontWeight: 500 }}>Loading history...</div>
+              <div style={{ color: "var(--db-text-muted)", fontSize: 13, fontWeight: 500 }}>Loading history...</div>
             </div>
           ) : error ? (
             <div style={{ padding: 24, background: "#fee2e2", borderRadius: 12, color: "#dc2626", fontSize: 13, fontWeight: 500 }}>
@@ -134,9 +134,9 @@ export default function SyncHistoryModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               {/* Event Timeline */}
               <div>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 16 }}>Recent Events</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--db-text)", marginBottom: 16 }}>Recent Events</h3>
                 {data.history.length === 0 ? (
-                  <div style={{ fontSize: 13, color: "#71717a", fontStyle: "italic" }}>No sync events recorded yet.</div>
+                  <div style={{ fontSize: 13, color: "var(--db-text-muted)", fontStyle: "italic" }}>No sync events recorded yet.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {data.history.map((event, idx) => (
@@ -151,10 +151,10 @@ export default function SyncHistoryModal({
                           )}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: "#111" }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--db-text)" }}>
                             {event.description}
                           </div>
-                          <div style={{ fontSize: 12, color: "#71717a", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                             <Clock size={12} />
                             {new Date(event.timestamp).toLocaleString()}
                           </div>
@@ -167,14 +167,14 @@ export default function SyncHistoryModal({
 
               {/* Recent Documents */}
               <div>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 16 }}>Recently Indexed Documents</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--db-text)", marginBottom: 16 }}>Recently Indexed Documents</h3>
                 {data.recentDocuments.length === 0 ? (
-                  <div style={{ fontSize: 13, color: "#71717a", fontStyle: "italic" }}>No documents indexed yet.</div>
+                  <div style={{ fontSize: 13, color: "var(--db-text-muted)", fontStyle: "italic" }}>No documents indexed yet.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {data.recentDocuments.map((doc) => (
                       <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f4f4f5", borderRadius: 8 }}>
-                        <FileText size={14} color="#71717a" />
+                        <FileText size={14} color="var(--db-text-muted)" />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 500, color: "#3f3f46", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {doc.title}

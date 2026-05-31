@@ -362,7 +362,7 @@ export default function Topbar() {
                 style={{
                   position: "absolute", top: "100%", right: 0, marginTop: 12,
                   background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)", zIndex: 50, width: 320,
+                  boxShadow: "0 10px 30px var(--db-shadow)", zIndex: 50, width: 320,
                   display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: 400
                 }}
               >
@@ -430,9 +430,9 @@ export default function Topbar() {
               width: 34, height: 34, borderRadius: "50%",
               background: "linear-gradient(135deg, #ff6b00, #ff9240)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 900, color: "var(--db-panel)",
-              cursor: "pointer", border: "1px solid rgba(0,0,0,0.06)",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+              fontSize: 13, fontWeight: 900, color: "#ffffff",
+              cursor: "pointer", border: "1px solid var(--db-border-light)",
+              boxShadow: "0 2px 4px var(--db-shadow)"
             }}
             aria-label="User profile"
           >
@@ -449,7 +449,7 @@ export default function Topbar() {
                 style={{
                   position: "absolute", top: "100%", right: 0, marginTop: 12,
                   background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)", zIndex: 50, width: 220,
+                  boxShadow: "0 10px 30px var(--db-shadow)", zIndex: 50, width: 220,
                   display: "flex", flexDirection: "column", overflow: "hidden"
                 }}
               >
@@ -502,7 +502,7 @@ export default function Topbar() {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "var(--db-panel)", borderRadius: 16, width: "100%", maxWidth: 660,
-                boxShadow: "0 30px 60px -12px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.06)",
+                boxShadow: "0 30px 60px -12px rgba(0,0,0,0.3), 0 0 0 1px var(--db-shadow)",
                 overflow: "hidden", display: "flex", flexDirection: "column"
               }}
             >
@@ -562,7 +562,7 @@ export default function Topbar() {
                       onClick={handleClose}
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 6, marginTop: 16,
-                        padding: "8px 16px", background: "#ff6b00", color: "var(--db-panel)",
+                        padding: "8px 16px", background: "#ff6b00", color: "#ffffff",
                         borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none"
                       }}
                     >

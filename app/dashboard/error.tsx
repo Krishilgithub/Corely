@@ -44,7 +44,7 @@ export default function DashboardError({
         Something went wrong!
       </h2>
       
-      <p style={{ color: "#71717a", maxWidth: 400, marginBottom: 32, lineHeight: 1.5 }}>
+      <p style={{ color: "var(--db-text-muted)", maxWidth: 400, marginBottom: 32, lineHeight: 1.5 }}>
         We encountered an unexpected error while loading this page. Our team has been notified.
       </p>
       

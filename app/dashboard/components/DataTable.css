@@ -3,8 +3,8 @@
   width: 100%;
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid #f0f0f0;
-  background: #ffffff;
+  border: 1px solid var(--db-border);
+  background: var(--db-panel);
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
@@ -16,7 +16,7 @@
 
 .dt-header {
   border-bottom: 1px solid #f4f4f5;
-  background: #fafafa;
+  background: var(--db-bg);
 }
 
 .dt-header-row {
@@ -27,7 +27,7 @@
   padding: 12px 24px;
   font-size: 12px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--db-text-muted);
   user-select: none;
 }
 
@@ -49,7 +49,7 @@
   border-bottom: none;
 }
 .dt-row:hover {
-  background: #fafafa;
+  background: var(--db-bg);
 }
 
 .dt-row[data-state="selected"] {
@@ -64,6 +64,6 @@
 .dt-empty {
   padding: 64px 24px;
   text-align: center;
-  color: #71717a;
+  color: var(--db-text-muted);
   font-size: 14px;
 }

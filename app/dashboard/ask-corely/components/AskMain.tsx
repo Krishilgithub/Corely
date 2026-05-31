@@ -91,7 +91,7 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
         <motion.div
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: 1, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: step >= 1 ? "#16a34a" : "#71717a", fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: step >= 1 ? "#16a34a" : "var(--db-text-muted)", fontWeight: 600 }}
         >
           {step >= 1 ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#dcfce7" }}>
@@ -106,7 +106,7 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
         <motion.div
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: step >= 1 ? 1 : 0.5, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#16a34a" : step >= 1 ? "#ff6b00" : "#71717a", fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#16a34a" : step >= 1 ? "#ff6b00" : "var(--db-text-muted)", fontWeight: 600 }}
         >
           {hasSources ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#dcfce7" }}>
@@ -127,7 +127,7 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
         <motion.div
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: hasSources ? 1 : 0.5, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#ff6b00" : "#71717a", fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#ff6b00" : "var(--db-text-muted)", fontWeight: 600 }}
         >
           {hasSources ? (
             <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
@@ -647,8 +647,8 @@ export default function AskMain({
                 padding: "7px 14px",
                 borderRadius: 8,
                 border: "1px solid #e4e4e7",
-                background: "#fff",
-                color: "#71717a",
+                background: "var(--db-panel)",
+                color: "var(--db-text-muted)",
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -659,8 +659,8 @@ export default function AskMain({
                 (e.currentTarget as HTMLButtonElement).style.color = "#ff6b00";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "#e4e4e7";
-                (e.currentTarget as HTMLButtonElement).style.color = "#71717a";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--db-border)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--db-text-muted)";
               }}
             >
               <Download size={13} />
@@ -744,7 +744,7 @@ export default function AskMain({
                         <span className="ac-r-source-label">Sources &amp; Temporal Confidence:</span>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                           {msg.sources.map((src, i) => {
-                            let badgeColor = "#71717a";
+                            let badgeColor = "var(--db-text-muted)";
                             let badgeBg = "#f4f4f5";
                             if (src.confidenceLabel === "Fresh") { badgeColor = "#16a34a"; badgeBg = "#dcfce7"; }
                             else if (src.confidenceLabel === "Aged") { badgeColor = "#ca8a04"; badgeBg = "#fef08a"; }
@@ -763,11 +763,11 @@ export default function AskMain({
                                   alignItems: "center",
                                   gap: 4,
                                   padding: "4px 8px",
-                                  background: "#fff",
+                                  background: "var(--db-panel)",
                                   border: "1px solid #e4e4e7",
                                   borderRadius: "6px",
                                   fontSize: "12px",
-                                  color: "#111",
+                                  color: "var(--db-text)",
                                   transition: "all 0.2s",
                                 }}
                               >
@@ -870,10 +870,10 @@ export default function AskMain({
                 <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fff3ee", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <Sparkles size={24} color="#ff6b00" />
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", marginBottom: 6 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--db-text)", marginBottom: 6 }}>
                   Ask anything about your company
                 </h3>
-                <p style={{ fontSize: 13.5, color: "#71717a", maxWidth: 360, lineHeight: 1.5, margin: "0 auto 28px" }}>
+                <p style={{ fontSize: 13.5, color: "var(--db-text-muted)", maxWidth: 360, lineHeight: 1.5, margin: "0 auto 28px" }}>
                   Corely&#39;s semantic brain indexes all your connected sources and responds with citation-backed intelligence.
                 </p>
 
@@ -891,7 +891,7 @@ export default function AskMain({
                         padding: "12px 14px",
                         borderRadius: 10,
                         border: "1px solid #e4e4e7",
-                        background: "#fff",
+                        background: "var(--db-panel)",
                         cursor: "pointer",
                         fontSize: 13,
                         fontWeight: 500,

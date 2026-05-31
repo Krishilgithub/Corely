@@ -642,7 +642,7 @@ export default function TeamsPage() {
                 return (
                   <div 
                     key={row.id} 
-                    style={{ background: "#fff", borderRadius: 16, border: "1px solid #f4f4f5", padding: 20, cursor: "pointer" }}
+                    style={{ background: "var(--db-panel)", borderRadius: 16, border: "1px solid #f4f4f5", padding: 20, cursor: "pointer" }}
                     onClick={() => router.push(`/dashboard/teams/${row.id}`)}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -659,11 +659,11 @@ export default function TeamsPage() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#71717a', marginBottom: 8 }}>Health</div>
+                        <div style={{ fontSize: 12, color: 'var(--db-text-muted)', marginBottom: 8 }}>Health</div>
                         <CircularProgress score={row.health} color={row.healthColor} size={48} />
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#71717a', marginBottom: 8 }}>Knowledge</div>
+                        <div style={{ fontSize: 12, color: 'var(--db-text-muted)', marginBottom: 8 }}>Knowledge</div>
                         <CircularProgress score={row.know} color={row.knowColor} size={48} />
                       </div>
                     </div>
@@ -684,7 +684,7 @@ export default function TeamsPage() {
             </div>
           )}
 
-          <div className="tm-table-footer" style={viewMode === "grid" ? { background: "#fff", borderRadius: 16, marginTop: 16, border: "1px solid #f4f4f5" } : {}}>
+          <div className="tm-table-footer" style={viewMode === "grid" ? { background: "var(--db-panel)", borderRadius: 16, marginTop: 16, border: "1px solid #f4f4f5" } : {}}>
             <span>Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTeams.length)} of {filteredTeams.length} teams</span>
             <div className="tm-pagination">
               <button 
@@ -756,7 +756,7 @@ export default function TeamsPage() {
                   <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>
                     {Math.round(teams.reduce((acc, t) => acc + t.health, 0) / (teams.length || 1))}
                   </div>
-                  <div style={{ fontSize: 10, color: "#71717a", fontWeight: 500 }}>
+                  <div style={{ fontSize: 10, color: "var(--db-text-muted)", fontWeight: 500 }}>
                     Avg. Health Score
                   </div>
                 </div>
@@ -876,7 +876,7 @@ export default function TeamsPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700 }}>Add New Team</h2>
-                <button onClick={() => setShowAddModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                <button onClick={() => setShowAddModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--db-text-muted)" }}>
                   <X size={20} />
                 </button>
               </div>
@@ -942,7 +942,7 @@ export default function TeamsPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700 }}>Create Role</h2>
-                <button onClick={() => setShowRoleModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                <button onClick={() => setShowRoleModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--db-text-muted)" }}>
                   <X size={20} />
                 </button>
               </div>
@@ -985,7 +985,7 @@ export default function TeamsPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700 }}>Compare Teams</h2>
-                <button onClick={() => setShowCompareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                <button onClick={() => setShowCompareModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--db-text-muted)" }}>
                   <X size={20} />
                 </button>
               </div>
@@ -1016,10 +1016,10 @@ export default function TeamsPage() {
               </div>
 
               {compareTeam1 && compareTeam2 && (
-                <div style={{ background: "#fafafa", borderRadius: 12, padding: 20 }}>
+                <div style={{ background: "var(--db-bg)", borderRadius: 12, padding: 20 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: "1px solid #e4e4e7" }}>
                     <div style={{ flex: 1 }}>{teams.find(t => t.id === compareTeam1)?.name}</div>
-                    <div style={{ width: 120, textAlign: "center", color: "#71717a", fontSize: 12, fontWeight: 600 }}>METRIC</div>
+                    <div style={{ width: 120, textAlign: "center", color: "var(--db-text-muted)", fontSize: 12, fontWeight: 600 }}>METRIC</div>
                     <div style={{ flex: 1, textAlign: "right" }}>{teams.find(t => t.id === compareTeam2)?.name}</div>
                   </div>
                   
@@ -1034,11 +1034,11 @@ export default function TeamsPage() {
                     if (!t1 || !t2) return null;
                     return (
                       <div key={metric.key} style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
-                        <div style={{ flex: 1, fontWeight: 600, color: t1[metric.key] >= t2[metric.key] ? "#16a34a" : "#71717a" }}>
+                        <div style={{ flex: 1, fontWeight: 600, color: t1[metric.key] >= t2[metric.key] ? "#16a34a" : "var(--db-text-muted)" }}>
                           {t1[metric.key]}
                         </div>
                         <div style={{ width: 120, textAlign: "center", fontSize: 13, color: "#52525b" }}>{metric.label}</div>
-                        <div style={{ flex: 1, textAlign: "right", fontWeight: 600, color: t2[metric.key] >= t1[metric.key] ? "#16a34a" : "#71717a" }}>
+                        <div style={{ flex: 1, textAlign: "right", fontWeight: 600, color: t2[metric.key] >= t1[metric.key] ? "#16a34a" : "var(--db-text-muted)" }}>
                           {t2[metric.key]}
                         </div>
                       </div>
@@ -1088,7 +1088,7 @@ export default function TeamsPage() {
                   setInviteName("");
                   setInviteEmail("");
                   setInviteRoleId("");
-                }} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717a" }}>
+                }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--db-text-muted)" }}>
                   <X size={20} />
                 </button>
               </div>

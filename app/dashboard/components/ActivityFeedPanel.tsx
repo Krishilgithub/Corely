@@ -130,7 +130,7 @@ export default function ActivityFeedPanel() {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: "14px 16px", borderTop: "1px solid rgba(0,0,0,0.04)", background: "var(--db-bg)", borderBottomLeftRadius: 16, borderBottomRightRadius: 16, textAlign: "center" }}>
+      <div style={{ padding: "14px 16px", borderTop: "1px solid var(--db-border-light)", background: "var(--db-bg)", borderBottomLeftRadius: 16, borderBottomRightRadius: 16, textAlign: "center" }}>
         <button style={{ background: "transparent", border: "none", color: "#ff6b00", fontSize: 12.5, fontWeight: 700, cursor: "pointer", transition: "opacity 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"} onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}>
           View Full Activity Log
         </button>

@@ -113,7 +113,7 @@ export default function SettingsRightSidebar() {
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: 0.4 }}
-        style={{ background: "#fafafa" }}
+        style={{ background: "var(--db-bg)" }}
       >
         <div className="set-card-header">Need Help?</div>
         <div className="set-help-desc">Get help with settings or contact our support team.</div>

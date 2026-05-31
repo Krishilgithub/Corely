@@ -71,11 +71,11 @@
   border-radius: 8px;
   border: none;
   background: var(--db-text);
-  color: var(--db-panel);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px var(--db-border-light);
+  box-shadow: 0 2px 4px var(--db-shadow);
   transition: all 0.2s;
 }
 .in-btn-primary:hover {

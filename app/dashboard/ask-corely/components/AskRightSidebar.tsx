@@ -153,40 +153,40 @@ export default function AskRightSidebar({
       >
         <div className="ac-card-header">
           <div className="ac-card-title">
-            Context <span style={{ color: "#71717a", fontWeight: 500 }}>(Auto-detected)</span>
+            Context <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>(Auto-detected)</span>
           </div>
           <Link href="/dashboard/sources" className="ac-card-view-all">View all</Link>
         </div>
 
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Users size={15} style={{ color: "#71717a" }} /> People
+            <Users size={15} style={{ color: "var(--db-text-muted)" }} /> People
           </div>
           <div className="ac-row-right">{stats?.people ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Folder size={15} style={{ color: "#71717a" }} /> Chat Sessions
+            <Folder size={15} style={{ color: "var(--db-text-muted)" }} /> Chat Sessions
           </div>
           <div className="ac-row-right">{stats?.sessions ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Database size={15} style={{ color: "#71717a" }} /> Memories
+            <Database size={15} style={{ color: "var(--db-text-muted)" }} /> Memories
           </div>
           <div className="ac-row-right">{stats?.memories ?? "-"}</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Calendar size={15} style={{ color: "#71717a" }} /> Time Range
+            <Calendar size={15} style={{ color: "var(--db-text-muted)" }} /> Time Range
           </div>
           <div className="ac-row-right">This Week</div>
         </div>
         <div className="ac-card-row">
           <div className="ac-row-left">
-            <Database size={15} style={{ color: "#71717a" }} /> Data Sources
+            <Database size={15} style={{ color: "var(--db-text-muted)" }} /> Data Sources
           </div>
-          <div className="ac-row-right" style={{ color: "#111", fontWeight: 600 }}>
+          <div className="ac-row-right" style={{ color: "var(--db-text)", fontWeight: 600 }}>
             {stats?.sources ?? "-"} Connected
           </div>
         </div>

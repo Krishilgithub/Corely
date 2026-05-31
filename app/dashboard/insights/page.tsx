@@ -485,7 +485,7 @@ export default function InsightsPage() {
               transition={{ duration: 0.3 }}
               style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "var(--db-bg)", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}
             >
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", marginBottom: 20 }}>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--db-shadow)", marginBottom: 20 }}>
                 {insights.length === 0 ? (
                   <Sparkles size={28} style={{ color: "#ff6b00" }} />
                 ) : (

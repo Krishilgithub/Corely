@@ -428,7 +428,7 @@ export default function WorkflowsMain({
 
           <div className="wf-table-actions">
             <div className="src-search">
-              <Search size={14} style={{ color: "#71717a" }} />
+              <Search size={14} style={{ color: "var(--db-text-muted)" }} />
               <input
                 type="text"
                 className="src-search-input"
@@ -557,7 +557,7 @@ export default function WorkflowsMain({
                     <div className="src-sync-time">{row.lastRun}</div>
                     <div className="src-sync-date">{row.lastRunTime}</div>
                   </td>
-                  <td className="wf-td" style={{ fontSize: 12.5, fontWeight: 600, color: "#111111" }}>
+                  <td className="wf-td" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--db-text)" }}>
                     {row.executions}
                   </td>
                   <td className="wf-td">
@@ -1000,7 +1000,7 @@ export default function WorkflowsMain({
                 Are you sure you want to delete the workflow <strong>&quot;{workflowToDelete.title}&quot;</strong>?
               </p>
               
-              <p style={{ fontSize: 12, color: "#71717a", margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 12, color: "var(--db-text-muted)", margin: 0, lineHeight: 1.5 }}>
                 This is a cascade operation. It will permanently remove the workflow definition and flush all associated execution logs from the sidebar activity panel.
               </p>
 

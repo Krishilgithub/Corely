@@ -57,7 +57,7 @@ function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
       transition={{ duration: 0.4 }}
       style={{
         background: "var(--db-panel)",
-        border: "1px solid rgba(0,0,0,0.06)",
+        border: "1px solid var(--db-border-light)",
         borderRadius: 16,
         padding: "20px 24px",
         boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
@@ -95,7 +95,7 @@ function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
                   gap: 12,
                   padding: "14px 16px",
                   borderRadius: 12,
-                  border: step.done ? "1px solid #bbf7d0" : "1px solid rgba(0,0,0,0.06)",
+                  border: step.done ? "1px solid #bbf7d0" : "1px solid var(--db-border-light)",
                   background: step.done ? "#f0fdf4" : "var(--db-bg)",
                   transition: "all 0.15s ease",
                   cursor: "pointer",
@@ -140,7 +140,7 @@ export default function DashboardClient({ initialData, dateRange }: { initialDat
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          style={{ maxWidth: 640, width: "100%", background: "var(--db-panel)", border: "1px solid rgba(0,0,0,0.06)", borderRadius: 24, padding: "56px 48px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.04)" }}
+          style={{ maxWidth: 640, width: "100%", background: "var(--db-panel)", border: "1px solid var(--db-border-light)", borderRadius: 24, padding: "56px 48px", textAlign: "center", boxShadow: "0 8px 32px var(--db-shadow)" }}
         >
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#fff3ee", margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 38 }}>👋</span>
@@ -157,15 +157,15 @@ export default function DashboardClient({ initialData, dateRange }: { initialDat
               { step: "2", title: "Auto-Sync", desc: "We build your knowledge graph" },
               { step: "3", title: "Ask Anything", desc: "Query your institutional memory" },
             ].map((s) => (
-              <div key={s.step} style={{ padding: 16, border: "1px solid rgba(0,0,0,0.06)", borderRadius: 12, background: "var(--db-bg)" }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#ff6b00", color: "var(--db-panel)", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>{s.step}</div>
+              <div key={s.step} style={{ padding: 16, border: "1px solid var(--db-border-light)", borderRadius: 12, background: "var(--db-bg)" }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#ff6b00", color: "#ffffff", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>{s.step}</div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "var(--db-text)", margin: "0 0 4px" }}>{s.title}</p>
                 <p style={{ fontSize: 12, color: "var(--db-text-muted)", margin: 0 }}>{s.desc}</p>
               </div>
             ))}
           </div>
           <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
-            <button style={{ background: "#ff6b00", color: "var(--db-panel)", border: "none", borderRadius: 12, padding: "14px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(255,107,0,0.25)", transition: "all 0.2s" }}>
+            <button style={{ background: "#ff6b00", color: "#ffffff", border: "none", borderRadius: 12, padding: "14px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(255,107,0,0.25)", transition: "all 0.2s" }}>
               Connect First Source <ArrowRight size={16} />
             </button>
           </Link>
@@ -193,7 +193,7 @@ export default function DashboardClient({ initialData, dateRange }: { initialDat
             <ChevronDown size={13} style={{ color: "#a1a1aa" }} />
           </button>
           {showDatePicker && (
-            <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--db-panel)", border: "1px solid rgba(0,0,0,0.06)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.08)", zIndex: 20, width: 150, overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--db-panel)", border: "1px solid var(--db-border-light)", borderRadius: 10, boxShadow: "0 8px 24px var(--db-shadow)", zIndex: 20, width: 150, overflow: "hidden" }}>
               {["Today", "This Week", "This Month", "All Time"].map((option) => (
                 <button
                   key={option}

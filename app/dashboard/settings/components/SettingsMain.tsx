@@ -397,7 +397,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                 {newKeyValue ? (
                   <>
                     <p className="settings-card-title" style={{ marginBottom: 4 }}>Your new API key</p>
-                    <p style={{ fontSize: 13, color: "#71717a", marginBottom: 12 }}>Copy this now. For security, it won&apos;t be shown again.</p>
+                    <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginBottom: 12 }}>Copy this now. For security, it won&apos;t be shown again.</p>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                       <code style={{ flex: 1, background: "#f4f4f5", borderRadius: 8, padding: "10px 14px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", border: "1px solid #e4e4e7" }}>
                         {newKeyValue}
@@ -451,8 +451,8 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#f4f4f5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <Key size={22} color="#a1a1aa" />
                 </div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: "0 0 6px" }}>No API keys yet</p>
-                <p style={{ fontSize: 13, color: "#71717a", margin: 0 }}>Create your first key to access the Corely API programmatically.</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--db-text)", margin: "0 0 6px" }}>No API keys yet</p>
+                <p style={{ fontSize: 13, color: "var(--db-text-muted)", margin: 0 }}>Create your first key to access the Corely API programmatically.</p>
               </div>
             ) : (
               apiKeys.map((key) => (
@@ -642,8 +642,8 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           <div style={{ width: 56, height: 56, background: "#fff3ee", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <Building2 size={24} color="#ff6b00" />
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 8px" }}>Enterprise Plan</h3>
-          <p style={{ fontSize: 14, color: "#71717a", margin: "0 0 24px", maxWidth: 360, lineHeight: 1.6 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", margin: "0 0 8px" }}>Enterprise Plan</h3>
+          <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: "0 0 24px", maxWidth: 360, lineHeight: 1.6 }}>
             Your billing is managed by your Corely account executive. Contact <strong>billing@corely.ai</strong> for invoice requests.
           </p>
           <button className="settings-btn settings-btn-primary">Contact Billing Team</button>

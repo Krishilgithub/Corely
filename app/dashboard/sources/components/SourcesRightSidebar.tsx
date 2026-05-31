@@ -154,7 +154,7 @@ export default function SourcesRightSidebar() {
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke="#e4e4e7"
+                stroke="var(--db-border)"
                 strokeWidth="11"
               />
               {/* Synced (Green) */}
@@ -215,19 +215,19 @@ export default function SourcesRightSidebar() {
           <div className="src-legend">
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#22c55e" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{syncedCount}</span> <span style={{ color: "#71717a" }}>Synced</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{syncedCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Synced</span>
             </div>
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#2563eb" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{syncingCount}</span> <span style={{ color: "#71717a" }}>Syncing</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{syncingCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Syncing</span>
             </div>
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#ef4444" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{errorCount}</span> <span style={{ color: "#71717a" }}>Error</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{errorCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Error</span>
             </div>
             <div className="src-legend-item">
               <div className="src-legend-dot" style={{ background: "#ff6b00" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{idleCount}</span> <span style={{ color: "#71717a" }}>Idle</span>
+              <span style={{ width: 14, fontWeight: 700 }}>{idleCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Idle</span>
             </div>
           </div>
         </div>
@@ -241,11 +241,11 @@ export default function SourcesRightSidebar() {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className="src-card-header">
-          <div className="src-card-title">Data Ingestion <span style={{ color: "#71717a", fontWeight: 500 }}>(Aggregated)</span></div>
+          <div className="src-card-title">Data Ingestion <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>(Aggregated)</span></div>
         </div>
         
         <div className="src-chart-main-val">
-          {totalIndexed.toLocaleString()} <span style={{ fontSize: 13, color: "#71717a", fontWeight: 500 }}>Files</span>
+          {totalIndexed.toLocaleString()} <span style={{ fontSize: 13, color: "var(--db-text-muted)", fontWeight: 500 }}>Files</span>
         </div>
         <div className="src-chart-sub">Total Documents Indexed</div>
         <div className="src-chart-trend" style={{ color: "#16a34a" }}>
@@ -329,7 +329,7 @@ export default function SourcesRightSidebar() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <div className="src-recent-name" title={source.name} style={{ fontSize: 13, fontWeight: 700, color: "#18181b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{source.name}</div>
-                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "#71717a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "var(--db-text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
                     {source.type === "google_drive" ? "Google Drive" : source.type}
                   </div>
                 </div>

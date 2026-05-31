@@ -94,7 +94,7 @@ export default function WorkflowsRightSidebar({
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="set-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", fontWeight: 800, fontSize: "14px", color: "#111" }}>
+        <div className="set-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", fontWeight: 800, fontSize: "14px", color: "var(--db-text)" }}>
           <span>Workflow Activity</span>
           <Link href="#" className="src-card-view-all" style={{ fontSize: "11px", fontWeight: 700, color: "#ff6b00", textDecoration: "none" }}>
             View all
@@ -103,7 +103,7 @@ export default function WorkflowsRightSidebar({
         
         <div className="wf-activity-list" style={{ display: "flex", flexDirection: "column" }}>
           {activityLogs.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0", fontSize: "12px", color: "#71717a" }}>
+            <div style={{ textAlign: "center", padding: "20px 0", fontSize: "12px", color: "var(--db-text-muted)" }}>
               No execution activities logged yet.
             </div>
           ) : (
@@ -144,7 +144,7 @@ export default function WorkflowsRightSidebar({
             View all
           </Link>
         </div>
-        <div style={{ fontSize: "12px", color: "#71717a", marginBottom: "20px", fontWeight: 500 }}>
+        <div style={{ fontSize: "12px", color: "var(--db-text-muted)", marginBottom: "20px", fontWeight: 500 }}>
           Start from a template and save time.
         </div>
 
