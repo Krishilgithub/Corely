@@ -51,10 +51,10 @@ export default function FooterSection() {
           <div>
             <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Company</h3>
             <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">About Us</Link></li>
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Careers</Link></li>
+              <li><Link href="/about" className="hover:text-zinc-900 transition-colors">About Us</Link></li>
+              <li><Link href="/careers" className="hover:text-zinc-900 transition-colors">Careers</Link></li>
               <li><Link href="/blog" className="hover:text-zinc-900 transition-colors">Blog</Link></li>
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Contact</Link></li>
+              <li><Link href="/contact" className="hover:text-zinc-900 transition-colors">Contact</Link></li>
               <li><Link href="/#how-it-works" className="hover:text-zinc-900 transition-colors">Manifesto</Link></li>
             </ul>
           </div>
@@ -62,10 +62,10 @@ export default function FooterSection() {
           <div>
             <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Legal</h3>
             <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Terms of Service</Link></li>
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">Cookie Policy</Link></li>
-              <li><Link href="/" className="hover:text-zinc-900 transition-colors">DPA</Link></li>
+              <li><Link href="/privacy" className="hover:text-zinc-900 transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-zinc-900 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/cookie" className="hover:text-zinc-900 transition-colors">Cookie Policy</Link></li>
+              <li><Link href="/dpa" className="hover:text-zinc-900 transition-colors">DPA</Link></li>
             </ul>
           </div>
         </div>

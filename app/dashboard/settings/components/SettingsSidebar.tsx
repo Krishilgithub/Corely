@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Settings, Building2, Users, Sparkles, Database, 
-  Key, Shield, Bell, FileCode2, CreditCard, Sliders, ChevronRight
+  Key, Shield, Bell, FileCode2, CreditCard, Sliders
 } from "lucide-react";
 
 export const tabConfig = [

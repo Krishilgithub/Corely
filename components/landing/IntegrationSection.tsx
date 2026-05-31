@@ -1,19 +1,21 @@
 "use client";
+import { FaAws } from "react-icons/fa";
 
-import { Globe, Server, Layers, Command, Monitor, Cloud, Box, Terminal } from "lucide-react";
+import { SiGithub, SiSlack, SiNotion, SiGmail, SiGoogledrive, SiLinear, SiDocker } from "react-icons/si";
+import { BrainCircuit } from "lucide-react";
 import React from "react";
 
 const APP_ICONS = [
-  { icon: <Globe />, name: "GitHub", color: "#181717", radius: 150, duration: 25, delay: 0 },
-  { icon: <Command />, name: "Slack", color: "#E01E5A", radius: 150, duration: 25, delay: 12.5 },
+  { icon: <SiGithub />, name: "GitHub", color: "#181717", radius: 150, duration: 25, delay: 0 },
+  { icon: <SiSlack />, name: "Slack", color: "#E01E5A", radius: 150, duration: 25, delay: 12.5 },
   
-  { icon: <Layers />, name: "Drive", color: "#FFD04B", radius: 250, duration: 35, delay: 5 },
-  { icon: <Server />, name: "Figma", color: "#F24E1E", radius: 250, duration: 35, delay: 17.5 },
-  { icon: <Monitor />, name: "Web App", color: "#0052CC", radius: 250, duration: 35, delay: 28 },
+  { icon: <SiGoogledrive />, name: "Google Drive", color: "#FFD04B", radius: 250, duration: 35, delay: 5 },
+  { icon: <SiLinear />, name: "Linear", color: "#5E6AD2", radius: 250, duration: 35, delay: 17.5 },
+  { icon: <SiNotion />, name: "Notion", color: "#000000", radius: 250, duration: 35, delay: 28 },
   
-  { icon: <Cloud />, name: "AWS", color: "#FF9900", radius: 350, duration: 45, delay: 0 },
-  { icon: <Box />, name: "Docker", color: "#2496ED", radius: 350, duration: 45, delay: 15 },
-  { icon: <Terminal />, name: "CLI", color: "#4AF626", radius: 350, duration: 45, delay: 30 },
+  { icon: <FaAws />, name: "AWS", color: "#FF9900", radius: 350, duration: 45, delay: 0 },
+  { icon: <SiDocker />, name: "Docker", color: "#2496ED", radius: 350, duration: 45, delay: 15 },
+  { icon: <SiGmail />, name: "Gmail", color: "#EA4335", radius: 350, duration: 45, delay: 30 },
 ];
 
 export default function IntegrationSection() {
@@ -44,9 +46,7 @@ export default function IntegrationSection() {
         {/* Central Corely Orb */}
         <div className="absolute z-20 flex items-center justify-center w-32 h-32 rounded-full bg-white shadow-[0_0_80px_rgba(255,107,0,0.2)] border border-[#ff6b00]/20">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#ff6b00] to-[#ff9240] flex items-center justify-center shadow-[0_0_30px_rgba(255,107,0,0.6)] animate-pulse">
-            <span className="text-white font-bold text-3xl leading-none transform -rotate-45 block">
-              ◆
-            </span>
+            <BrainCircuit className="text-white w-8 h-8" />
           </div>
         </div>
 

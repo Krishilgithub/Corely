@@ -22,17 +22,17 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600">
-            <Link href="#features" className="hover:text-zinc-900 transition-colors">Product</Link>
-            <Link href="#how-it-works" className="hover:text-zinc-900 transition-colors">Solutions</Link>
-            <Link href="/pricing" className="hover:text-zinc-900 transition-colors">Pricing</Link>
-            <Link href="/changelog" className="hover:text-zinc-900 transition-colors">Changelog</Link>
+            <Link href="#features" className="hover:text-zinc-900 hover:-translate-y-[1px] hover:scale-105 transition-all duration-200">Product</Link>
+            <Link href="#how-it-works" className="hover:text-zinc-900 hover:-translate-y-[1px] hover:scale-105 transition-all duration-200">Solutions</Link>
+            <Link href="/pricing" className="hover:text-zinc-900 hover:-translate-y-[1px] hover:scale-105 transition-all duration-200">Pricing</Link>
+            <Link href="/changelog" className="hover:text-zinc-900 hover:-translate-y-[1px] hover:scale-105 transition-all duration-200">Changelog</Link>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+            <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:-translate-y-[1px] hover:scale-105 transition-all duration-200">
               Log in
             </Link>
-            <Link href="/signup" className="hidden sm:inline-flex px-4 py-2 bg-zinc-900 text-white text-sm font-semibold rounded-full hover:bg-zinc-800 shadow-md hover:shadow-lg transition-all">
+            <Link href="/signup" className="hidden sm:inline-flex px-5 py-2.5 bg-zinc-900 text-white text-sm font-semibold rounded-full hover:bg-zinc-800 hover:-translate-y-1 hover:scale-105 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.3)] shadow-md transition-all duration-300">
               Start Free
             </Link>
           </div>

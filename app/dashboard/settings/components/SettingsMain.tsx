@@ -18,7 +18,6 @@ import {
   Mail
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 interface SettingsUpdates {
   preferences?: {
