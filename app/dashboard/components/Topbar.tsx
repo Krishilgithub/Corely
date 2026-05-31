@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle
+  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle, Moon, Sun
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
+import { useTheme } from "../../../components/ThemeProvider";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -69,6 +70,7 @@ const QUICK_ACTIONS = [
 
 export default function Topbar() {
   const { user, workspace } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -329,26 +331,53 @@ export default function Topbar() {
       </button>
 
       {/* Right Actions */}
-      <div className="db-topbar-right">
+      <div className="db-topbar-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        
+        {/* Theme Toggle Button */}
+        {mounted && (
+          <button
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, borderRadius: 8,
+              background: "var(--db-bg)", border: "1px solid var(--db-border)",
+              color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
+            }}
+            aria-label="Toggle Theme"
+          >
+            {resolvedTheme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        )}
+
         {/* Help Button */}
         <button
-          className="db-notif-btn"
-          aria-label="Help & Shortcuts"
           onClick={() => setShowHelp(true)}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, borderRadius: 8,
+            background: "var(--db-bg)", border: "1px solid var(--db-border)",
+            color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
+          }}
+          aria-label="Help & Shortcuts"
         >
           <HelpCircle size={15} />
         </button>
 
         {/* Notifications */}
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", display: "flex" }}>
           <button
-            className="db-notif-btn"
             aria-label="Notifications"
             onClick={() => setShowNotifs(!showNotifs)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, borderRadius: 8, position: "relative",
+              background: "var(--db-bg)", border: "1px solid var(--db-border)",
+              color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
+            }}
           >
             <Bell size={15} />
             {unreadCount > 0 && (
-              <span className="db-notif-badge" aria-label={`${unreadCount} notifications`}>{unreadCount}</span>
+              <span className="db-notif-badge" style={{ position: "absolute", top: -4, right: -4, background: "#ff6b00", color: "#ffffff", fontSize: 10, fontWeight: 700, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={`${unreadCount} notifications`}>{unreadCount}</span>
             )}
           </button>
 
