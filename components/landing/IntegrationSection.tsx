@@ -1,21 +1,18 @@
 "use client";
-import { FaAws } from "react-icons/fa";
 
-import { SiGithub, SiSlack, SiNotion, SiGmail, SiGoogledrive, SiLinear, SiDocker } from "react-icons/si";
+
+import Image from "next/image";
 import { BrainCircuit } from "lucide-react";
 import React from "react";
 
 const APP_ICONS = [
-  { icon: <SiGithub />, name: "GitHub", color: "#181717", radius: 150, duration: 25, delay: 0 },
-  { icon: <SiSlack />, name: "Slack", color: "#E01E5A", radius: 150, duration: 25, delay: 12.5 },
+  { icon: "/slack.png", name: "Slack", radius: 150, duration: 25, delay: 0 },
+  { icon: "/drive.png", name: "Google Drive", radius: 150, duration: 25, delay: 12.5 },
   
-  { icon: <SiGoogledrive />, name: "Google Drive", color: "#FFD04B", radius: 250, duration: 35, delay: 5 },
-  { icon: <SiLinear />, name: "Linear", color: "#5E6AD2", radius: 250, duration: 35, delay: 17.5 },
-  { icon: <SiNotion />, name: "Notion", color: "#000000", radius: 250, duration: 35, delay: 28 },
+  { icon: "/linear.png", name: "Linear", radius: 250, duration: 35, delay: 5 },
+  { icon: "/notion.png", name: "Notion", radius: 250, duration: 35, delay: 22.5 },
   
-  { icon: <FaAws />, name: "AWS", color: "#FF9900", radius: 350, duration: 45, delay: 0 },
-  { icon: <SiDocker />, name: "Docker", color: "#2496ED", radius: 350, duration: 45, delay: 15 },
-  { icon: <SiGmail />, name: "Gmail", color: "#EA4335", radius: 350, duration: 45, delay: 30 },
+  { icon: "/gmail.png", name: "Gmail", radius: 350, duration: 45, delay: 0 },
 ];
 
 export default function IntegrationSection() {
@@ -79,8 +76,8 @@ export default function IntegrationSection() {
                     animationDelay: `-${app.delay}s`,
                   }}
                 >
-                  <div className="text-zinc-400 group-hover:scale-110 transition-all duration-300" style={{ color: app.color }}>
-                    {React.cloneElement(app.icon, { size: 24, strokeWidth: 1.5 })}
+                  <div className="text-zinc-400 group-hover:scale-110 transition-all duration-300 relative w-6 h-6 flex items-center justify-center">
+                    <Image src={app.icon} alt={app.name} fill className="object-contain" />
                   </div>
                   
                   {/* Tooltip */}

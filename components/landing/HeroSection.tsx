@@ -84,7 +84,7 @@ export default function HeroSection() {
             </button>
           </Link>
           
-          <Link href="#how-it-works" className="w-full sm:w-auto">
+          <Link href="/contact" className="w-full sm:w-auto">
             <button className="w-full sm:w-auto px-8 py-4 text-zinc-900 font-medium rounded-full border border-black/10 hover:bg-black/5 hover:border-black/20 transition-all backdrop-blur-sm">
               Talk to Sales
             </button>

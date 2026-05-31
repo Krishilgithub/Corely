@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { z } from "zod";
@@ -55,7 +56,7 @@ export async function PATCH(req: NextRequest) {
           preferences: {
             ...(typeof user.preferences === 'object' && user.preferences !== null ? user.preferences : {}),
             ...preferences
-          } as import("@prisma/client").Prisma.InputJsonValue
+          } as Prisma.InputJsonValue
         }
       });
     }
@@ -68,7 +69,7 @@ export async function PATCH(req: NextRequest) {
         workspaceUpdateData.settings = {
           ...(typeof workspace.settings === 'object' && workspace.settings !== null ? workspace.settings : {}),
           ...workspaceSettings
-        } as import("@prisma/client").Prisma.InputJsonValue;
+        } as Prisma.InputJsonValue;
       }
       
       if (workspaceName) workspaceUpdateData.name = workspaceName;
