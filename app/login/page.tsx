@@ -140,18 +140,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="login-divider">
-              <span className="login-divider-text">Or continue with</span>
-            </div>
-
-            <div className="login-oauth-group">
-              <button className="login-oauth-btn" type="button" onClick={() => alert("SSO integration coming soon.")}>
-                <GoogleIcon /> Google
-              </button>
-              <button className="login-oauth-btn" type="button" onClick={() => alert("SSO integration coming soon.")}>
-                <GithubIcon /> GitHub
-              </button>
-            </div>
+            {/* OAuth buttons hidden as requested */}
 
             <div className="login-footer">
               Don&apos;t have an account? <Link href="/signup">Sign up</Link>
