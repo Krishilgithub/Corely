@@ -78,6 +78,8 @@ export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState("All Insights");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [insights, setInsights] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,7 +92,10 @@ export default function InsightsPage() {
     fetch("/api/insights")
       .then(res => res.json())
       .then(data => {
-        setInsights(data.data || []);
+        setInsights(data.data?.insights || data.data || []);
+        if (data.data?.timeline) {
+          setTimeline(data.data.timeline);
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -158,6 +163,8 @@ export default function InsightsPage() {
 
   // ── Dynamic Line Data ─────────────────────────────────────────────────────
   const dynamicLineData = useMemo(() => {
+    if (timeline.length > 0) return timeline;
+    // Fallback if API hasn't returned timeline yet
     const base = insights.length > 0 ? insights.length : 1;
     return [
       { date: "May 1", val: 20 + base * 2 },
@@ -167,7 +174,7 @@ export default function InsightsPage() {
       { date: "May 29", val: 38 + base },
       { date: "May 30", val: 50 + base * 3 },
     ];
-  }, [insights]);
+  }, [insights, timeline]);
 
   // ── Filtering Logic ───────────────────────────────────────────────────────
   const filteredInsights = useMemo(() => {
