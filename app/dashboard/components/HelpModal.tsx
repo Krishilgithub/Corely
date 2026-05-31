@@ -1,17 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Book, MessageCircle, ExternalLink, Keyboard, Sparkles } from "lucide-react";
 
 export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         style={{
           position: "fixed",
           inset: 0,
@@ -126,6 +135,8 @@ export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClos
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }

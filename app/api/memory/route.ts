@@ -20,34 +20,16 @@ export async function GET() {
   try {
     const user = await requirePermission(Permissions.MEMORY_READ);
 
-    // Seed dummy data if empty
-    const count = await prisma.orgMemory.count({ where: { workspaceId: user.workspaceId } });
-
-    if (count === 0) {
-      const dummyMemories = [
-        {
-          workspaceId: user.workspaceId,
-          category: "decision",
-          title: "Decision Captured",
-          content: "Approved Q2 marketing budget increase of 15% focusing on paid acquisition and brand.",
-          badges: ["Marketing Strategy"],
-          sourceName: "Notion",
-          avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-          createdAt: new Date(),
-        },
-        {
-          workspaceId: user.workspaceId,
-          category: "discussion",
-          title: "Discussion Summary",
-          content: "Product roadmap review meeting. Aligned on shipping AI Search in June.",
-          badges: ["Product", "Roadmap"],
-          sourceName: "Slack",
-          avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-        },
-      ];
-      await prisma.orgMemory.createMany({ data: dummyMemories });
-    }
+    // Delete mock data
+    await prisma.orgMemory.deleteMany({
+      where: {
+        workspaceId: user.workspaceId,
+        OR: [
+          { title: 'Decision Captured' },
+          { title: 'Discussion Summary' }
+        ]
+      }
+    });
 
     const memories = await prisma.orgMemory.findMany({
       where: { workspaceId: user.workspaceId },
