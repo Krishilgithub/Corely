@@ -6,10 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle, Moon, Sun
+  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
-import { useTheme } from "../../../components/ThemeProvider";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -70,7 +69,6 @@ const QUICK_ACTIONS = [
 
 export default function Topbar() {
   const { user, workspace } = useAuth();
-  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showSearch, setShowSearch] = useState(false);

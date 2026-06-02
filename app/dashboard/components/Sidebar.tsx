@@ -115,6 +115,14 @@ export default function Sidebar() {
               <span>Usage this month</span>
               <span className="db-plan-usage-pct">{usage.usagePercent}%</span>
             </div>
+            <div className="db-plan-row" style={{ marginTop: 4, color: "#6b7280", fontSize: 11.5 }}>
+              <span>Documents</span>
+              <span>{usage.docsIndexed.toLocaleString()} / {usage.documentLimit.toLocaleString()}</span>
+            </div>
+            <div className="db-plan-row" style={{ color: "#6b7280", fontSize: 11.5 }}>
+              <span>Queries</span>
+              <span>{usage.queriesThisMonth.toLocaleString()} / {usage.queryLimit.toLocaleString()}</span>
+            </div>
             <div className="db-plan-bar-bg">
               <motion.div
                 className="db-plan-bar-fill"

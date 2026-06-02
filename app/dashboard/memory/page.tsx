@@ -5,9 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   Brain,
-  Sparkles,
-  Clock,
-  ShieldAlert,
   Search,
   Plus,
   SlidersHorizontal,
@@ -128,9 +125,30 @@ export default function MemoryPage() {
         }
       } catch (e) {
         console.error("Failed to fetch snapshots:", e);
-      } finally {
-        setIsLoading(false);
       }
+
+      // Fetch retention settings
+      let retentionPeriodStr = "90 Days";
+      try {
+        const settingsRes = await fetch("/api/settings");
+        if (settingsRes.ok) {
+          const sJson = await settingsRes.json();
+          const sData = sJson.data || sJson;
+          if (sData.workspace?.settings?.retentionPeriod) {
+             const rp = sData.workspace.settings.retentionPeriod;
+             retentionPeriodStr = rp === "0" ? "Forever" : `${rp} Days`;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch settings:", e);
+      }
+
+      // We'll store it on window object temporarily since adding state causes re-renders
+      if (typeof window !== "undefined") {
+        (window as unknown as { __retentionPeriod?: string }).__retentionPeriod = retentionPeriodStr;
+      }
+
+      setIsLoading(false);
     };
     fetchMemories();
   }, []);

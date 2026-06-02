@@ -91,6 +91,15 @@ function DocumentsIcon() {
   );
 }
 
+function UploadIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="1" y="1" width="20" height="20" rx="5" fill="#10B981" />
+      <path d="M11 14V6M11 6L7.5 9.5M11 6L14.5 9.5M7 16H15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    </svg>
+  );
+}
+
 // ─── Integration card ─────────────────────────────────────────────────────────
 interface IntegrationCardProps {
   icon: React.ReactNode;
@@ -189,6 +198,7 @@ export default function CorelyDiagram() {
     { x1: cx, y1: cy, x2: 354, y2: 188, mx: cx + 80, my: cy - 60 },  // Meetings
     { x1: cx, y1: cy, x2: 354, y2: 268, mx: cx + 90, my: cy },       // Reports
     { x1: cx, y1: cy, x2: 354, y2: 352, mx: cx + 80, my: cy + 60 },  // Documents
+    { x1: cx, y1: cy, x2: 354, y2: 430, mx: cx + 60, my: cy + 100 }, // Uploads
   ];
 
   // Dot positions along the lines (t=0..1)
@@ -338,6 +348,7 @@ export default function CorelyDiagram() {
         <IntegrationCard icon={<MeetingsIcon />} label="Meetings"  x={454} y={166} delay={0.6} />
         <IntegrationCard icon={<ReportsIcon />}  label="Reports"   x={454} y={246} delay={1.0} />
         <IntegrationCard icon={<DocumentsIcon />} label="Documents" x={454} y={330} delay={1.4} />
+        <IntegrationCard icon={<UploadIcon />}    label="Manual Upload" x={454} y={410} delay={1.8} />
 
         {/* ── ENGINE LABELS ── */}
         <EngineLabel label="Context Engine"  x={218} y={48}  />

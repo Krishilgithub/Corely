@@ -733,7 +733,8 @@ export default function AskMain({
                         <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-100 prose-pre:text-zinc-900 prose-a:text-orange-600">
                           <ReactMarkdown
                             components={{
-                              a: ({ node, ...props }) => {
+                              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                              a: ({ node: _node, ...props }) => {
                                 const href = props.href || "";
                                 if (href.startsWith("#source-")) {
                                   const sourceId = href.replace("#source-", "");

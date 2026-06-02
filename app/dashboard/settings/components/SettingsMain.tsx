@@ -214,7 +214,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       } else {
         toast.error("Failed to generate API key");
       }
-    } catch (e) {
+    } catch {
       toast.error("An error occurred");
     } finally {
       setGeneratingKey(false);
@@ -230,7 +230,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       } else {
         toast.error("Failed to revoke API key");
       }
-    } catch (e) {
+    } catch {
       toast.error("An error occurred");
     }
   };

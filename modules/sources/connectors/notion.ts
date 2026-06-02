@@ -61,7 +61,7 @@ export async function syncNotion(sourceId: string): Promise<void> {
       );
 
       for (const result of searchResponse.results) {
-        if (!isFullPage(result) || processedIds.has(result.id)) continue;
+        if (!isFullPage(result) || result.archived || (result as any).in_trash || processedIds.has(result.id)) continue;
         processedIds.add(result.id);
 
         try {
@@ -88,7 +88,7 @@ export async function syncNotion(sourceId: string): Promise<void> {
       );
 
       for (const db of dbSearch.results as any[]) {
-        if (!isFullDatabase(db)) continue;
+        if (!isFullDatabase(db) || db.archived || (db as any).in_trash) continue;
 
         let rowCursor: string | undefined = undefined;
         do {
@@ -108,7 +108,7 @@ export async function syncNotion(sourceId: string): Promise<void> {
           );
 
           for (const row of rows.results) {
-            if (!isFullPage(row) || processedIds.has(row.id)) continue;
+            if (!isFullPage(row) || row.archived || (row as any).in_trash || processedIds.has(row.id)) continue;
             processedIds.add(row.id);
 
             try {
@@ -125,6 +125,26 @@ export async function syncNotion(sourceId: string): Promise<void> {
 
       dbCursor = dbSearch.has_more ? (dbSearch.next_cursor ?? undefined) : undefined;
     } while (dbCursor);
+
+    // ── 5.5. Purge unselected/stale documents ──────────────────────────
+    const allDocs = await prisma.document.findMany({
+      where: { sourceId },
+      select: { id: true, externalId: true },
+    });
+
+    let staleCount = 0;
+    for (const doc of allDocs) {
+      // If the document has an externalId (it's a Notion page) but wasn't seen in this sync,
+      // it means the user unselected it or it was permanently deleted.
+      if (doc.externalId && !processedIds.has(doc.externalId)) {
+        await prisma.document.delete({ where: { id: doc.id } });
+        await supabaseAdmin.from("document_chunks").delete().eq("document_id", doc.id);
+        staleCount++;
+      }
+    }
+    if (staleCount > 0) {
+      console.log(`[Notion] 🗑️ Purged ${staleCount} unselected/stale documents.`);
+    }
 
     // ── 6. Mark synced ─────────────────────────────────────────────────
     await prisma.source.update({

@@ -15,10 +15,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const rawContent = await file.text();
-    const content = rawContent.replace(/\0/g, ''); // Strip null bytes for Postgres
     const title = file.name;
-    const fileType = file.name.split('.').pop() || "txt";
+    const fileType = (file.name.split('.').pop() || "txt").toLowerCase();
+    
+    let rawContent = "";
+    if (fileType === "pdf") {
+      // --- Polyfill missing DOM APIs for pdf.js in Node ---
+      if (typeof globalThis.DOMMatrix === "undefined") {
+        globalThis.DOMMatrix = class DOMMatrix {
+          a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+          constructor() {}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
+      }
+      if (typeof globalThis.ImageData === "undefined") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        globalThis.ImageData = class ImageData {} as any;
+      }
+      if (typeof globalThis.Path2D === "undefined") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        globalThis.Path2D = class Path2D {} as any;
+      }
+      // ----------------------------------------------------
+      const arrayBuffer = await file.arrayBuffer();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfImport = require("pdf-parse");
+      const PDFParseClass = pdfImport.PDFParse || (typeof pdfImport === "function" ? pdfImport : pdfImport.default);
+      
+      try {
+        PDFParseClass.setWorker(require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs"));
+      } catch (e) {
+        console.warn("[Upload] Failed to set local pdf.js worker:", e);
+      }
+      const parser = new PDFParseClass({ data: Buffer.from(arrayBuffer) });
+      const parsed = await parser.getText();
+      rawContent = parsed.text;
+      await parser.destroy();
+    } else if (fileType === "docx" || fileType === "doc") {
+      const arrayBuffer = await file.arrayBuffer();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mammoth = require("mammoth");
+      const result = await mammoth.extractRawText({ buffer: Buffer.from(arrayBuffer) });
+      rawContent = result.value;
+    } else {
+      rawContent = await file.text();
+    }
+
+    const content = rawContent.replace(/\0/g, ''); // Strip null bytes for Postgres
 
     // Find or create the manual_upload source for this workspace
     let source = await prisma.source.findFirst({
@@ -59,14 +102,23 @@ export async function POST(request: NextRequest) {
     
     for (const chunk of chunks) {
       const embedding = await generateEmbedding(chunk.content);
-      await supabaseAdmin.from("document_chunks").insert({
+      const { error } = await supabaseAdmin.from("document_chunks").insert({
         document_id: document.id,
         source_id: source.id,
         workspace_id: workspace.id,
         content: chunk.content,
-        embedding: embedding,
+        chunk_index: chunk.chunkIndex,
         token_count: chunk.tokenCount,
+        embedding: embedding,
+        metadata: {
+          document_title: title,
+          file_type: fileType,
+          source_type: "manual_upload",
+        }
       });
+      if (error) {
+        console.error("Failed to insert chunk into Supabase:", error);
+      }
     }
 
     // Update items indexed on the source

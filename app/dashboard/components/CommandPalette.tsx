@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
-import { Brain, Settings, Users, GitBranch, Search, Link2 } from "lucide-react";
+import { Brain, Settings, Users, Search, Link2 } from "lucide-react";
 import "./command-palette.css";
 
 export function CommandPalette() {

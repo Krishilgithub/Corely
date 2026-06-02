@@ -93,14 +93,23 @@ export async function POST(request: NextRequest) {
     // 4. Generate embeddings (sequential for now, batching is Section 5 scope, but safe to leave here)
     for (const chunk of chunks) {
       const embedding = await generateEmbedding(chunk.content);
-      await supabaseAdmin.from("document_chunks").insert({
+      const { error } = await supabaseAdmin.from("document_chunks").insert({
         document_id: document.id,
         source_id: source.id,
         workspace_id: workspace.id,
         content: chunk.content,
-        embedding: embedding,
+        chunk_index: chunk.chunkIndex,
         token_count: chunk.tokenCount,
+        embedding: embedding,
+        metadata: {
+          document_title: title,
+          file_type: fileType || "manual_upload",
+          source_type: "manual",
+        }
       });
+      if (error) {
+        console.error("Failed to insert chunk into Supabase:", error);
+      }
     }
 
     return successResponse({ document });

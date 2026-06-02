@@ -43,10 +43,12 @@ export function MemoryStatsGrid({ stats }: MemoryStatsGridProps) {
           <Clock size={20} strokeWidth={2.5} />
         </div>
         <div className="mem-stat-info">
-          <span className="mem-stat-value">{stats.retentionScore}%</span>
+          <span className="mem-stat-value">
+            {typeof window !== "undefined" ? (window as unknown as { __retentionPeriod?: string }).__retentionPeriod || "90 Days" : "90 Days"}
+          </span>
           <span className="mem-stat-label">Context Retention</span>
-          <span className="mem-stat-trend" style={{ color: stats.retentionColor }}>
-            ↑ {stats.retentionTrend}% <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>vs last month</span>
+          <span className="mem-stat-trend" style={{ color: "#10b981" }}>
+            <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>Global setting</span>
           </span>
         </div>
       </div>
