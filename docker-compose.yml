@@ -1,0 +1,124 @@
+# Runs Corely as an always-there container you can switch on and off.
+#
+# First time only (builds the image and starts everything):
+#   docker compose up -d
+#
+# After that, just turn it on and off:
+#   docker compose start     (or press Start in Docker Desktop)
+#   docker compose stop
+#
+# Then open http://localhost:3000
+#
+# Rebuild after you change the code:
+#   docker compose up -d --build
+
+name: corely
+
+services:
+  # ------------------------------------------------------------------
+  # The Next.js app
+  # ------------------------------------------------------------------
+  app:
+    build: .
+    image: corely:latest
+    container_name: corely
+
+    # Start again by itself if it crashes, and come back up when Docker
+    # Desktop starts. If you stop it yourself, it stays stopped. That is
+    # what "unless-stopped" means.
+    restart: unless-stopped
+
+    # Host port 3000 -> container port 3000.
+    # Keep it on 3000. Your NEXT_PUBLIC_APP_URL and the OAuth redirect URIs
+    # in .env all say http://localhost:3000, and the sign-in flows for
+    # Google, Notion and the rest will fail if the port does not match.
+    ports:
+      - "3000:3000"
+
+    # Your secrets are read from these files when the container starts.
+    # They are never copied into the image (.dockerignore blocks them), so
+    # you can edit them and just restart. No rebuild needed.
+    #
+    # Order matters. .env.local is loaded second, so it wins where the two
+    # files set the same key. That is the same order Next.js uses, so the
+    # container behaves like "npm run dev" on your machine.
+    env_file:
+      - path: .env
+        required: true
+      - path: .env.local
+        required: false
+
+    environment:
+      # Your env files say redis://localhost:6379. Inside a container
+      # "localhost" means the container itself, not your machine, so that
+      # address finds nothing. "redis" is the name of the service below,
+      # and Docker turns it into the right address.
+      REDIS_URL: redis://redis:6379
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    # Docker checks the home page every 30 seconds so Docker Desktop can
+    # show green when the app is really answering. It uses node, which is
+    # already in the image, so nothing extra is installed.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ------------------------------------------------------------------
+  # Redis
+  # ------------------------------------------------------------------
+  # Used for counting requests per user, so one user cannot flood
+  # /api/ask (the limit is 20 requests per minute).
+  #
+  # The app works without Redis. lib/rate-limit.ts falls back to counting
+  # in memory. But that count is lost on every restart, so a real Redis is
+  # better. This image is small, about 40 MB.
+  redis:
+    image: redis:7-alpine
+    container_name: corely-redis
+    restart: unless-stopped
+
+    # No ports line on purpose. Redis is only reachable by the app, not
+    # from your machine, so it cannot clash with any Redis you already run.
+
+    # Keeps the data if the container is recreated.
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:
+
+# ---------------------------------------------------------------------
+# Database setup, run once
+# ---------------------------------------------------------------------
+# Your DATABASE_URL points at Supabase in the cloud, so there is no
+# database container here. It is reached over the internet.
+#
+# A fresh database cannot answer questions until the pgvector parts exist.
+# Run these once:
+#   docker compose run --rm app npx prisma db push
+#   docker compose run --rm app npx tsx scripts/init-pgvector.ts
+#
+# The second one is required. "prisma db push" cannot create the embedding
+# column, because prisma/schema.prisma marks it as Unsupported("vector").
+#
+# ---------------------------------------------------------------------
+# The background worker
+# ---------------------------------------------------------------------
+# There is no worker service here on purpose. Syncing a source does not go
+# through the queue. POST /api/sources/[sourceId]/sync calls the connector
+# straight away inside the web app. The worker would sit idle.
+#
+# If you do want it running:
+#   docker compose run --rm app npm run worker

@@ -1,0 +1,48 @@
+# Things Docker should never copy into the image.
+# Keeping this list tight makes builds faster and stops secrets leaking in.
+
+# Installed packages. The image installs its own copy.
+node_modules
+
+# Build output from your own machine. The image builds fresh.
+.next
+out
+build
+*.tsbuildinfo
+next-env.d.ts
+
+# Git history and editor files.
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Secrets. Never copy these in. Pass them at run time instead.
+.env
+.env.*
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Notes and planning docs. Not needed to run the app.
+*.md
+build_output.txt
+
+# One-off clean-up scripts that are not part of the build.
+fix_*.js
+replace_css.js
+refactor_dark_mode_recursive.js
+delete_mock_memory.js
+delete_mock_memory.ts
+fetch-icons.js
+scripts/fix-*.js
+
+# Deploy config
+.vercel
+Dockerfile
+.dockerignore
