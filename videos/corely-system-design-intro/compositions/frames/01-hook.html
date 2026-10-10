@@ -1,0 +1,350 @@
+<template id="01-hook-template">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 600;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 700;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Inter";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Inter", sans-serif;
+    }
+
+    /* ---------- background (full-bleed clip) ---------- */
+    #h01-bg {
+      position: absolute;
+      inset: 0;
+      background-color: #fdfae7;
+    }
+    #h01-bg-dots {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(30, 43, 250, 0.35) 1.6px, transparent 2px);
+      background-size: 48px 48px;
+      background-position: 24px 24px;
+      opacity: 0.35;
+    }
+    .h01-grid9 {
+      position: absolute;
+      display: grid;
+      grid-template-columns: repeat(3, 14px);
+      gap: 22px;
+      opacity: 0.35;
+    }
+    .h01-grid9 span {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #1e2bfa;
+    }
+    #h01-grid-a { left: 120px; top: 110px; }
+    #h01-grid-b { left: 1714px; top: 110px; }
+
+    /* ---------- stage (slow macro push underneath) ---------- */
+    #h01-stage {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 42%;
+    }
+
+    /* ---------- question (focal) ---------- */
+    #h01-q-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 410px;
+      display: flex;
+      justify-content: center;
+      transform-origin: 50% 50%;
+    }
+    #h01-q {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 4.2cqw;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #111111;
+      white-space: nowrap;
+    }
+    .h01-word {
+      display: inline-block;
+      margin-right: 0.26em;
+    }
+    .h01-word:last-child { margin-right: 0; }
+
+    #h01-sub {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 322px;
+      text-align: center;
+      font-family: "Inter", sans-serif;
+      font-weight: 400;
+      font-size: 1.5cqw;
+      line-height: 1.6;
+      color: #6b6b6b;
+    }
+
+    /* ---------- scattered source cards ---------- */
+    .h01-card {
+      position: absolute;
+      padding: 26px 30px 28px;
+      background: rgba(30, 43, 250, 0.04);
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      border-radius: 14px;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+    .h01-card-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .h01-eyebrow {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 0.85cqw;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1e2bfa;
+    }
+    .h01-tag {
+      margin-left: auto;
+      padding: 5px 14px;
+      border-radius: 100px;
+      background: rgba(30, 43, 250, 0.08);
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      color: #1e2bfa;
+    }
+    .h01-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(30, 43, 250, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #1e2bfa;
+    }
+    .h01-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(30, 43, 250, 0.15);
+    }
+    .h01-main {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 1.55cqw;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      color: #111111;
+    }
+    .h01-line {
+      height: 10px;
+      border-radius: 6px;
+      background: rgba(30, 43, 250, 0.08);
+      margin-top: 14px;
+    }
+
+    #h01-card-slack { left: 190px; top: 470px; width: 480px; z-index: 2; }
+    #h01-card-notion { left: 1255px; top: 438px; width: 460px; z-index: 1; }
+    #h01-card-email { left: 728px; top: 612px; width: 470px; z-index: 3; }
+
+    .h01-thread {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .h01-thread span {
+      height: 8px;
+      border-radius: 6px;
+      background: rgba(30, 43, 250, 0.15);
+    }
+  </style>
+
+  <div data-hf-id="hf-z4dk" id="root" data-composition-id="01-hook" data-start="0" data-duration="5.919" data-width="1920" data-height="1080">
+    <!-- background: cream + faint cobalt dot field + 3x3 dot grids (dim ~35%) -->
+    <div data-hf-id="hf-bxub" id="h01-bg" class="clip" data-start="0" data-duration="5.919" data-track-index="0">
+      <div data-hf-id="hf-597z" id="h01-bg-dots"></div>
+      <div data-hf-id="hf-kcjh" class="h01-grid9" id="h01-grid-a">
+        <span data-hf-id="hf-uckh"></span><span data-hf-id="hf-l73p"></span><span data-hf-id="hf-me0s"></span><span data-hf-id="hf-lzpr"></span><span data-hf-id="hf-n6mu"></span><span data-hf-id="hf-msbt"></span><span data-hf-id="hf-nz8w"></span><span data-hf-id="hf-nkxv"></span><span data-hf-id="hf-ieyi"></span>
+      </div>
+      <div data-hf-id="hf-oani" class="h01-grid9" id="h01-grid-b">
+        <span data-hf-id="hf-i0nh"></span><span data-hf-id="hf-1qzj"></span><span data-hf-id="hf-25ak"></span><span data-hf-id="hf-0ydh"></span><span data-hf-id="hf-1coi"></span><span data-hf-id="hf-3c7n"></span><span data-hf-id="hf-3qio"></span><span data-hf-id="hf-2jll"></span><span data-hf-id="hf-2xwm"></span>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-tbuz" id="h01-stage" class="clip" data-start="0" data-duration="5.919" data-track-index="1">
+      <!-- depth layer 1 (back): Notion page -->
+      <div data-hf-id="hf-jq10" class="h01-card" id="h01-card-notion">
+        <div data-hf-id="hf-900n" class="h01-card-head">
+          <div data-hf-id="hf-wsd5" class="h01-icon">N</div>
+          <div data-hf-id="hf-n5oq" class="h01-eyebrow">Notion</div>
+          <div data-hf-id="hf-j5at" class="h01-tag">page</div>
+        </div>
+        <div data-hf-id="hf-s7ha" class="h01-main">Q3 decisions</div>
+        <div data-hf-id="hf-hd10" class="h01-line" style="width: 92%"></div>
+        <div data-hf-id="hf-4ags" class="h01-line" style="width: 74%"></div>
+        <div data-hf-id="hf-ehci" class="h01-line" style="width: 58%"></div>
+      </div>
+
+      <!-- depth layer 2 (mid): Slack message -->
+      <div data-hf-id="hf-7yl1" class="h01-card" id="h01-card-slack">
+        <div data-hf-id="hf-679z" class="h01-card-head">
+          <div data-hf-id="hf-rubl" class="h01-avatar"></div>
+          <div data-hf-id="hf-z7id" class="h01-eyebrow">Slack</div>
+          <div data-hf-id="hf-e2ti" class="h01-tag">#product</div>
+        </div>
+        <div data-hf-id="hf-9rp4" class="h01-main">let's go with…</div>
+        <div data-hf-id="hf-cnkz" class="h01-line" style="width: 66%"></div>
+      </div>
+
+      <!-- depth layer 3 (front): email thread -->
+      <div data-hf-id="hf-vvth" class="h01-card" id="h01-card-email">
+        <div data-hf-id="hf-5syy" class="h01-card-head">
+          <div data-hf-id="hf-stav" class="h01-icon">@</div>
+          <div data-hf-id="hf-otw9" class="h01-eyebrow">Email</div>
+          <div data-hf-id="hf-ff86" class="h01-tag">thread · 3</div>
+        </div>
+        <div data-hf-id="hf-vari" class="h01-main">Re: Re: final call?</div>
+        <div data-hf-id="hf-bch6" class="h01-thread">
+          <span data-hf-id="hf-x5vs" style="width: 34%"></span><span data-hf-id="hf-ljbf" style="width: 22%"></span><span data-hf-id="hf-9syl" style="width: 28%"></span>
+        </div>
+      </div>
+
+      <!-- supporting line under the question -->
+      <div data-hf-id="hf-7ewf" id="h01-sub">The answer is somewhere —</div>
+
+      <!-- focal: the question -->
+      <div data-hf-id="hf-jxvd" id="h01-q-wrap">
+        <div data-hf-id="hf-pxkk" id="h01-q">
+          <span data-hf-id="hf-qig5" class="h01-word">What</span><span data-hf-id="hf-nxl0" class="h01-word">did</span><span data-hf-id="hf-oyyf" class="h01-word">we</span><span data-hf-id="hf-okxz" class="h01-word">decide</span><span data-hf-id="hf-hl2n" class="h01-word">last</span><span data-hf-id="hf-h9e4" class="h01-word">month?</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const FRAME_ID = "01-hook";
+      const DURATION = 5.419;
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ---- macro camera: slow push-in under the whole shot ----
+      tl.fromTo(
+        "#h01-stage",
+        { scale: 1 },
+        { scale: 1.035, duration: DURATION, ease: "none" },
+        0
+      );
+
+      // ---- Scene 1 (0.0-2.0s): question builds word by word ----
+      // dynamic-content-sequencing: per-word windows pre-computed once from content length.
+      const BASE = 0.12;
+      const SEC_PER_CHAR = 0.03;
+      const START = 0.05;
+      const words = gsap.utils.toArray("#h01-q .h01-word");
+      let cumulative = START;
+      const WORD_TIMELINE = words.map((el) => {
+        const start = cumulative;
+        cumulative += BASE + el.textContent.length * SEC_PER_CHAR;
+        return { el, start };
+      });
+      WORD_TIMELINE.forEach(({ el, start }) => {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 26, filter: "blur(8px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.38, ease: "power3.out" },
+          start
+        );
+      });
+
+      // ---- Scene 2 (2.0-3.1s): question rises + shrinks to h2; sub line fades up ----
+      // h2 / h1 = 2.6 / 4.2 = 0.619
+      tl.fromTo(
+        "#h01-q-wrap",
+        { y: 0, scale: 1 },
+        { y: -190, scale: 0.619, duration: 0.8, ease: "power3.inOut" },
+        2.0
+      );
+      tl.fromTo(
+        "#h01-sub",
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+        2.4
+      );
+
+      // ---- Scene 3 (3.1-5.4s): three tilted cards spring-pop on each spoken name ----
+      const CARDS = [
+        { sel: "#h01-card-slack", at: 3.3, rot: -5, depth: 1.0, drift: -10 },
+        { sel: "#h01-card-notion", at: 3.9, rot: 4, depth: 0.92, drift: -6 },
+        { sel: "#h01-card-email", at: 4.6, rot: -2, depth: 1.04, drift: -14 },
+      ];
+      CARDS.forEach((c) => {
+        tl.fromTo(
+          c.sel,
+          { scale: 0, opacity: 0, y: 24, rotation: c.rot * 2 },
+          {
+            scale: c.depth,
+            opacity: c.depth < 1 ? 0.88 : 1,
+            y: 0,
+            rotation: c.rot,
+            duration: 0.55,
+            ease: "power3.out",
+          },
+          c.at
+        );
+        // quiet parallax drift after landing (finite, not a loop)
+        const driftStart = c.at + 0.55;
+        tl.fromTo(
+          c.sel,
+          { yPercent: 0 },
+          { yPercent: c.drift / 10, duration: Math.max(0.1, DURATION - driftStart), ease: "sine.out" },
+          driftStart
+        );
+      });
+
+      // pad the timeline to the full frame length
+      tl.set({}, {}, DURATION);
+
+      window.__timelines[FRAME_ID] = tl;
+    })();
+  </script>
+</template>

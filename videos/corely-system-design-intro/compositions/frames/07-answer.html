@@ -1,0 +1,600 @@
+<template>
+  <div data-hf-id="hf-eie4" id="root" data-composition-id="07-answer" data-start="0" data-duration="9.46" data-width="1920" data-height="1080">
+    <style>
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 500;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 600;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 700;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 500;
+        font-style: normal;
+        src: url("assets/fonts/inter-latin-500-normal.woff2") format("woff2");
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Inter", sans-serif;
+        color: #111111;
+      }
+      .a07-bg {
+        position: absolute;
+        inset: 0;
+        background: #fdfae7;
+      }
+      .a07-stage {
+        position: absolute;
+        inset: 0;
+        container-type: size;
+      }
+
+      /* ---------- pipeline rail (shared geometry, frames 03-07) ---------- */
+      .a07-rail {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 220px;
+      }
+      .a07-hair {
+        position: absolute;
+        left: 360px;
+        top: 119px;
+        width: 1200px;
+        height: 2px;
+        background: rgba(30, 43, 250, 0.2);
+      }
+      .a07-hair-fill {
+        position: absolute;
+        left: 360px;
+        top: 119px;
+        width: 1200px;
+        height: 2px;
+        background: #1e2bfa;
+        transform-origin: 0 50%;
+      }
+      .a07-step {
+        position: absolute;
+        top: 92px;
+        width: 220px;
+        margin-left: -110px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .a07-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 18px;
+        letter-spacing: 0.02em;
+        background: #1e2bfa;
+        color: #fdfae7;
+        border: 1.5px solid #1e2bfa;
+      }
+      .a07-circle.a07-future {
+        background: #fdfae7;
+        color: #1e2bfa;
+      }
+      .a07-step-label {
+        margin-top: 14px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+        white-space: nowrap;
+      }
+      .a07-done {
+        opacity: 0.55;
+      }
+      .a07-step5 .a07-step-label {
+        color: #9a9a9a;
+      }
+
+      /* ---------- header ---------- */
+      .a07-eyebrow {
+        position: absolute;
+        left: 96px;
+        top: 232px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .a07-eyebrow .a07-line {
+        width: 60px;
+        height: 4px;
+        border-radius: 2px;
+        background: #1e2bfa;
+      }
+
+      /* ---------- left: answer ---------- */
+      .a07-left {
+        position: absolute;
+        left: 96px;
+        top: 282px;
+        width: 1032px;
+      }
+      .a07-card {
+        position: relative;
+        width: 1032px;
+        min-height: 380px;
+        padding: 36px 48px 40px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        border-radius: 14px;
+      }
+      .a07-query {
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        font-size: 24px;
+        color: #6b6b6b;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .a07-query-mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(30, 43, 250, 0.08);
+        color: #1e2bfa;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .a07-tag {
+        position: absolute;
+        top: 32px;
+        right: 36px;
+        padding: 9px 18px;
+        border-radius: 100px;
+        background: rgba(30, 43, 250, 0.08);
+        color: #1e2bfa;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 18px;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .a07-tag-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #1e2bfa;
+      }
+      .a07-rule {
+        margin: 26px 0 26px;
+        height: 1px;
+        background: rgba(30, 43, 250, 0.15);
+      }
+      .a07-answer {
+        min-height: 192px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 46px;
+        line-height: 1.35;
+        letter-spacing: -0.01em;
+        color: #111111;
+      }
+      .a07-w {
+        display: inline;
+      }
+      .a07-cite {
+        display: inline-block;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 26px;
+        line-height: 1;
+        color: #1e2bfa;
+        background: rgba(30, 43, 250, 0.08);
+        border-radius: 100px;
+        padding: 6px 11px;
+        vertical-align: 14px;
+        margin-left: 4px;
+      }
+      .a07-caret {
+        display: inline-block;
+        width: 4px;
+        height: 46px;
+        margin-left: 6px;
+        vertical-align: -6px;
+        background: #1e2bfa;
+        border-radius: 2px;
+      }
+      .a07-chips {
+        margin-top: 24px;
+        display: flex;
+        gap: 18px;
+      }
+      .a07-chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 22px 12px 12px;
+        border-radius: 100px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        font-size: 22px;
+        color: #111111;
+        white-space: nowrap;
+        transform-origin: 30px 50%;
+      }
+      .a07-chip-num {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #1e2bfa;
+        color: #fdfae7;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .a07-chip-src {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        color: #1e2bfa;
+      }
+      .a07-chip-sep {
+        color: #9a9a9a;
+      }
+      .a07-chip-fresh {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        color: #1e2bfa;
+      }
+      .a07-chip-aged {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        color: #6b6b6b;
+      }
+
+      /* ---------- right: guard ---------- */
+      .a07-right {
+        position: absolute;
+        left: 1196px;
+        top: 282px;
+        width: 628px;
+        height: 560px;
+      }
+      .a07-ask {
+        position: absolute;
+        left: 0;
+        top: 118px;
+        height: 64px;
+        padding: 0 28px 0 14px;
+        border-radius: 100px;
+        background: #fdfae7;
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: "Inter", sans-serif;
+        font-weight: 500;
+        font-size: 23px;
+        color: #111111;
+        white-space: nowrap;
+      }
+      .a07-ask .a07-query-mark {
+        width: 38px;
+        height: 38px;
+      }
+      .a07-gate {
+        position: absolute;
+        left: 0;
+        top: 182px;
+        width: 628px;
+        height: 90px;
+      }
+      .a07-gate-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 628px;
+        height: 2px;
+        background: rgba(30, 43, 250, 0.2);
+        transform-origin: 0 50%;
+      }
+      .a07-gate-bar {
+        position: absolute;
+        left: 0;
+        top: -3px;
+        width: 628px;
+        height: 8px;
+        border-radius: 6px;
+        background: repeating-linear-gradient(
+          90deg,
+          #1e2bfa 0 34px,
+          rgba(30, 43, 250, 0.25) 34px 52px
+        );
+        transform-origin: 0 50%;
+      }
+      .a07-gate-label {
+        position: absolute;
+        left: 0;
+        top: 26px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 26px;
+        color: #111111;
+        letter-spacing: -0.01em;
+      }
+      .a07-gate-label b {
+        color: #1e2bfa;
+        font-weight: 700;
+      }
+      .a07-nomatch {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 22px;
+        color: #dc2626;
+      }
+      .a07-calm {
+        position: absolute;
+        left: 0;
+        top: 314px;
+        width: 628px;
+        padding: 34px 38px 34px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        border-radius: 14px;
+      }
+      .a07-calm-eyebrow {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+      }
+      .a07-calm-text {
+        margin-top: 14px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 34px;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        color: #111111;
+      }
+      .a07-muted-chip {
+        margin-top: 22px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 18px;
+        border-radius: 100px;
+        border: 1.5px solid rgba(17, 17, 17, 0.14);
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 19px;
+        color: #6b6b6b;
+        transform-origin: 20px 50%;
+      }
+      .a07-muted-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 1.5px solid #9a9a9a;
+      }
+    </style>
+
+    <!-- full-bleed ground -->
+    <div data-hf-id="hf-zr7b" class="clip a07-bg" data-start="0" data-duration="9.46" data-track-index="0"></div>
+
+    <div data-hf-id="hf-p7oa" id="a07-stage" class="clip a07-stage" data-start="0" data-duration="9.46" data-track-index="1">
+      <!-- pipeline rail -->
+      <div data-hf-id="hf-n4z7" class="a07-rail">
+        <div data-hf-id="hf-tcaj" class="a07-hair"></div>
+        <div data-hf-id="hf-aepo" id="a07-hair-fill" class="a07-hair-fill"></div>
+
+        <div data-hf-id="hf-t5ay" class="a07-step a07-done" style="left: 360px">
+          <div data-hf-id="hf-u2w0" class="a07-circle">01</div>
+          <div data-hf-id="hf-q9te" class="a07-step-label">Connect</div>
+        </div>
+        <div data-hf-id="hf-3koz" class="a07-step a07-done" style="left: 660px">
+          <div data-hf-id="hf-svyx" class="a07-circle">02</div>
+          <div data-hf-id="hf-n6w6" class="a07-step-label">Chunk &amp; Embed</div>
+        </div>
+        <div data-hf-id="hf-qpbs" class="a07-step a07-done" style="left: 960px">
+          <div data-hf-id="hf-ta9y" class="a07-circle">03</div>
+          <div data-hf-id="hf-oa54" class="a07-step-label">Retrieve</div>
+        </div>
+        <div data-hf-id="hf-en2s" id="a07-step4" class="a07-step" style="left: 1260px">
+          <div data-hf-id="hf-s3cv" class="a07-circle">04</div>
+          <div data-hf-id="hf-hvkj" class="a07-step-label">Freshness</div>
+        </div>
+        <div data-hf-id="hf-qy6m" id="a07-step5" class="a07-step a07-step5" style="left: 1560px">
+          <div data-hf-id="hf-2rzt" id="a07-c5" class="a07-circle a07-future">05</div>
+          <div data-hf-id="hf-720m" id="a07-l5" class="a07-step-label">Answer</div>
+        </div>
+      </div>
+
+      <div data-hf-id="hf-dnfs" id="a07-eyebrow" class="a07-eyebrow"><span data-hf-id="hf-ybmg" class="a07-line"></span>Step 5 · Answer</div>
+
+      <!-- left: streamed, cited answer -->
+      <div data-hf-id="hf-6ep2" id="a07-left" class="a07-left">
+        <div data-hf-id="hf-aou6" id="a07-card" class="a07-card">
+          <div data-hf-id="hf-y6md" class="a07-query"><span data-hf-id="hf-8xzd" class="a07-query-mark">?</span>How did we land on pricing?</div>
+          <div data-hf-id="hf-3aa9" id="a07-tag" class="a07-tag"><span data-hf-id="hf-tcns" class="a07-tag-dot"></span>gpt-4o · streamed</div>
+          <div data-hf-id="hf-zma9" class="a07-rule"></div>
+          <div data-hf-id="hf-sblp" class="a07-answer"><span data-hf-id="hf-8fkc" class="a07-w">The </span><span data-hf-id="hf-eud8" class="a07-w">team </span><span data-hf-id="hf-ryz3" class="a07-w">chose </span><span data-hf-id="hf-x1mq" class="a07-w">usage-based </span><span data-hf-id="hf-nwn1" class="a07-w">pricing</span><span data-hf-id="hf-0jas" class="a07-w a07-cite">1</span><span data-hf-id="hf-i19m" class="a07-w">, and </span><span data-hf-id="hf-v8gu" class="a07-w">confirmed </span><span data-hf-id="hf-hdc0" class="a07-w">it </span><span data-hf-id="hf-71da" class="a07-w">in </span><span data-hf-id="hf-x2v8" class="a07-w">#pricing</span><span data-hf-id="hf-zcdp" class="a07-w a07-cite">2</span><span data-hf-id="hf-s3xd" class="a07-w">.</span><span data-hf-id="hf-pfpn" id="a07-caret" class="a07-caret"></span></div>
+        </div>
+        <div data-hf-id="hf-xcl8" class="a07-chips">
+          <div data-hf-id="hf-18jr" id="a07-chip1" class="a07-chip">
+            <span data-hf-id="hf-p5bu" class="a07-chip-num">1</span>
+            <span data-hf-id="hf-s4m0" class="a07-chip-src">Notion</span><span data-hf-id="hf-c2kk" class="a07-chip-sep">·</span>
+            <span data-hf-id="hf-77sd">Pricing memo</span><span data-hf-id="hf-g5do" class="a07-chip-sep">·</span>
+            <span data-hf-id="hf-9iia" class="a07-chip-fresh">Fresh 94</span>
+          </div>
+          <div data-hf-id="hf-sknw" id="a07-chip2" class="a07-chip">
+            <span data-hf-id="hf-pjmv" class="a07-chip-num">2</span>
+            <span data-hf-id="hf-9g6r" class="a07-chip-src">Slack</span><span data-hf-id="hf-eygl" class="a07-chip-sep">·</span>
+            <span data-hf-id="hf-wdeo">#pricing</span><span data-hf-id="hf-fcrm" class="a07-chip-sep">·</span>
+            <span data-hf-id="hf-js8g" class="a07-chip-aged">Aged 72</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- right: the 0.55 guard -->
+      <div data-hf-id="hf-k9sv" class="a07-right">
+        <div data-hf-id="hf-pinw" id="a07-ask" class="a07-ask"><span data-hf-id="hf-6l8d" class="a07-query-mark">?</span>What is the office wifi password?</div>
+        <div data-hf-id="hf-b74a" id="a07-gate" class="a07-gate">
+          <div data-hf-id="hf-qnbc" id="a07-gate-line" class="a07-gate-line"></div>
+          <div data-hf-id="hf-euaa" id="a07-gate-bar" class="a07-gate-bar"></div>
+          <div data-hf-id="hf-lgmu" id="a07-gate-label" class="a07-gate-label">
+            <span data-hf-id="hf-wbmr">similarity <b data-hf-id="hf-yiun">&gt; 0.55</b>?</span>
+            <span data-hf-id="hf-bsq7" id="a07-nomatch" class="a07-nomatch">
+              <svg data-hf-id="hf-i3ll" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                <path data-hf-id="hf-3vrd" d="M5 5 L15 15 M15 5 L5 15" stroke="#dc2626" stroke-width="2.6" stroke-linecap="round" fill="none" />
+              </svg>
+              no match
+            </span>
+          </div>
+        </div>
+        <div data-hf-id="hf-iwcy" id="a07-calm" class="a07-calm">
+          <div data-hf-id="hf-ktco" class="a07-calm-eyebrow">Corely</div>
+          <div data-hf-id="hf-tc5f" class="a07-calm-text">I don't have enough information about that.</div>
+          <div data-hf-id="hf-i4zc" id="a07-mchip" class="a07-muted-chip"><span data-hf-id="hf-we6t" class="a07-muted-dot"></span>model not called</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+        const q = (s) => document.querySelector(s);
+        const words = Array.prototype.slice.call(document.querySelectorAll("#a07-card .a07-w"));
+
+        // ---- Scene 1 (0.0-1.0): step 04 -> done, 05 ANSWER lights ----
+        tl.fromTo("#a07-eyebrow", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+        tl.fromTo("#a07-hair-fill", { scaleX: 0.75 }, { scaleX: 1, duration: 0.6, ease: "power2.inOut" }, 0.25);
+        tl.fromTo("#a07-step4", { opacity: 1 }, { opacity: 0.55, duration: 0.45, ease: "power1.out" }, 0.25);
+        tl.fromTo(
+          "#a07-c5",
+          { backgroundColor: "#fdfae7", color: "#1e2bfa" },
+          { backgroundColor: "#1e2bfa", color: "#fdfae7", duration: 0.35, ease: "power2.out" },
+          0.6
+        );
+        tl.fromTo("#a07-c5", { scale: 1 }, { scale: 1.14, duration: 0.18, ease: "power2.out" }, 0.6);
+        tl.to("#a07-c5", { scale: 1, duration: 0.35, ease: "power3.out" }, 0.78);
+        tl.fromTo("#a07-l5", { color: "#9a9a9a" }, { color: "#1e2bfa", duration: 0.35 }, 0.6);
+
+        // answer card (hero) lands early
+        tl.fromTo("#a07-card", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+        tl.fromTo("#a07-tag", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 0.95);
+
+        // ---- Scene 2 (1.0-4.2): stream word by word (dynamic-content-sequencing) ----
+        // Pre-compute each token window once from its length.
+        const STREAM_START = 1.15;
+        const BASE = 0.07;
+        const PER_CHAR = 0.012;
+        let cursor = STREAM_START;
+        const WINDOWS = words.map((w) => {
+          const start = cursor;
+          cursor += BASE + w.textContent.length * PER_CHAR;
+          return start;
+        });
+        const STREAM_END = cursor;
+
+        tl.set(words, { display: "none" }, 0);
+        tl.set("#a07-caret", { opacity: 0 }, 0);
+        tl.set("#a07-caret", { opacity: 1 }, 1.0);
+        words.forEach((w, i) => {
+          if (w.classList.contains("a07-cite")) {
+            tl.set(w, { display: "inline-block" }, WINDOWS[i]);
+            tl.fromTo(w, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "power3.out" }, WINDOWS[i]);
+          } else {
+            tl.set(w, { display: "inline" }, WINDOWS[i]);
+          }
+        });
+
+        // caret blinks after the stream ends, then retires
+        let blinkT = STREAM_END + 0.3;
+        let on = false;
+        while (blinkT < 4.2) {
+          tl.set("#a07-caret", { opacity: on ? 1 : 0 }, blinkT);
+          on = !on;
+          blinkT += 0.4;
+        }
+        tl.set("#a07-caret", { opacity: 0 }, 4.2);
+
+        // citation chips pop under the card on "with citations"
+        tl.fromTo("#a07-chip1", { opacity: 0, scale: 0.6, y: 10 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.1);
+        tl.fromTo("#a07-chip2", { opacity: 0, scale: 0.6, y: 10 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.4);
+
+        // ---- Scene 3 (4.2-6.2): dim answer, failing query drops onto the 0.55 gate ----
+        tl.to("#a07-left", { opacity: 0.5, duration: 0.5, ease: "power1.out" }, 4.2);
+        tl.fromTo("#a07-gate-line", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 4.3);
+        tl.fromTo("#a07-gate-bar", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power2.out" }, 4.4);
+        tl.fromTo("#a07-gate-label", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 4.55);
+        tl.fromTo("#a07-ask", { opacity: 0, y: -118 }, { opacity: 1, y: -100, duration: 0.35, ease: "power2.out" }, 4.45);
+        tl.to("#a07-ask", { y: 0, duration: 0.42, ease: "power2.in" }, 4.95);
+        tl.to("#a07-ask", { y: -10, duration: 0.12, ease: "power2.out" }, 5.37);
+        tl.to("#a07-ask", { y: 0, duration: 0.16, ease: "power2.in" }, 5.49);
+        tl.fromTo("#a07-gate-bar", { y: 0 }, { y: 3, duration: 0.08, ease: "power2.out" }, 5.37);
+        tl.to("#a07-gate-bar", { y: 0, duration: 0.3, ease: "power3.out" }, 5.45);
+        tl.fromTo("#a07-nomatch", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.3, ease: "power2.out" }, 5.5);
+        tl.fromTo("#a07-ask", { borderColor: "rgba(30,43,250,0.2)" }, { borderColor: "rgba(220,38,38,0.45)", duration: 0.25 }, 5.5);
+
+        // ---- Scene 4 (6.2-8.96): calm "no knowledge" card, then hold ----
+        tl.fromTo("#a07-calm", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 6.25);
+        tl.fromTo("#a07-mchip", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 7.0);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["07-answer"] = tl;
+      })();
+    </script>
+  </div>
+</template>

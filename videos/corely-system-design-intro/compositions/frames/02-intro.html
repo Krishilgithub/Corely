@@ -1,0 +1,462 @@
+<template>
+  <div data-hf-id="hf-5o0g" id="root" data-composition-id="02-intro" data-start="0" data-duration="6.473" data-width="1920" data-height="1080">
+    <style>
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 500;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 600;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 700;
+        font-style: normal;
+        src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 400;
+        font-style: normal;
+        src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 500;
+        font-style: normal;
+        src: url("assets/fonts/inter-latin-500-normal.woff2") format("woff2");
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Inter", sans-serif;
+      }
+
+      /* full-bleed cream ground (its own clip layer, not on #root) */
+      [id="02-intro-ground"] {
+        position: absolute;
+        inset: 0;
+        background: #fdfae7;
+        container-type: size;
+      }
+
+      [id="02-intro-stage"] {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* camera layer: everything that the push-in scales */
+      [id="02-intro-world"] {
+        position: absolute;
+        inset: 0;
+        transform-origin: 960px 410px;
+      }
+
+      [id="02-intro-rings"],
+      [id="02-intro-lines"] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: visible;
+      }
+
+      /* soft cobalt-tint glow behind the hub (gradient, not a shadow) */
+      [id="02-intro-glow"] {
+        position: absolute;
+        left: 960px;
+        top: 410px;
+        width: 560px;
+        height: 560px;
+        margin-left: -280px;
+        margin-top: -280px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(30, 43, 250, 0.16) 0%,
+          rgba(30, 43, 250, 0.08) 38%,
+          rgba(30, 43, 250, 0) 70%
+        );
+      }
+
+      /* the burst wrap: chips are absolutely placed at the hub point */
+      [id="02-intro-burst"] {
+        position: absolute;
+        inset: 0;
+      }
+
+      [class~="02-intro-chip"] {
+        position: absolute;
+        left: 960px;
+        top: 410px;
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 34px;
+        border-radius: 100px;
+        background: rgba(30, 43, 250, 0.08);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        color: #1e2bfa;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 32px;
+        line-height: 1;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        will-change: transform;
+      }
+      [class~="02-intro-chip-dot"] {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #1e2bfa;
+        opacity: 0.55;
+      }
+
+      /* hub placeholder outline (visible before the hub fills) */
+      [id="02-intro-hub-outline"] {
+        position: absolute;
+        left: 960px;
+        top: 410px;
+        width: 220px;
+        height: 220px;
+        margin-left: -110px;
+        margin-top: -110px;
+        border-radius: 50%;
+        border: 1.5px dashed rgba(30, 43, 250, 0.35);
+        background: #fdfae7;
+      }
+
+      [id="02-intro-hub"] {
+        position: absolute;
+        left: 960px;
+        top: 410px;
+        width: 220px;
+        height: 220px;
+        margin-left: -110px;
+        margin-top: -110px;
+        border-radius: 50%;
+        background: #1e2bfa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      [id="02-intro-hub-word"] {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 50px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: #fdfae7;
+      }
+
+      /* UI overlay: ask bar + answer card sit outside the camera layer */
+      [id="02-intro-ask"] {
+        position: absolute;
+        left: 480px;
+        top: 498px;
+        width: 960px;
+        height: 92px;
+        border-radius: 100px;
+        background: linear-gradient(rgba(30, 43, 250, 0.04), rgba(30, 43, 250, 0.04)), #fdfae7;
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        display: flex;
+        align-items: center;
+        padding: 0 16px 0 36px;
+        gap: 22px;
+      }
+      [id="02-intro-ask-label"] {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+        flex: none;
+      }
+      [id="02-intro-ask-wrap"] {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        min-width: 640px;
+        overflow: hidden;
+      }
+      [id="02-intro-ask-text"] {
+        font-family: "Inter", sans-serif;
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1;
+        color: #111111;
+        white-space: pre;
+      }
+      [id="02-intro-caret"] {
+        display: inline-block;
+        width: 3px;
+        height: 38px;
+        margin-left: 4px;
+        border-radius: 2px;
+        background: #1e2bfa;
+      }
+      [id="02-intro-send"] {
+        flex: none;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #1e2bfa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      [id="02-intro-card"] {
+        position: absolute;
+        left: 480px;
+        top: 618px;
+        width: 960px;
+        padding: 30px 40px 32px;
+        border-radius: 14px;
+        background: linear-gradient(rgba(30, 43, 250, 0.04), rgba(30, 43, 250, 0.04)), #fdfae7;
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+      }
+      [id="02-intro-card-eyebrow"] {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 20px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+        margin-bottom: 14px;
+      }
+      [id="02-intro-card-line"] {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 34px;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        color: #111111;
+        margin-bottom: 22px;
+      }
+      [id="02-intro-cites"] {
+        display: flex;
+        gap: 14px;
+      }
+      [class~="02-intro-cite"] {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 22px;
+        border-radius: 100px;
+        background: rgba(30, 43, 250, 0.08);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        color: #1e2bfa;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 26px;
+        line-height: 1;
+      }
+    </style>
+
+    <!-- track 0: full-bleed cream ground -->
+    <div data-hf-id="hf-kkgr" id="02-intro-ground" class="clip" data-start="0" data-duration="6.473" data-track-index="0"></div>
+
+    <!-- track 1: the whole shot -->
+    <div data-hf-id="hf-n0dp" id="02-intro-stage" class="clip" data-start="0" data-duration="6.473" data-track-index="1">
+      <div data-hf-id="hf-6tap" id="02-intro-world">
+        <!-- background: faint concentric rings (dimmed) -->
+        <svg data-hf-id="hf-plr0" id="02-intro-rings" viewBox="0 0 1920 1080" aria-hidden="true">
+          <g data-hf-id="hf-p9bk" fill="none" stroke="#1e2bfa" stroke-width="1.5">
+            <circle data-hf-id="hf-lpdo" cx="960" cy="410" r="190" stroke-opacity="0.16" />
+            <circle data-hf-id="hf-vhtk" cx="960" cy="410" r="330" stroke-opacity="0.12" />
+            <circle data-hf-id="hf-5ldy" cx="960" cy="410" r="480" stroke-opacity="0.09" />
+            <circle data-hf-id="hf-40cj" cx="960" cy="410" r="640" stroke-opacity="0.06" />
+          </g>
+        </svg>
+
+        <!-- supporting: connector lines, chip -> hub -->
+        <svg data-hf-id="hf-0r08" id="02-intro-lines" viewBox="0 0 1920 1080" aria-hidden="true">
+          <g data-hf-id="hf-b604" fill="none" stroke="#1e2bfa" stroke-width="2" stroke-opacity="0.45" stroke-linecap="round">
+            <path data-hf-id="hf-elac" class="02-intro-line" d="M1460 410 L960 410" />
+            <path data-hf-id="hf-ruvi" class="02-intro-line" d="M1210 644 L960 410" />
+            <path data-hf-id="hf-7vas" class="02-intro-line" d="M710 644 L960 410" />
+            <path data-hf-id="hf-ysgp" class="02-intro-line" d="M460 410 L960 410" />
+            <path data-hf-id="hf-vbx0" class="02-intro-line" d="M710 176 L960 410" />
+            <path data-hf-id="hf-m896" class="02-intro-line" d="M1210 176 L960 410" />
+          </g>
+        </svg>
+
+        <div data-hf-id="hf-69ek" id="02-intro-glow"></div>
+
+        <!-- supporting: six tool chips on an even ring (rx 500, ry 234) -->
+        <div data-hf-id="hf-rgob" id="02-intro-burst">
+          <div data-hf-id="hf-khxb" class="02-intro-chip" data-target-x="500" data-target-y="0"><span data-hf-id="hf-tj0n" class="02-intro-chip-dot"></span>Notion</div>
+          <div data-hf-id="hf-ygf1" class="02-intro-chip" data-target-x="250" data-target-y="234"><span data-hf-id="hf-on1j" class="02-intro-chip-dot"></span>Gmail</div>
+          <div data-hf-id="hf-wm4p" class="02-intro-chip" data-target-x="-250" data-target-y="234"><span data-hf-id="hf-o8qi" class="02-intro-chip-dot"></span>Google Drive</div>
+          <div data-hf-id="hf-im2q" class="02-intro-chip" data-target-x="-500" data-target-y="0"><span data-hf-id="hf-nufh" class="02-intro-chip-dot"></span>GitHub</div>
+          <div data-hf-id="hf-fjg9" class="02-intro-chip" data-target-x="-250" data-target-y="-234"><span data-hf-id="hf-qmko" class="02-intro-chip-dot"></span>Slack</div>
+          <div data-hf-id="hf-j8iv" class="02-intro-chip" data-target-x="250" data-target-y="-234"><span data-hf-id="hf-q89n" class="02-intro-chip-dot"></span>Linear</div>
+        </div>
+
+        <div data-hf-id="hf-fez9" id="02-intro-hub-outline"></div>
+
+        <!-- focal: the Corely hub -->
+        <div data-hf-id="hf-z54s" id="02-intro-hub">
+          <div data-hf-id="hf-jbdx" id="02-intro-hub-word">Corely</div>
+        </div>
+      </div>
+
+      <!-- foreground (late): ask bar -->
+      <div data-hf-id="hf-3a5q" id="02-intro-ask">
+        <div data-hf-id="hf-ixj4" id="02-intro-ask-label">Ask</div>
+        <div data-hf-id="hf-ssan" id="02-intro-ask-wrap">
+          <span data-hf-id="hf-c96j" id="02-intro-ask-text"></span><span data-hf-id="hf-7c43" id="02-intro-caret"></span>
+        </div>
+        <div data-hf-id="hf-tz19" id="02-intro-send">
+          <svg data-hf-id="hf-601c" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fdfae7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path data-hf-id="hf-oher" d="M5 12 H19" />
+            <path data-hf-id="hf-a3kn" d="M13 6 L19 12 L13 18" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- foreground (late): cited answer card -->
+      <div data-hf-id="hf-u3l9" id="02-intro-card">
+        <div data-hf-id="hf-gcz5" id="02-intro-card-eyebrow">Answer</div>
+        <div data-hf-id="hf-8kud" id="02-intro-card-line">Move to usage-based pricing, keep a free tier.</div>
+        <div data-hf-id="hf-45mt" id="02-intro-cites">
+          <span data-hf-id="hf-cfua" class="02-intro-cite">[1] Notion</span>
+          <span data-hf-id="hf-t09i" class="02-intro-cite">[2] Slack</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        const FID = "02-intro";
+        const DUR = 5.973;
+        const byId = (s) => document.getElementById(FID + "-" + s);
+        const byClass = (s) => Array.prototype.slice.call(document.getElementsByClassName(FID + "-" + s));
+
+        const world = byId("world");
+        const rings = byId("rings");
+        const glow = byId("glow");
+        const chips = byClass("chip");
+        const lines = byClass("line");
+        const outline = byId("hub-outline");
+        const hub = byId("hub");
+        const hubWord = byId("hub-word");
+        const ask = byId("ask");
+        const askText = byId("ask-text");
+        const caret = byId("caret");
+        const card = byId("card");
+        const cardEyebrow = byId("card-eyebrow");
+        const cardLine = byId("card-line");
+        const cites = byClass("cite");
+
+        const tl = gsap.timeline({ paused: true });
+
+        // ---- Scene 1 (0.0-2.0s): chips burst from the center to an even ring ----
+        tl.fromTo(rings, { opacity: 0, scale: 0.92, transformOrigin: "960px 410px" },
+          { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }, 0);
+        tl.fromTo(outline, { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.05);
+
+        const ENTRY_AT = 0.12;
+        const STAGGER = 0.07;
+        const START_PROGRESS = 0.15;
+        chips.forEach((el, i) => {
+          const tx = Number(el.dataset.targetX);
+          const ty = Number(el.dataset.targetY);
+          tl.fromTo(
+            el,
+            { xPercent: -50, yPercent: -50, x: tx * START_PROGRESS, y: ty * START_PROGRESS, scale: 0.6, opacity: 0 },
+            { x: tx, y: ty, scale: 1, opacity: 1, duration: 1.2, ease: "power3.out" },
+            ENTRY_AT + i * STAGGER
+          );
+        });
+
+        // connector lines draw from each chip toward the center
+        lines.forEach((el, i) => {
+          const len = el.getTotalLength();
+          tl.fromTo(el, { strokeDasharray: len, strokeDashoffset: len },
+            { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" }, 0.75 + i * STAGGER);
+        });
+
+        // ---- Scene 2 (2.0-2.9s): "one memory" - hub fills cobalt, spring-pop ----
+        tl.fromTo(glow, { opacity: 0, scale: 0.6 },
+          { opacity: 1, scale: 1, duration: 0.8, ease: "power2.out" }, 2.0);
+        tl.fromTo(hub, { scale: 0, opacity: 1 },
+          { scale: 1, duration: 0.6, ease: "power3.out" }, 2.0);
+        tl.fromTo(hubWord, { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 2.18);
+        // lines brighten once the hub lands (everything now feeds one place)
+        tl.fromTo(lines, { strokeOpacity: 0.45 },
+          { strokeOpacity: 1, duration: 0.4, ease: "power2.out" }, 2.25);
+
+        // ---- Scene 3 (2.9-4.3s): camera pushes in to the hub, ring softens (DOF) ----
+        tl.fromTo(world, { scale: 1, y: 0 },
+          { scale: 1.28, y: -110, duration: 1.4, ease: "power2.inOut" }, 2.9);
+        tl.fromTo(chips, { filter: "blur(0px)", opacity: 1 },
+          { filter: "blur(5px)", opacity: 0.32, duration: 1.0, ease: "power2.out", immediateRender: false }, 2.95);
+        tl.fromTo(lines, { opacity: 1 },
+          { opacity: 0.35, duration: 1.0, ease: "power2.out" }, 2.95);
+        tl.fromTo(rings, { filter: "blur(0px)" },
+          { filter: "blur(2px)", duration: 1.0, ease: "power2.out" }, 2.95);
+
+        // ask bar pops in under the hub
+        tl.fromTo(ask, { opacity: 0, y: 26, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "power3.out" }, 2.95);
+
+        // type-on (smooth slice variant: plain typing, no edits)
+        const QUESTION = "What did we decide about pricing?";
+        const len = { v: 0 };
+        tl.fromTo(len, { v: 0 }, {
+          v: QUESTION.length,
+          duration: 1.15,
+          ease: "power1.inOut",
+          onUpdate: () => { askText.textContent = QUESTION.substring(0, Math.floor(len.v)); },
+        }, 3.15);
+        tl.call(() => { askText.textContent = ""; }, null, 0);
+
+        // caret blink: deterministic sin square wave on the timeline
+        const blink = { p: 0 };
+        const BLINK_START = 2.95;
+        const BLINK_DUR = DUR - BLINK_START;
+        tl.fromTo(blink, { p: 0 }, {
+          p: Math.PI * 2 * (BLINK_DUR / 0.6),
+          duration: BLINK_DUR,
+          ease: "none",
+          onUpdate: () => {
+            const typing = len.v > 0 && len.v < QUESTION.length;
+            caret.style.opacity = typing || Math.sin(blink.p) > 0 ? "1" : "0";
+          },
+        }, BLINK_START);
+
+        // ---- Scene 4 (4.3-6.0s): "with sources" - cited answer card slides up ----
+        tl.fromTo(card, { opacity: 0, y: 48 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 4.3);
+        tl.fromTo(cardEyebrow, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.42);
+        tl.fromTo(cardLine, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 4.48);
+        cites.forEach((el, i) => {
+          tl.fromTo(el, { opacity: 0, scale: 0.6 },
+            { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 4.75 + i * 0.15);
+        });
+
+        // held read: slow camera drift underneath so the hold breathes
+        tl.fromTo(world, { scale: 1.28 }, { scale: 1.31, duration: DUR - 4.3, ease: "none", immediateRender: false }, 4.3);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines[FID] = tl;
+      })();
+    </script>
+  </div>
+</template>

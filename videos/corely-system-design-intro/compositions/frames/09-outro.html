@@ -1,0 +1,253 @@
+<template>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap");
+  </style>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    /* Full-bleed cream ground (its own clip, not on #root). */
+    #root .f09-outro-bg {
+      position: absolute;
+      inset: 0;
+      background: #fdfae7;
+    }
+
+    /* Concentric closing rings: background, dimmed, faded out above the caption band. */
+    #root .f09-outro-rings {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 880px;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+    }
+    #root .f09-outro-ring-wrap {
+      position: absolute;
+      left: 960px;
+      top: 450px;
+      width: 0;
+      height: 0;
+    }
+    #root .f09-outro-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      background: transparent;
+    }
+
+    /* Content layer. */
+    #root .f09-outro-content {
+      position: absolute;
+      inset: 0;
+    }
+    #root .f09-outro-stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 880px;
+    }
+
+    #root .f09-outro-wordmark {
+      position: absolute;
+      left: 0;
+      width: 1920px;
+      top: 300px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 6.4cqw;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #111111;
+      white-space: nowrap;
+    }
+
+    /* Merge point of the six dots = the accent line. */
+    #root .f09-outro-anchor {
+      position: absolute;
+      left: 960px;
+      top: 470px;
+      width: 0;
+      height: 0;
+    }
+    #root .f09-outro-line {
+      position: absolute;
+      left: -30px;
+      top: -2px;
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1e2bfa;
+    }
+    #root .f09-outro-dot {
+      position: absolute;
+      left: -7px;
+      top: -7px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #1e2bfa;
+    }
+
+    #root .f09-outro-tagline {
+      position: absolute;
+      left: 0;
+      width: 1920px;
+      top: 512px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 2.1cqw;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      color: #6b6b6b;
+      white-space: nowrap;
+    }
+    #root .f09-outro-word {
+      display: inline-block;
+      margin: 0 0.13em;
+    }
+    #root .f09-outro-word.f09-outro-accent {
+      color: #1e2bfa;
+    }
+  </style>
+
+  <div data-hf-id="hf-z5e0" id="root" data-composition-id="09-outro" data-start="0" data-duration="2.411" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-74xa" id="f09-outro-bg" class="clip f09-outro-bg" data-start="0" data-duration="2.411" data-track-index="0"></div>
+
+    <div data-hf-id="hf-z7gb" id="f09-outro-rings" class="clip f09-outro-rings" data-start="0" data-duration="2.411" data-track-index="1">
+      <div data-hf-id="hf-xjpk" id="f09-outro-ring-wrap" class="f09-outro-ring-wrap">
+        <div data-hf-id="hf-3lcm" class="f09-outro-ring" style="left: -150px; top: -150px; width: 300px; height: 300px"></div>
+        <div data-hf-id="hf-sfqa" class="f09-outro-ring" style="left: -300px; top: -300px; width: 600px; height: 600px"></div>
+        <div data-hf-id="hf-w4mc" class="f09-outro-ring" style="left: -440px; top: -440px; width: 880px; height: 880px"></div>
+      </div>
+    </div>
+
+    <div data-hf-id="hf-dm5a" id="f09-outro-content" class="clip f09-outro-content" data-start="0" data-duration="2.411" data-track-index="2">
+      <div data-hf-id="hf-iml6" id="f09-outro-stage" class="f09-outro-stage">
+        <div data-hf-id="hf-g2ri" id="f09-outro-wordmark" class="f09-outro-wordmark">Corely</div>
+
+        <div data-hf-id="hf-esom" id="f09-outro-anchor" class="f09-outro-anchor">
+          <div data-hf-id="hf-5vbu" id="f09-outro-line" class="f09-outro-line"></div>
+          <div data-hf-id="hf-nif3" class="f09-outro-dot"></div>
+          <div data-hf-id="hf-1ipr" class="f09-outro-dot"></div>
+          <div data-hf-id="hf-14eq" class="f09-outro-dot"></div>
+          <div data-hf-id="hf-0q3p" class="f09-outro-dot"></div>
+          <div data-hf-id="hf-3i8w" class="f09-outro-dot"></div>
+          <div data-hf-id="hf-33xv" class="f09-outro-dot"></div>
+        </div>
+
+        <div data-hf-id="hf-zeeq" id="f09-outro-tagline" class="f09-outro-tagline">
+          <span data-hf-id="hf-03yc" class="f09-outro-word">Your</span><span data-hf-id="hf-bsps" class="f09-outro-word">team's</span><span data-hf-id="hf-k4wq" class="f09-outro-word">memory.</span><span data-hf-id="hf-rk1d" class="f09-outro-word f09-outro-accent">With</span><span data-hf-id="hf-2mk5" class="f09-outro-word f09-outro-accent">sources.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      var root = document.querySelector('[data-composition-id="09-outro"]');
+      var q = function (sel) {
+        return root.querySelectorAll(sel);
+      };
+      var one = function (sel) {
+        return root.querySelector(sel);
+      };
+
+      var tl = gsap.timeline({ paused: true });
+
+      var ringWrap = one(".f09-outro-ring-wrap");
+      var rings = q(".f09-outro-ring");
+      var dots = q(".f09-outro-dot");
+      var line = one(".f09-outro-line");
+      var wordmark = one(".f09-outro-wordmark");
+      var words = q(".f09-outro-word");
+      var stage = one(".f09-outro-stage");
+      var ringsLayer = one(".f09-outro-rings");
+      var content = one(".f09-outro-content");
+
+      // Scene 1 (0.0-0.8s): faint rings, six dots glide in from the ring and merge into the accent line.
+      // Rings: dim background (~35%), a slow outward breathe across the whole shot.
+      tl.fromTo(ringsLayer, { opacity: 0 }, { opacity: 0.35, duration: 0.4, ease: "power1.out" }, 0);
+      tl.fromTo(ringWrap, { scale: 0.94 }, { scale: 1.03, duration: 2.411, ease: "none" }, 0);
+      rings.forEach(function (ring, i) {
+        tl.fromTo(
+          ring,
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" },
+          0.04 * i
+        );
+      });
+
+      // Dots start on the r=300 ring (anchor is 20px below ring center), one per source.
+      var R = 300;
+      var ringDy = -20; // ring center relative to the anchor
+      dots.forEach(function (dot, i) {
+        var a = (-90 + i * 60) * (Math.PI / 180);
+        var sx = Math.cos(a) * R;
+        var sy = Math.sin(a) * R + ringDy;
+        var tx = -25 + i * 10; // spread along the 60px line
+        tl.fromTo(
+          dot,
+          { x: sx, y: sy, scale: 0.4, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.14, ease: "power2.out" },
+          0.02 + i * 0.025
+        );
+        tl.to(
+          dot,
+          { x: tx, y: 0, duration: 0.42, ease: "power3.inOut" },
+          0.1 + i * 0.025
+        );
+        // Shrink to line thickness as they land, then dissolve into the solid line.
+        tl.to(dot, { scaleY: 0.29, scaleX: 0.9, duration: 0.1, ease: "power2.out" }, 0.5 + i * 0.012);
+        tl.to(dot, { opacity: 0, duration: 0.08, ease: "none" }, 0.64);
+      });
+      tl.fromTo(
+        line,
+        { scaleX: 0.5, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.2, ease: "power2.out" },
+        0.56
+      );
+
+      // "Corely" resolves above the line (smooth settle), readable by ~0.8s.
+      tl.fromTo(
+        wordmark,
+        { opacity: 0, y: 22, filter: "blur(10px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" },
+        0.3
+      );
+
+      // Scene 2 (0.8-1.9s): tagline word by word, "With sources." in cobalt.
+      var wordTimes = [0.84, 0.96, 1.08, 1.34, 1.46];
+      words.forEach(function (w, i) {
+        tl.fromTo(
+          w,
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" },
+          wordTimes[i]
+        );
+      });
+
+      // Life in the hold: near-imperceptible scale-up of the lockup.
+      tl.fromTo(stage, { scale: 1 }, { scale: 1.015, transformOrigin: "960px 450px", duration: 2.411, ease: "none" }, 0);
+
+      // Scene 3 (1.9-2.41s): hold, then the only exit of the video, a gentle fade to cream.
+      tl.to(content, { opacity: 0, duration: 0.36, ease: "power1.inOut" }, 2.05);
+      tl.to(ringsLayer, { opacity: 0, duration: 0.36, ease: "power1.inOut" }, 2.05);
+
+      window.__timelines["09-outro"] = tl;
+    })();
+  </script>
+</template>

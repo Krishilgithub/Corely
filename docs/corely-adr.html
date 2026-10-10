@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corely Architecture Decisions</title>
+<meta name="description" content="Architecture Decision Record log for the Corely repository, reconstructed from the code on 2026-10-04.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #ffffff; --surface: #f6f7f9; --border: #e3e6eb; --text: #1a1d23; --muted: #5b6472;
+  --accent: #4f46e5; --critical: #dc2626; --high: #ea580c; --medium: #ca8a04; --ok: #16a34a;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --surface: #171a21; --border: #2a2f3a; --text: #e6e8ec; --muted: #9aa3b2;
+    --accent: #818cf8; --critical: #f87171; --high: #fb923c; --medium: #facc15; --ok: #4ade80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --surface: #171a21; --border: #2a2f3a; --text: #e6e8ec; --muted: #9aa3b2;
+  --accent: #818cf8; --critical: #f87171; --high: #fb923c; --medium: #facc15; --ok: #4ade80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); font-family: var(--font);
+  font-size: 16px; line-height: 1.6; overflow-x: hidden;
+}
+a { color: var(--accent); }
+code, pre, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre; max-width: 100%; }
+pre code { background: none; border: 0; padding: 0; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap;
+}
+.brand { font-weight: 700; letter-spacing: -0.01em; margin-right: 8px; white-space: nowrap; }
+.siblings { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.siblings a {
+  text-decoration: none; color: var(--muted); padding: 5px 10px; border-radius: 6px; font-size: 14px; font-weight: 500;
+}
+.siblings a:hover { background: var(--surface); color: var(--text); }
+.siblings a[aria-current="page"] { background: var(--accent); color: #fff; }
+.theme-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px;
+  padding: 5px 10px; font: 500 13px var(--font); cursor: pointer;
+}
+
+/* Layout */
+.layout { display: block; padding: 0 16px; }
+.toc { border-bottom: 1px solid var(--border); padding: 12px 0; }
+.toc details summary { cursor: pointer; font-weight: 600; }
+.toc ol { list-style: none; padding: 0; margin: 8px 0 0; font-size: 14px; }
+.toc li { margin: 2px 0; }
+.toc a { color: var(--muted); text-decoration: none; display: block; padding: 2px 6px; border-radius: 4px; }
+.toc a:hover { color: var(--text); background: var(--surface); }
+.toc .grp { margin-top: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-left: 6px; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 0 48px; min-width: 0; }
+@media (min-width: 1000px) {
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 32px; padding: 0 24px; }
+  .toc { position: sticky; top: 58px; align-self: start; max-height: calc(100vh - 58px); overflow-y: auto; border-bottom: 0; border-right: 1px solid var(--border); padding: 20px 12px 20px 0; }
+  .toc details summary { display: none; }
+  main { margin: 0; }
+}
+
+h1 { font-size: 2rem; line-height: 1.2; margin: 8px 0 12px; letter-spacing: -0.02em; }
+h2 { font-size: 1.4rem; margin: 40px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+h3 { font-size: 1.15rem; margin: 0; }
+h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 0 6px; }
+h5 { font-size: 0.9rem; margin: 10px 0 4px; }
+.lead { font-size: 1.05rem; color: var(--muted); }
+.note { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 14px; }
+.note.warn { border-left-color: var(--medium); }
+
+/* Tables */
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td a { text-decoration: none; font-weight: 500; }
+td.id { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+
+/* Badges */
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.b-acc { color: var(--ok); }
+.b-rev { color: var(--medium); }
+.b-prop { color: var(--accent); border-style: dashed; }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+.filters button {
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 6px 12px;
+  border-radius: 999px; font: 500 14px var(--font); cursor: pointer;
+}
+.filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filters .count { opacity: 0.75; margin-left: 4px; }
+
+/* ADR cards */
+.adr { border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 18px 0; background: var(--bg); }
+.adr[data-status="revisit"] { border-left: 4px solid var(--medium); }
+.adr[data-status="accepted"] { border-left: 4px solid var(--ok); }
+.adr[data-status="proposed"] { border-left: 4px dashed var(--accent); }
+.adr > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.adr .aid { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.adr .meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted); margin: 8px 0 0; padding: 0; list-style: none; }
+.adr .meta b { color: var(--text); font-weight: 600; }
+.adr p, .adr li { overflow-wrap: anywhere; }
+.adr ul { padding-left: 20px; margin: 6px 0; }
+.adr li { margin: 3px 0; }
+.cons { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 700px) { .cons { grid-template-columns: 1fr 1fr; } }
+.cons > div { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.cons h5 { margin-top: 2px; }
+.pos h5 { color: var(--ok); }
+.neg h5 { color: var(--high); }
+.issues { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+.issues h5 { color: var(--critical); }
+.refs { font-size: 14px; }
+.refs a { margin-right: 6px; }
+.adr.hidden { display: none; }
+.sev { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-right: 4px; }
+.sev.c { color: var(--critical); } .sev.h { color: var(--high); } .sev.m { color: var(--medium); }
+
+/* Template block */
+.tpl { position: relative; }
+.copy-btn {
+  position: absolute; top: 8px; right: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 6px; padding: 3px 10px; font: 500 12px var(--font); cursor: pointer;
+}
+
+/* Diagram */
+figure { margin: 16px 0; }
+.figbox { border: 1px solid var(--border); border-radius: 10px; background: var(--bg); padding: 8px; overflow-x: auto; }
+.dmap { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--font); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.dmap .colbg { fill: var(--surface); stroke: var(--border); }
+.dmap .colhead { fill: var(--text); font-size: 13px; font-weight: 700; }
+.dmap .edge { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.55; }
+.dmap .edge.prop { stroke: var(--accent); stroke-dasharray: 4 3; opacity: 0.8; }
+.dmap .arrhead { fill: var(--muted); }
+.dmap .node rect { fill: var(--bg); stroke-width: 1.6; }
+.dmap .n-acc rect { stroke: var(--ok); }
+.dmap .n-rev rect { stroke: var(--medium); }
+.dmap .n-prop rect { stroke: var(--accent); stroke-dasharray: 5 3; }
+.dmap .nid { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+.dmap .nlabel { fill: var(--text); font-size: 11.5px; font-weight: 600; }
+.dmap a:hover rect, .dmap a:focus rect { fill: var(--surface); }
+.dmap .legend text { fill: var(--muted); font-size: 12px; }
+.dmap .lg-acc { fill: none; stroke: var(--ok); stroke-width: 1.6; }
+.dmap .lg-rev { fill: none; stroke: var(--medium); stroke-width: 1.6; }
+.dmap .lg-prop { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 4 2; }
+
+footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav class="topbar" aria-label="Corely audit documents">
+  <span class="brand">Corely audit</span>
+  <div class="siblings">
+    <a href="corely-findings.html">Gap Analysis</a>
+    <a href="corely-adr.html" aria-current="page">Architecture Decisions</a>
+    <a href="corely-ai-pipelines.html">AI Pipelines</a>
+    <a href="corely-system-design.html">System Design</a>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
+</nav>
+
+<div class="layout">
+  <aside class="toc" aria-label="Table of contents">
+    <details id="tocDetails">
+      <summary>Contents</summary>
+      <ol>
+        <li><a href="#intro">About this log</a></li>
+        <li><a href="#how-to-add">How to add an ADR</a></li>
+        <li><a href="#summary">Summary table</a></li>
+        <li><a href="#map">Decision map</a></li>
+        <li><a href="#records">All records</a></li>
+        <li class="grp">Accepted</li>
+        <li><a href="#adr-001">001 Next.js monolith</a></li>
+        <li><a href="#adr-002">002 Postgres + pgvector</a></li>
+        <li><a href="#adr-003">003 Prisma + Supabase client</a></li>
+        <li><a href="#adr-004">004 db push, no migrations</a></li>
+        <li><a href="#adr-005">005 Custom JWT session</a></li>
+        <li><a href="#adr-006">006 RBAC JSON roles</a></li>
+        <li><a href="#adr-007">007 crypto-js token AES</a></li>
+        <li><a href="#adr-008">008 OpenAI embeddings</a></li>
+        <li><a href="#adr-009">009 Word chunking</a></li>
+        <li><a href="#adr-010">010 gpt-4o + SSE</a></li>
+        <li><a href="#adr-011">011 Threshold + refusal</a></li>
+        <li><a href="#adr-012">012 Permission-aware retrieval</a></li>
+        <li><a href="#adr-013">013 Freshness decay</a></li>
+        <li><a href="#adr-014">014 Connector per provider</a></li>
+        <li><a href="#adr-015">015 Fire-and-forget sync</a></li>
+        <li><a href="#adr-016">016 Env fallbacks</a></li>
+        <li><a href="#adr-017">017 Rate limiting</a></li>
+        <li><a href="#adr-018">018 Docker image</a></li>
+        <li><a href="#adr-019">019 Rule-based insights</a></li>
+        <li class="grp">Proposed</li>
+        <li><a href="#adr-020">020 BullMQ + schedules</a></li>
+        <li><a href="#adr-021">021 middleware.ts</a></li>
+        <li><a href="#adr-022">022 OAuth state key</a></li>
+        <li><a href="#adr-023">023 AES-256-GCM</a></li>
+        <li><a href="#adr-024">024 Migrations + zod env</a></li>
+        <li><a href="#adr-025">025 Hybrid search</a></li>
+        <li><a href="#adr-026">026 Invite tokens</a></li>
+        <li><a href="#adr-027">027 API-key auth</a></li>
+        <li><a href="#adr-028">028 No silent fallback</a></li>
+      </ol>
+    </details>
+  </aside>
+
+<main>
+<section id="intro">
+  <h1>Corely Architecture Decisions</h1>
+  <p class="lead">An Architecture Decision Record (ADR) is a short note that says what we chose, why we chose it, and what it costs us.</p>
+
+  <div class="note warn">
+    <p style="margin:0"><b>These decisions were never written down at the time.</b> Every record below was rebuilt from the code on 2026-10-04. The dates are "reconstructed": each one is the first day the main evidence file shows up in git history (<code>git log --follow --format=%ad --date=short -- &lt;file&gt; | tail -1</code>), or the day a key line first appeared (<code>git log -S</code>). All 67 commits in the repository are by Krishil Agrawal, so he is listed as the decider. That is an inference from git, not a confirmed fact.</p>
+  </div>
+
+  <h4>How this log was built</h4>
+  <ul>
+    <li>We read the code on branch <code>master</code> without changing it. The main files were <code>package.json</code>, <code>prisma/schema.prisma</code>, <code>lib/*.ts</code>, <code>app/api/ask/route.ts</code>, <code>modules/sources/connectors/*.ts</code>, <code>modules/ai/chunker.ts</code>, <code>scripts/init-pgvector.ts</code>, <code>workers/index.ts</code>, <code>Dockerfile</code> and <code>docker-compose.yml</code>.</li>
+    <li>For the "alternatives" we used the planning notes in the repo root (<code>MVP_PLAN.md</code>, <code>NOTION_CONNECTOR.md</code>, <code>GOOGLE_DRIVE_CONNECTOR.md</code>, <code>FEATURE_2_STATEFUL_ASK.md</code>). They show what was planned. The code shows what was built. Where the two differ, the record says so.</li>
+    <li>"Known issues today" come from the read-only gap audit of the same date (see <a href="corely-findings.html">Gap Analysis</a>). Line numbers point at the code as it is on 2026-10-04.</li>
+    <li>One correction to <code>CLAUDE.md</code>: it says every connector purges deleted items and uses a <code>withRetry</code> wrapper. In the code, only <code>modules/sources/connectors/notion.ts</code> does either (purge at lines 128-147, <code>withRetry</code> at line 375).</li>
+  </ul>
+
+  <h4>Status meanings</h4>
+  <ul>
+    <li><span class="badge b-acc">Accepted</span> The decision is in the code and still looks right.</li>
+    <li><span class="badge b-rev">Accepted – needs revisiting</span> The decision is in the code, but the audit found real problems with it.</li>
+    <li><span class="badge b-prop">Proposed</span> Not built yet. It comes from the implementation plan in the gap audit.</li>
+  </ul>
+</section>
+
+<section id="how-to-add">
+  <h2>How to add a new ADR</h2>
+  <ol>
+    <li>Take the next free number (the last one here is ADR-028).</li>
+    <li>Copy the template below into a new card. Fill in every heading. Write "none" rather than leaving a heading out.</li>
+    <li>Start with status <b>Proposed</b>. Change it to <b>Accepted</b> once the change is merged.</li>
+    <li>Never delete an old ADR. If a new decision replaces it, set the old one to "Superseded by ADR-0xx" and link both ways.</li>
+    <li>Add the new row to the summary table and a box to the decision map.</li>
+  </ol>
+  <div class="tpl">
+    <button class="copy-btn" type="button" data-copy="tplText">Copy</button>
+<pre id="tplText"><code>## ADR-0xx: &lt;short title, written as the choice made&gt;
+
+Status:    Proposed | Accepted | Accepted – needs revisiting | Superseded by ADR-0yy
+Date:      YYYY-MM-DD
+Deciders:  &lt;names&gt;
+Area:      Data | AI / Retrieval | Ingestion | Auth / Security | Platform
+
+### Context
+What problem are we solving? What forces push us in each direction
+(cost, time, security, team size, existing code)?
+
+### Decision
+What we will do, in one or two plain sentences. Name the files or libraries.
+
+### Alternatives considered
+- Option A: why we did not pick it.
+- Option B: why we did not pick it.
+
+### Consequences
+Positive:
+- ...
+Negative:
+- ...
+Known issues today (file:line):
+- ...
+
+### Related ADRs
+ADR-0aa (builds on), ADR-0bb (replaces)
+
+### Evidence
+path/to/file.ts, path/to/other.ts</code></pre>
+  </div>
+</section>
+
+<section id="summary">
+  <h2>Summary of all records</h2>
+  <p>28 records: 19 already in the code (5 Accepted, 14 Accepted but need revisiting) and 9 Proposed. Click a title to jump to its card.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Area</th></tr></thead>
+    <tbody>
+      <tr><td class="id">ADR-001</td><td><a href="#adr-001">One Next.js App Router app for UI and API</a></td><td><span class="badge b-acc">Accepted</span></td><td>Platform</td></tr>
+      <tr><td class="id">ADR-002</td><td><a href="#adr-002">Store vectors in PostgreSQL with pgvector</a></td><td><span class="badge b-acc">Accepted</span></td><td>Data</td></tr>
+      <tr><td class="id">ADR-003</td><td><a href="#adr-003">Prisma with @prisma/adapter-pg, plus a Supabase service-role client for the vector column</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Data</td></tr>
+      <tr><td class="id">ADR-004</td><td><a href="#adr-004">Change the schema with <code>prisma db push</code> and a pgvector setup script, no migrations</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Data</td></tr>
+      <tr><td class="id">ADR-005</td><td><a href="#adr-005">Custom JWT session cookie (jose, HS256, 24h)</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-006</td><td><a href="#adr-006">RBAC as a JSON permission list on WorkspaceRole, with 4 default roles</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-007</td><td><a href="#adr-007">Encrypt OAuth tokens with crypto-js AES</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-008</td><td><a href="#adr-008">OpenAI text-embedding-3-small (1536 numbers) with an ada-002 fallback</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-009</td><td><a href="#adr-009">Fixed-size word chunks: 400 words with 50 words of overlap</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-010</td><td><a href="#adr-010">gpt-4o answers, hand-rolled SSE streaming and 6-message history</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-011</td><td><a href="#adr-011">Similarity above 0.55, top 8 chunks, and a "no knowledge" refusal</a></td><td><span class="badge b-acc">Accepted</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-012</td><td><a href="#adr-012">Permission-aware retrieval through an allowed-source list</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-013</td><td><a href="#adr-013">Freshness score that decays per source type</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-014</td><td><a href="#adr-014">One connector file per provider, all on one pipeline shape</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Ingestion</td></tr>
+      <tr><td class="id">ADR-015</td><td><a href="#adr-015">Run syncs fire-and-forget inside the web request; BullMQ present but unused</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Ingestion</td></tr>
+      <tr><td class="id">ADR-016</td><td><a href="#adr-016">Dummy env fallbacks so the build needs no secrets</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Platform</td></tr>
+      <tr><td class="id">ADR-017</td><td><a href="#adr-017">Redis rate limit with an in-memory fallback</a></td><td><span class="badge b-acc">Accepted</span></td><td>Platform</td></tr>
+      <tr><td class="id">ADR-018</td><td><a href="#adr-018">Docker image on Debian slim, dev packages kept</a></td><td><span class="badge b-acc">Accepted</span></td><td>Platform</td></tr>
+      <tr><td class="id">ADR-019</td><td><a href="#adr-019">Rule-based insights, no LLM</a></td><td><span class="badge b-rev">Needs revisiting</span></td><td>Platform</td></tr>
+      <tr><td class="id">ADR-020</td><td><a href="#adr-020">Move syncing onto the BullMQ worker, with scheduled jobs</a></td><td><span class="badge b-prop">Proposed</span></td><td>Ingestion</td></tr>
+      <tr><td class="id">ADR-021</td><td><a href="#adr-021">Protect routes with <code>middleware.ts</code></a></td><td><span class="badge b-prop">Proposed</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-022</td><td><a href="#adr-022">A separate signing key for OAuth state, with a checked nonce</a></td><td><span class="badge b-prop">Proposed</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-023</td><td><a href="#adr-023">Replace crypto-js with Node crypto AES-256-GCM</a></td><td><span class="badge b-prop">Proposed</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-024</td><td><a href="#adr-024">Adopt Prisma migrations and zod env validation</a></td><td><span class="badge b-prop">Proposed</span></td><td>Data</td></tr>
+      <tr><td class="id">ADR-025</td><td><a href="#adr-025">Hybrid search (tsvector + pgvector) with follow-up question rewriting</a></td><td><span class="badge b-prop">Proposed</span></td><td>AI / Retrieval</td></tr>
+      <tr><td class="id">ADR-026</td><td><a href="#adr-026">Invite-token flow instead of emailed passwords</a></td><td><span class="badge b-prop">Proposed</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-027</td><td><a href="#adr-027">API-key auth with a lookup prefix</a></td><td><span class="badge b-prop">Proposed</span></td><td>Auth / Security</td></tr>
+      <tr><td class="id">ADR-028</td><td><a href="#adr-028">Remove the silent embedding-model fallback and batch embeddings</a></td><td><span class="badge b-prop">Proposed</span></td><td>AI / Retrieval</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="map">
+  <h2>Decision map</h2>
+  <p>Each box is one ADR, placed in the column for its area. An arrow goes from a decision to the decision it builds on or would change. Click a box to jump to its card.</p>
+  <figure>
+    <div class="figbox">
+<svg class="dmap" viewBox="0 0 960 572" role="img" aria-labelledby="dmap-title dmap-desc" xmlns="http://www.w3.org/2000/svg">
+<title id="dmap-title">Decision map</title><desc id="dmap-desc">Each box is one ADR, placed in a column for its area. Arrows point from a decision to the decision it builds on or changes. Green border means Accepted, amber means Accepted but needs revisiting, dashed indigo means Proposed.</desc>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrhead"/></marker></defs>
+<rect x="6" y="12" width="180" height="522" rx="10" class="colbg"/>
+<text x="96" y="38" class="colhead" text-anchor="middle">Platform</text>
+<rect x="198" y="12" width="180" height="522" rx="10" class="colbg"/>
+<text x="288" y="38" class="colhead" text-anchor="middle">Data</text>
+<rect x="390" y="12" width="180" height="522" rx="10" class="colbg"/>
+<text x="480" y="38" class="colhead" text-anchor="middle">AI / Retrieval</text>
+<rect x="582" y="12" width="180" height="522" rx="10" class="colbg"/>
+<text x="672" y="38" class="colhead" text-anchor="middle">Ingestion</text>
+<rect x="774" y="12" width="180" height="522" rx="10" class="colbg"/>
+<text x="864" y="38" class="colhead" text-anchor="middle">Auth / Security</text>
+<g class="edges">
+<path d="M372,136 C396.24,136 396.24,84 374,84" class="edge" marker-end="url(#arr)"><title>ADR-003 builds on ADR-002</title></path>
+<path d="M372,188 C396.24,188 396.24,136 374,136" class="edge" marker-end="url(#arr)"><title>ADR-004 builds on ADR-003</title></path>
+<path d="M396,84 C385,84 385,84 374,84" class="edge" marker-end="url(#arr)"><title>ADR-008 builds on ADR-002</title></path>
+<path d="M564,188 C594.48,188 594.48,84 566,84" class="edge" marker-end="url(#arr)"><title>ADR-011 builds on ADR-008</title></path>
+<path d="M564,188 C588.24,188 588.24,136 566,136" class="edge" marker-end="url(#arr)"><title>ADR-011 builds on ADR-009</title></path>
+<path d="M396,188 C385,188 385,84 374,84" class="edge" marker-end="url(#arr)"><title>ADR-011 builds on ADR-002</title></path>
+<path d="M564,292 C594.48,292 594.48,188 566,188" class="edge" marker-end="url(#arr)"><title>ADR-013 builds on ADR-011</title></path>
+<path d="M564,240 C588.24,240 588.24,188 566,188" class="edge" marker-end="url(#arr)"><title>ADR-010 builds on ADR-011</title></path>
+<path d="M948,188 C972.24,188 972.24,136 950,136" class="edge" marker-end="url(#arr)"><title>ADR-012 builds on ADR-006</title></path>
+<path d="M780,188 C673,188 673,188 566,188" class="edge" marker-end="url(#arr)"><title>ADR-012 builds on ADR-011</title></path>
+<path d="M948,136 C972.24,136 972.24,84 950,84" class="edge" marker-end="url(#arr)"><title>ADR-006 builds on ADR-005</title></path>
+<path d="M780,84 C481,84 481,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-005 builds on ADR-001</title></path>
+<path d="M756,84 C767,84 767,240 778,240" class="edge" marker-end="url(#arr)"><title>ADR-014 builds on ADR-007</title></path>
+<path d="M588,84 C577,84 577,136 566,136" class="edge" marker-end="url(#arr)"><title>ADR-014 builds on ADR-009</title></path>
+<path d="M588,84 C481,84 481,136 374,136" class="edge" marker-end="url(#arr)"><title>ADR-014 builds on ADR-003</title></path>
+<path d="M756,136 C780.24,136 780.24,84 758,84" class="edge" marker-end="url(#arr)"><title>ADR-015 builds on ADR-014</title></path>
+<path d="M588,136 C385,136 385,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-015 builds on ADR-001</title></path>
+<path d="M180,188 C210.48,188 210.48,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-017 builds on ADR-001</title></path>
+<path d="M180,240 C216.72,240 216.72,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-018 builds on ADR-001</title></path>
+<path d="M180,240 C210.48,240 210.48,136 182,136" class="edge" marker-end="url(#arr)"><title>ADR-018 builds on ADR-016</title></path>
+<path d="M180,292 C222.96,292 222.96,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-019 builds on ADR-001</title></path>
+<path d="M180,136 C204.24,136 204.24,84 182,84" class="edge" marker-end="url(#arr)"><title>ADR-016 builds on ADR-001</title></path>
+<path d="M756,188 C780.24,188 780.24,136 758,136" class="edge prop" marker-end="url(#arr)"><title>ADR-020 builds on ADR-015</title></path>
+<path d="M588,188 C385,188 385,188 182,188" class="edge prop" marker-end="url(#arr)"><title>ADR-020 builds on ADR-017</title></path>
+<path d="M948,292 C990.96,292 990.96,84 950,84" class="edge prop" marker-end="url(#arr)"><title>ADR-021 builds on ADR-005</title></path>
+<path d="M948,344 C997.2,344 997.2,84 950,84" class="edge prop" marker-end="url(#arr)"><title>ADR-022 builds on ADR-005</title></path>
+<path d="M948,396 C984.72,396 984.72,240 950,240" class="edge prop" marker-end="url(#arr)"><title>ADR-023 builds on ADR-007</title></path>
+<path d="M372,240 C396.24,240 396.24,188 374,188" class="edge prop" marker-end="url(#arr)"><title>ADR-024 builds on ADR-004</title></path>
+<path d="M204,240 C193,240 193,136 182,136" class="edge prop" marker-end="url(#arr)"><title>ADR-024 builds on ADR-016</title></path>
+<path d="M564,344 C600.72,344 600.72,188 566,188" class="edge prop" marker-end="url(#arr)"><title>ADR-025 builds on ADR-011</title></path>
+<path d="M948,448 C1003.44,448 1003.44,136 950,136" class="edge prop" marker-end="url(#arr)"><title>ADR-026 builds on ADR-006</title></path>
+<path d="M948,500 C1009.68,500 1009.68,136 950,136" class="edge prop" marker-end="url(#arr)"><title>ADR-027 builds on ADR-006</title></path>
+<path d="M564,396 C619.44,396 619.44,84 566,84" class="edge prop" marker-end="url(#arr)"><title>ADR-028 builds on ADR-008</title></path>
+</g><g class="nodes">
+<a href="#adr-001"><g class="node n-acc"><rect x="12" y="64" width="168" height="40" rx="7"/><text x="22" y="80" class="nid">ADR-001</text><text x="22" y="95" class="nlabel">Next.js monolith</text></g></a>
+<a href="#adr-016"><g class="node n-rev"><rect x="12" y="116" width="168" height="40" rx="7"/><text x="22" y="132" class="nid">ADR-016</text><text x="22" y="147" class="nlabel">Env fallbacks</text></g></a>
+<a href="#adr-017"><g class="node n-acc"><rect x="12" y="168" width="168" height="40" rx="7"/><text x="22" y="184" class="nid">ADR-017</text><text x="22" y="199" class="nlabel">Rate limit + fallback</text></g></a>
+<a href="#adr-018"><g class="node n-acc"><rect x="12" y="220" width="168" height="40" rx="7"/><text x="22" y="236" class="nid">ADR-018</text><text x="22" y="251" class="nlabel">Docker Debian slim</text></g></a>
+<a href="#adr-019"><g class="node n-rev"><rect x="12" y="272" width="168" height="40" rx="7"/><text x="22" y="288" class="nid">ADR-019</text><text x="22" y="303" class="nlabel">Rule-based insights</text></g></a>
+<a href="#adr-002"><g class="node n-acc"><rect x="204" y="64" width="168" height="40" rx="7"/><text x="214" y="80" class="nid">ADR-002</text><text x="214" y="95" class="nlabel">Postgres + pgvector</text></g></a>
+<a href="#adr-003"><g class="node n-rev"><rect x="204" y="116" width="168" height="40" rx="7"/><text x="214" y="132" class="nid">ADR-003</text><text x="214" y="147" class="nlabel">Prisma + Supabase client</text></g></a>
+<a href="#adr-004"><g class="node n-rev"><rect x="204" y="168" width="168" height="40" rx="7"/><text x="214" y="184" class="nid">ADR-004</text><text x="214" y="199" class="nlabel">db push, no migrations</text></g></a>
+<a href="#adr-024"><g class="node n-prop"><rect x="204" y="220" width="168" height="40" rx="7"/><text x="214" y="236" class="nid">ADR-024</text><text x="214" y="251" class="nlabel">Migrations + zod env</text></g></a>
+<a href="#adr-008"><g class="node n-rev"><rect x="396" y="64" width="168" height="40" rx="7"/><text x="406" y="80" class="nid">ADR-008</text><text x="406" y="95" class="nlabel">OpenAI embeddings</text></g></a>
+<a href="#adr-009"><g class="node n-rev"><rect x="396" y="116" width="168" height="40" rx="7"/><text x="406" y="132" class="nid">ADR-009</text><text x="406" y="147" class="nlabel">400/50 word chunks</text></g></a>
+<a href="#adr-011"><g class="node n-acc"><rect x="396" y="168" width="168" height="40" rx="7"/><text x="406" y="184" class="nid">ADR-011</text><text x="406" y="199" class="nlabel">0.55 / top 8 + refusal</text></g></a>
+<a href="#adr-010"><g class="node n-rev"><rect x="396" y="220" width="168" height="40" rx="7"/><text x="406" y="236" class="nid">ADR-010</text><text x="406" y="251" class="nlabel">gpt-4o + hand SSE</text></g></a>
+<a href="#adr-013"><g class="node n-rev"><rect x="396" y="272" width="168" height="40" rx="7"/><text x="406" y="288" class="nid">ADR-013</text><text x="406" y="303" class="nlabel">Freshness decay</text></g></a>
+<a href="#adr-025"><g class="node n-prop"><rect x="396" y="324" width="168" height="40" rx="7"/><text x="406" y="340" class="nid">ADR-025</text><text x="406" y="355" class="nlabel">Hybrid search + rewrite</text></g></a>
+<a href="#adr-028"><g class="node n-prop"><rect x="396" y="376" width="168" height="40" rx="7"/><text x="406" y="392" class="nid">ADR-028</text><text x="406" y="407" class="nlabel">No silent fallback</text></g></a>
+<a href="#adr-014"><g class="node n-rev"><rect x="588" y="64" width="168" height="40" rx="7"/><text x="598" y="80" class="nid">ADR-014</text><text x="598" y="95" class="nlabel">Connector per provider</text></g></a>
+<a href="#adr-015"><g class="node n-rev"><rect x="588" y="116" width="168" height="40" rx="7"/><text x="598" y="132" class="nid">ADR-015</text><text x="598" y="147" class="nlabel">Fire-and-forget sync</text></g></a>
+<a href="#adr-020"><g class="node n-prop"><rect x="588" y="168" width="168" height="40" rx="7"/><text x="598" y="184" class="nid">ADR-020</text><text x="598" y="199" class="nlabel">BullMQ + schedules</text></g></a>
+<a href="#adr-005"><g class="node n-rev"><rect x="780" y="64" width="168" height="40" rx="7"/><text x="790" y="80" class="nid">ADR-005</text><text x="790" y="95" class="nlabel">Custom JWT session</text></g></a>
+<a href="#adr-006"><g class="node n-rev"><rect x="780" y="116" width="168" height="40" rx="7"/><text x="790" y="132" class="nid">ADR-006</text><text x="790" y="147" class="nlabel">RBAC JSON roles</text></g></a>
+<a href="#adr-012"><g class="node n-rev"><rect x="780" y="168" width="168" height="40" rx="7"/><text x="790" y="184" class="nid">ADR-012</text><text x="790" y="199" class="nlabel">Permission-aware retrieval</text></g></a>
+<a href="#adr-007"><g class="node n-rev"><rect x="780" y="220" width="168" height="40" rx="7"/><text x="790" y="236" class="nid">ADR-007</text><text x="790" y="251" class="nlabel">crypto-js token AES</text></g></a>
+<a href="#adr-021"><g class="node n-prop"><rect x="780" y="272" width="168" height="40" rx="7"/><text x="790" y="288" class="nid">ADR-021</text><text x="790" y="303" class="nlabel">middleware.ts guard</text></g></a>
+<a href="#adr-022"><g class="node n-prop"><rect x="780" y="324" width="168" height="40" rx="7"/><text x="790" y="340" class="nid">ADR-022</text><text x="790" y="355" class="nlabel">OAuth state key</text></g></a>
+<a href="#adr-023"><g class="node n-prop"><rect x="780" y="376" width="168" height="40" rx="7"/><text x="790" y="392" class="nid">ADR-023</text><text x="790" y="407" class="nlabel">AES-256-GCM tokens</text></g></a>
+<a href="#adr-026"><g class="node n-prop"><rect x="780" y="428" width="168" height="40" rx="7"/><text x="790" y="444" class="nid">ADR-026</text><text x="790" y="459" class="nlabel">Invite tokens</text></g></a>
+<a href="#adr-027"><g class="node n-prop"><rect x="780" y="480" width="168" height="40" rx="7"/><text x="790" y="496" class="nid">ADR-027</text><text x="790" y="511" class="nlabel">API keys + prefix</text></g></a>
+</g>
+<g class="legend"><rect x="12" y="540" width="14" height="12" rx="3" class="lg-acc"/><text x="32" y="550">Accepted</text><rect x="110" y="540" width="14" height="12" rx="3" class="lg-rev"/><text x="130" y="550">Accepted, needs revisiting</text><rect x="300" y="540" width="14" height="12" rx="3" class="lg-prop"/><text x="320" y="550">Proposed</text><path d="M410,546 L450,546" class="edge" marker-end="url(#arr)"/><text x="458" y="550">builds on / changes</text></g>
+</svg>
+    </div>
+    <figcaption>How the 28 decisions depend on each other: most Proposed records (dashed) repair one Accepted record that needs revisiting (amber), and almost everything rests on the Next.js monolith (ADR-001) and Postgres with pgvector (ADR-002).</figcaption>
+  </figure>
+</section>
+
+<section id="records">
+  <h2>All records</h2>
+  <div class="filters" role="group" aria-label="Filter records by status">
+    <button type="button" data-filter="all" aria-pressed="true">All <span class="count">28</span></button>
+    <button type="button" data-filter="accepted" aria-pressed="false">Accepted <span class="count">5</span></button>
+    <button type="button" data-filter="revisit" aria-pressed="false">Needs revisiting <span class="count">14</span></button>
+    <button type="button" data-filter="proposed" aria-pressed="false">Proposed <span class="count">9</span></button>
+  </div>
+
+<!-- ================= ADR-001 ================= -->
+<article class="adr" id="adr-001" data-status="accepted">
+  <header><span class="aid">ADR-001</span><h3>One Next.js App Router app for UI and API</h3><span class="badge b-acc">Accepted</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, first commit)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Platform</li></ul>
+  <h4>Context</h4>
+  <p>Corely is built by one developer. It needs a marketing site, a dashboard and a JSON API. Splitting these into separate services would slow every change. The ingestion work (fetching, chunking, embedding) is slow and long-running, which pulls the other way.</p>
+  <h4>Decision</h4>
+  <p>Build everything as one Next.js 15 App Router app (<code>"next": "^15.5.18"</code>). Pages live under <code>app/</code>, the product under <code>app/dashboard/</code>, and the API as route handlers in <code>app/api/**/route.ts</code>. Every handler returns the same envelope, <code>{ success, data|error, version }</code>, from <code>lib/api-response.ts</code>. Routes that depend on the logged-in user or that stream set <code>dynamic = "force-dynamic"</code> so Next.js does not cache them.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Microservices or a separate backend.</b> <code>MVP_PLAN.md</code> rejects this: "Start with a Modular Monolith, architect it like a Monorepo", because "premature architecture decisions … slow down iteration".</li>
+    <li><b>Monolith plus a separate BullMQ worker process from day one.</b> This was the plan's "one exception". The worker exists (<code>workers/index.ts</code>), but syncs do not use it. See <a href="#adr-015">ADR-015</a>.</li>
+    <li><b>Vercel for the app and Railway or Render for workers.</b> Planned in <code>MVP_PLAN.md</code>. The repo now ships a Docker image instead (<a href="#adr-018">ADR-018</a>), although the invite email still links to <code>https://corely-khaki.vercel.app/login</code>.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>One repo, one type system, one deploy. The <code>@/*</code> path alias reaches every module.</li><li>Server components such as <code>app/dashboard/page.tsx</code> can call <code>prisma</code> directly.</li><li>A uniform response envelope makes the client code simple.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Long jobs run in the same process as user requests (<a href="#adr-015">ADR-015</a>).</li><li>Landing-only libraries (GSAP, Framer Motion, react-three-fiber, Lenis) share a bundle graph and an image with the product.</li><li>Sections are split between <code>app/components/</code> and <code>components/landing/</code>, so edits must check both.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>No <code>middleware.ts</code>. The dashboard is only guarded by a client-side redirect in <code>app/lib/auth-context.tsx:65-70</code>. See <a href="#adr-021">ADR-021</a>.</li>
+    <li><span class="sev m">Medium</span>No root <code>error.tsx</code>, <code>global-error.tsx</code> or <code>not-found.tsx</code>. <code>next.config.ts</code> is empty, so there are no security headers.</li>
+    <li><span class="sev m">Medium</span>The <code>ai</code> package (<code>^6.0.191</code>) is installed but nothing imports it.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-015">ADR-015</a><a href="#adr-016">ADR-016</a><a href="#adr-018">ADR-018</a><a href="#adr-021">ADR-021</a></p>
+  <h4>Evidence</h4><p class="refs"><code>package.json</code> <code>lib/api-response.ts</code> <code>app/api/**/route.ts</code> <code>app/dashboard/page.tsx</code> <code>MVP_PLAN.md</code></p>
+</article>
+
+<!-- ================= ADR-002 ================= -->
+<article class="adr" id="adr-002" data-status="accepted">
+  <header><span class="aid">ADR-002</span><h3>Store vectors in PostgreSQL with pgvector</h3><span class="badge b-acc">Accepted</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>scripts/init-pgvector.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Data</li></ul>
+  <h4>Context</h4>
+  <p>RAG (retrieval-augmented generation: find relevant text first, then let the model answer from it) needs a place to store embeddings and search them by similarity. An embedding is a list of numbers that stands for the meaning of a piece of text. The app already uses Postgres for everything else. Keeping a second database in sync costs time and money.</p>
+  <h4>Decision</h4>
+  <p>Keep embeddings in the same Postgres database, in <code>document_chunks.embedding vector(1536)</code>, using the pgvector extension. Search with cosine distance (<code>&lt;=&gt;</code>) in raw SQL. Index it with HNSW (a fast approximate nearest-neighbour index), <code>m = 16, ef_construction = 64</code>, and fall back to ivfflat with <code>lists = 100</code> on pgvector older than 0.5.0. The database is hosted on Supabase.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Pinecone or Qdrant.</b> <code>MVP_PLAN.md</code> planned "a vector database (Pinecone / Qdrant)" and a <code>vector-store.ts</code> client. Not chosen in the code: a separate store means a second bill, a second sync path and no SQL join to <code>documents</code> for workspace and source filters.</li>
+    <li><b>LangChain.js or LlamaIndex vector store wrappers.</b> Planned as the "RAG Framework". Not used; queries are hand-written SQL.</li>
+    <li><b>The <code>match_chunks()</code> SQL function through Supabase RPC.</b> <code>FEATURE_2_STATEFUL_ASK.md</code> describes calling it. The function exists but the ask route does not call it (see issues).</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>One database. Vector search can join <code>documents</code> and filter by <code>workspace_id</code> and <code>source_id</code> in one query.</li><li>Deleting a document cascades to its chunks (<code>onDelete: Cascade</code>).</li><li>No extra vendor.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Prisma cannot read or write the column (<code>Unsupported("vector")</code>), which forces <a href="#adr-003">ADR-003</a> and <a href="#adr-004">ADR-004</a>.</li><li>The dimension 1536 is fixed in SQL. Changing the embedding model means a new column and a full re-embed.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev m">Medium</span><code>match_chunks()</code> (<code>scripts/init-pgvector.ts:60-91</code>, threshold 0.6, count 5) is defined but never called, and it has no source filter. It drifts from the real query in <code>app/api/ask/route.ts:162-179</code> (0.55, 8).</li>
+    <li><span class="sev m">Medium</span>A fresh database cannot answer anything until <code>npx tsx scripts/init-pgvector.ts</code> runs. Each step only logs on failure, so a half-set-up database looks fine.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-003">ADR-003</a><a href="#adr-004">ADR-004</a><a href="#adr-008">ADR-008</a><a href="#adr-011">ADR-011</a><a href="#adr-025">ADR-025</a></p>
+  <h4>Evidence</h4><p class="refs"><code>scripts/init-pgvector.ts</code> <code>prisma/schema.prisma:144-160</code> <code>app/api/ask/route.ts:162-179</code> <code>MVP_PLAN.md</code></p>
+</article>
+
+<!-- ================= ADR-003 ================= -->
+<article class="adr" id="adr-003" data-status="revisit">
+  <header><span class="aid">ADR-003</span><h3>Prisma with @prisma/adapter-pg, plus a Supabase service-role client for the vector column</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>lib/db.ts</code> and <code>lib/supabase.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Data</li></ul>
+  <h4>Context</h4>
+  <p>The team wanted a typed ORM for normal tables. But Prisma skips <code>Unsupported("vector")</code> columns on write, so it cannot store embeddings. Something else must write that one column.</p>
+  <h4>Decision</h4>
+  <p>Use two clients against the <b>same</b> Postgres tables. <code>lib/db.ts</code> builds Prisma on a <code>pg</code> <code>Pool</code> through <code>@prisma/adapter-pg</code> (a driver adapter, so Prisma talks through the plain <code>pg</code> library), with <code>engineType = "library"</code> in the schema. <code>lib/supabase.ts</code> exports <code>supabaseAdmin</code>, a Supabase client with the service-role key (full access, server only). Rule: anything that touches <code>embedding</code> goes through <code>supabaseAdmin</code> or raw SQL; everything else goes through Prisma.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Prisma raw SQL for chunk inserts too</b> (<code>$executeRaw</code> with <code>::vector</code>). This would remove the second client. The read path already does this in <code>app/api/ask/route.ts:162</code>. It was not used for writes, likely because the Supabase insert was quicker to write.</li>
+    <li><b>Drizzle or Kysely</b>, which can model a vector column. Not considered in the planning docs; <code>MVP_PLAN.md</code> names Prisma as the ORM.</li>
+    <li><b>Supabase client for everything.</b> Loses Prisma types and the schema file.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Typed models for 20 tables in <code>prisma/schema.prisma</code>.</li><li>The <code>pg</code> adapter works with Supabase's pooled connection strings.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Two ways to write the same table. Easy to mix up, as Slack and Linear show.</li><li>The service-role key bypasses Supabase row-level security entirely.</li><li><code>@prisma/adapter-pg</code> and <code>pg</code> sit in <code>devDependencies</code> although the app needs them at run time (see <a href="#adr-018">ADR-018</a>).</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>Slack and Linear chunks never get embeddings. They call <code>prisma.documentChunk.create()</code> (<code>slack.ts:243-251</code>, <code>linear.ts:244-252</code>) and then <code>supabaseAdmin.from("document_chunks").insert()</code> with the same <code>id</code> (<code>slack.ts:253</code>, <code>linear.ts:254</code>). The second insert fails on the duplicate key and is only logged. Rows keep <code>embedding = NULL</code>, so the similarity filter never returns Slack or Linear content.</li>
+    <li><span class="sev m">Medium</span>The public anon client (<code>lib/supabase.ts:15-18</code>) is exported but unused.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-002">ADR-002</a><a href="#adr-004">ADR-004</a><a href="#adr-014">ADR-014</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/db.ts</code> <code>lib/supabase.ts</code> <code>prisma/schema.prisma:1-8</code> <code>modules/sources/connectors/gmail.ts:200</code> <code>modules/sources/connectors/slack.ts:243-260</code> <code>modules/sources/connectors/linear.ts:244-261</code></p>
+</article>
+
+<!-- ================= ADR-004 ================= -->
+<article class="adr" id="adr-004" data-status="revisit">
+  <header><span class="aid">ADR-004</span><h3>Change the schema with <code>prisma db push</code> and a pgvector setup script, no migrations</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>prisma:push</code> script in first <code>package.json</code>)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Data</li></ul>
+  <h4>Context</h4>
+  <p>Early on the schema changed almost daily. Migration files add a step to every change. Also, Prisma cannot create the vector column, so some SQL has to live outside Prisma anyway.</p>
+  <h4>Decision</h4>
+  <p>Sync the schema straight to the database with <code>npm run prisma:push</code> (<code>prisma db push</code>). There is no <code>prisma/migrations</code> folder. Run <code>npx tsx scripts/init-pgvector.ts</code> once per database to enable <code>vector</code>, add <code>embedding vector(1536)</code>, build the HNSW index and define <code>match_chunks()</code>.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b><code>prisma migrate</code></b> with the vector SQL in a hand-edited migration. Safer and repeatable, but slower while the schema was moving. Now proposed in <a href="#adr-024">ADR-024</a>.</li>
+    <li><b>Hand-written SQL schema</b>, as sketched in <code>GOOGLE_DRIVE_CONNECTOR.md</code> (<code>CREATE TABLE document_chunks … embedding vector(1536)</code>). Dropped in favour of the Prisma schema.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Fast iteration. One command applies any schema change.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>No history of schema changes and no safe rollback.</li><li><code>db push</code> can drop columns or data when a field is renamed.</li><li>Two setup steps must run in order (push, then the script). The Dockerfile and compose file both document this by hand.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>No migrations is listed as a production gap in the audit (Phase 7).</li>
+    <li><span class="sev m">Medium</span><code>init-pgvector.ts</code> swallows each failure with <code>console.error</code> (<code>scripts/init-pgvector.ts:16-17, 32-33, 53-54, 93-94</code>) and still ends with "completed".</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-002">ADR-002</a><a href="#adr-003">ADR-003</a><a href="#adr-024">ADR-024</a></p>
+  <h4>Evidence</h4><p class="refs"><code>package.json</code> (<code>prisma:push</code>) <code>scripts/init-pgvector.ts</code> <code>Dockerfile</code> (notes) <code>docker-compose.yml</code> (notes)</p>
+</article>
+
+<!-- ================= ADR-005 ================= -->
+<article class="adr" id="adr-005" data-status="revisit">
+  <header><span class="aid">ADR-005</span><h3>Custom JWT session cookie (jose, HS256, 24h)</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-27 (reconstructed, <code>lib/auth-server.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>Every API route must know who the user is and which workspace they belong to. A hosted auth product adds a vendor and its own user table. A small hand-built session gives full control over the user and workspace model.</p>
+  <h4>Decision</h4>
+  <p>Sign a JWT (a signed token that carries the user id) with <code>jose</code>, HS256, <code>setExpirationTime("24h")</code>, and store it in the <code>corely_session</code> cookie. <code>auth()</code> verifies the token, loads the <code>User</code> with its <code>Workspace</code> and <code>WorkspaceRole</code>, and throws <code>"Unauthorized"</code> on failure. Route handlers catch that exact message and return 401. <code>auth()</code> also "auto-heals" any <code>role: "admin"</code> user with no <code>roleId</code> by giving them the Admin role. Passwords are hashed with <code>bcryptjs</code>.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Clerk.</b> <code>MVP_PLAN.md</code> listed "Clerk (or NextAuth.js)" and a folder for "Clerk webhooks". Not chosen: a paid vendor, and a second source of truth for users and workspaces.</li>
+    <li><b>NextAuth.js (Auth.js).</b> Also planned. Would give Google sign-in and session rotation for free, but the plan's "Email/password auth + Google OAuth" was cut to email and password only.</li>
+    <li><b>Database sessions</b> (a session row per login). Allows real logout and revocation, at the cost of a DB read per request. <code>auth()</code> already does a DB read per request, so the cost would be small.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>No vendor; about 90 lines in <code>lib/auth-server.ts</code>.</li><li>One <code>auth()</code> call gives user, workspace and role to every route.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>No server-side session list. Logout only deletes the cookie; a changed password does not end other sessions.</li><li>The same <code>encrypt()</code> signer is reused for other tokens (OAuth state), which mixes purposes.</li><li>No Google sign-in, email verification, 2FA or SSO.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>Fallback secret <code>"fallback-secret-for-development-only"</code> at <code>lib/auth-server.ts:6</code>. If <code>JWT_SECRET</code> is unset in production, anyone can forge sessions.</li>
+    <li><span class="sev c">Critical</span>Login sets the password for any user with no <code>passwordHash</code> ("MVP Legacy Migration Logic", <code>app/api/auth/login/route.ts:69-78</code>). That is an account takeover path.</li>
+    <li><span class="sev c">Critical</span>OAuth state is signed with the session key and carries <code>userId</code> and <code>workspaceId</code> (e.g. <code>app/api/sources/notion/connect/route.ts:23-24</code>). It is plausibly usable as a session cookie for 24h. See <a href="#adr-022">ADR-022</a>.</li>
+    <li><span class="sev h">High</span>The login rate limiter is an in-memory, per-process <code>Map</code> keyed by email (<code>login/route.ts:14-17</code>).</li>
+    <li><span class="sev h">High</span>"Remember me" is never sent; the cookie is always 24h. Password-reset tokens are stored in plain text (<code>forgot-password</code> line 29).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a><a href="#adr-006">ADR-006</a><a href="#adr-016">ADR-016</a><a href="#adr-021">ADR-021</a><a href="#adr-022">ADR-022</a><a href="#adr-026">ADR-026</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/auth-server.ts</code> <code>app/api/auth/login/route.ts</code> <code>app/lib/auth-context.tsx</code> <code>MVP_PLAN.md</code></p>
+</article>
+
+<!-- ================= ADR-006 ================= -->
+<article class="adr" id="adr-006" data-status="revisit">
+  <header><span class="aid">ADR-006</span><h3>RBAC as a JSON permission list on WorkspaceRole, with 4 default roles</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-28 (reconstructed, <code>lib/rbac.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>Workspaces need different levels of access (admins, builders, read-only users). Custom roles were wanted too. RBAC means role-based access control: each user gets a role, and each role has a list of allowed actions.</p>
+  <h4>Decision</h4>
+  <p>Store permissions as a JSON string array, <code>WorkspaceRole.permissions Json @default("[]")</code>. <code>lib/rbac.ts</code> defines 8 permissions (<code>memory:read/write</code>, <code>insights:read/write</code>, <code>teams:read/manage</code>, <code>sources:read/write</code>) and four default roles created per workspace by <code>createDefaultRolesForWorkspace()</code>: Admin (all), Developer, Product Manager and Viewer. <code>requirePermission()</code> and <code>hasPermission()</code> check membership; the client mirrors it with <code>hasPermission()</code> in <code>app/lib/auth-context.tsx</code>.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Permission and role-permission join tables.</b> Stricter and queryable, but more tables and joins for 8 strings.</li>
+    <li><b>A fixed enum on <code>User.role</code> only.</b> Simple, but no custom roles. The legacy <code>User.role</code> string still exists next to <code>roleId</code>, which is why <code>auth()</code> needs its auto-heal step.</li>
+    <li><b>A policy library</b> (CASL, Oso). Not considered in the planning docs.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Custom roles need no schema change.</li><li>The same list works on server and client.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>No validation: the database accepts any string in the array.</li><li>Two role fields (<code>User.role</code> and <code>roleId</code>) can disagree.</li><li>No permissions exist yet for settings, API keys, workflows or upload.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>All four default roles include <code>sources:read</code> (<code>lib/rbac.ts:26-55</code>), and that permission grants every workspace source in retrieval. See <a href="#adr-012">ADR-012</a>.</li>
+    <li><span class="sev c">Critical</span>Any member can create a role with any permissions (<code>app/api/teams/roles/route.ts:31-46</code>), rename the workspace or change its slug (<code>settings/route.ts:65-81</code>), and create or revoke API keys (<code>settings/api-keys</code>).</li>
+    <li><span class="sev c">Critical</span>Seven routes have no <code>auth()</code> at all, for example <code>app/api/sources/[sourceId]/route.ts</code> DELETE (lines 7-27) and <code>app/api/chats/[sessionId]/route.ts</code> (lines 11-56).</li>
+    <li><span class="sev m">Medium</span>There is no UI or API to change a member's role, edit or delete roles, or remove a member.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-005">ADR-005</a><a href="#adr-012">ADR-012</a><a href="#adr-026">ADR-026</a><a href="#adr-027">ADR-027</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/rbac.ts</code> <code>lib/auth-server.ts:65-91</code> <code>prisma/schema.prisma:39-51</code> <code>app/lib/auth-context.tsx</code></p>
+</article>
+
+<!-- ================= ADR-007 ================= -->
+<article class="adr" id="adr-007" data-status="revisit">
+  <header><span class="aid">ADR-007</span><h3>Encrypt OAuth tokens with crypto-js AES</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>lib/crypto.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>Each connected source stores an OAuth access token, and Google sources also a refresh token. A leaked database row should not hand out access to a customer's Notion, Gmail or GitHub.</p>
+  <h4>Decision</h4>
+  <p>Encrypt tokens before saving with <code>CryptoJS.AES.encrypt(text, ENCRYPTION_KEY)</code> and decrypt them in each connector. <code>ENCRYPTION_KEY</code> is the one secret with <b>no</b> fallback: <code>getKey()</code> throws if it is missing.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Node's built-in <code>crypto</code> with AES-256-GCM.</b> Authenticated (it detects tampering) and needs no package. Now proposed in <a href="#adr-023">ADR-023</a>.</li>
+    <li><b>A managed key service</b> (AWS KMS, Supabase Vault). Stronger key handling, but another vendor at MVP stage.</li>
+    <li><b>No encryption.</b> Rejected; <code>NOTION_CONNECTOR.md</code> marks tokens as "AES encrypted".</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Tokens are not stored in plain text.</li><li>Two small functions; easy to call from every connector.</li><li>Missing key fails loudly instead of quietly.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Passphrase mode: the key is derived with EVP_BytesToKey (MD5, 1 iteration). Cipher is AES-CBC with no MAC, so tampering is not detected.</li><li><code>crypto-js</code> is discontinued.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>Weak key derivation and no integrity check (<code>lib/crypto.ts:9-16</code>).</li>
+    <li><span class="sev m">Medium</span><code>decrypt()</code> returns an empty string on a wrong key instead of throwing (<code>lib/crypto.ts:14-15</code>). A rotated key shows up later as a confusing provider 401.</li>
+    <li><span class="sev m">Medium</span>Tokens are not revoked at the provider when a source is disconnected.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-014">ADR-014</a><a href="#adr-016">ADR-016</a><a href="#adr-023">ADR-023</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/crypto.ts</code> <code>modules/sources/connectors/*.ts</code> (<code>decrypt(</code>) <code>package.json</code> (<code>crypto-js ^4.2.0</code>)</p>
+</article>
+
+<!-- ================= ADR-008 ================= -->
+<article class="adr" id="adr-008" data-status="revisit">
+  <header><span class="aid">ADR-008</span><h3>OpenAI text-embedding-3-small (1536 numbers) with an ada-002 fallback</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>lib/openai.ts</code> and the <code>ada-002</code> fallback both first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> AI / Retrieval</li></ul>
+  <h4>Context</h4>
+  <p>Every chunk and every question must be turned into an embedding with the same model, or similarity scores mean nothing. The model must be cheap, because every synced document is embedded chunk by chunk. Some OpenAI keys did not have access to newer models.</p>
+  <h4>Decision</h4>
+  <p><code>generateEmbedding()</code> in <code>lib/openai.ts</code> cuts input to 8000 characters and calls <code>text-embedding-3-small</code>. On a 403, a 404 or a "model not found" style message it logs a warning and retries with <code>text-embedding-ada-002</code>. Both return 1536 numbers, which matches <code>vector(1536)</code>. The same function serves all connectors, manual upload and the ask route.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b><code>text-embedding-3-large</code></b> (3072 numbers). Better quality, higher cost, and too large for the 1536 column without shortening.</li>
+    <li><b>Open-source models</b> (for example via Cohere or local inference). Not in the plan; <code>MVP_PLAN.md</code> fixes "OpenAI text-embedding-3-small".</li>
+    <li><b>Fail instead of falling back.</b> Safer, and now proposed in <a href="#adr-028">ADR-028</a>.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Low cost, good quality, one shared function.</li><li>Works even on keys without 3-small access.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>3-small and ada-002 produce vectors in <b>different spaces</b>. The sizes match, so nothing errors, but a mix of the two silently ruins similarity.</li><li>One API call per chunk; no batching.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>Silent model switch at <code>lib/openai.ts:16-52</code>. The model used is not saved on the chunk, so mixed data cannot be found later.</li>
+    <li><span class="sev m">Medium</span>The <code>errMessage.includes("not found")</code> check (line 32) is broad and can trigger the fallback for unrelated errors.</li>
+    <li><span class="sev m">Medium</span>No batching: manual upload embeds chunk by chunk inside the request (<code>app/api/sources/upload/route.ts:101-104</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-002">ADR-002</a><a href="#adr-009">ADR-009</a><a href="#adr-011">ADR-011</a><a href="#adr-028">ADR-028</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/openai.ts</code> <code>app/api/ask/route.ts:158</code> <code>app/api/sources/upload/route.ts</code> <code>scripts/init-pgvector.ts:27</code></p>
+</article>
+
+<!-- ================= ADR-009 ================= -->
+<article class="adr" id="adr-009" data-status="revisit">
+  <header><span class="aid">ADR-009</span><h3>Fixed-size word chunks: 400 words with 50 words of overlap</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>modules/ai/chunker.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> AI / Retrieval</li></ul>
+  <h4>Context</h4>
+  <p>Documents are too long to embed whole, and long chunks blur the meaning. Chunks that are too small lose context. Six connectors and the upload route all need the same behaviour.</p>
+  <h4>Decision</h4>
+  <p><code>chunkText(text, docTitle)</code> splits text on whitespace into words, takes windows of <code>CHUNK_SIZE = 400</code> words, steps forward by 350 (<code>CHUNK_OVERLAP = 50</code>), skips windows under 30 characters, and prefixes each chunk with <code>[docTitle]</code>. <code>tokenCount</code> is set to the word count.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Token-based chunks</b> ("512 tokens each" in <code>GOOGLE_DRIVE_CONNECTOR.md</code>). More exact against model limits, but needs a tokenizer package. The code uses words as a rough stand-in ("approx 512 tokens").</li>
+    <li><b>Structure-aware chunks</b> (by heading, paragraph or message). Better for Notion pages and Slack threads. The code comment says "Split into paragraphs first", but it does not.</li>
+    <li><b>LlamaIndex or Unstructured.io parsing.</b> Planned in <code>MVP_PLAN.md</code>; not used.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Simple, fast, no dependencies, same output everywhere.</li><li>The title prefix helps short chunks match on topic.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Splits mid-sentence and mid-table; ignores structure.</li><li><code>tokenCount</code> is a word count, so any token budget built on it is wrong.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev m">Medium</span>Splits on whitespace only despite the comment (<code>modules/ai/chunker.ts:23-24</code>).</li>
+    <li><span class="sev m">Medium</span>A document of exactly 400 words produces a second, duplicate 50-word chunk because the loop steps 350 and runs again (<code>chunker.ts:32-50</code>).</li>
+    <li><span class="sev m">Medium</span>Changes must be copied to the upload route too, which calls <code>chunkText</code> itself (<code>app/api/sources/upload/route.ts:101</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-008">ADR-008</a><a href="#adr-011">ADR-011</a><a href="#adr-014">ADR-014</a><a href="#adr-025">ADR-025</a></p>
+  <h4>Evidence</h4><p class="refs"><code>modules/ai/chunker.ts</code> <code>NOTION_CONNECTOR.md</code> ("400-word segments") <code>GOOGLE_DRIVE_CONNECTOR.md</code></p>
+</article>
+
+<!-- ================= ADR-010 ================= -->
+<article class="adr" id="adr-010" data-status="revisit">
+  <header><span class="aid">ADR-010</span><h3>gpt-4o answers, hand-rolled SSE streaming and 6-message history</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>text/event-stream</code> and <code>take: 6</code> first seen in <code>app/api/ask/route.ts</code>)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> AI / Retrieval</li></ul>
+  <h4>Context</h4>
+  <p>Answers take several seconds, so users need to see text as it arrives. The UI also needs the source list before the text, plus special events for "no knowledge" and errors. Follow-up questions ("and who approved it?") need the earlier turns.</p>
+  <h4>Decision</h4>
+  <p>Call <code>openai.chat.completions.create({ model: "gpt-4o", temperature: 0.2, max_tokens: 1500, stream: true })</code>. Wrap the stream in a hand-built <code>ReadableStream</code> that sends SSE (server-sent events: one-way <code>data: …</code> lines over HTTP) with typed events: <code>sources</code> first, then <code>text</code> deltas, then <code>[DONE]</code>; plus <code>no_knowledge</code> and <code>error</code>. If a <code>sessionId</code> is sent, save the question as a <code>ChatMessage</code>, load the last 6 messages as history, save the full answer with its sources at the end, and rename a session still titled <code>"New Conversation"</code> from the first 40 characters of the question. The system prompt asks for <code>[1]</code>-style citations, decision timelines and stale-data warnings.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>The Vercel <code>ai</code> SDK stream helpers.</b> Planned ("Streamed response → Browser (Vercel AI SDK)") and installed (<code>ai ^6.0.191</code>), but not imported. The custom event types (<code>sources</code>, <code>no_knowledge</code>) were easier to send by hand.</li>
+    <li><b>Claude 3.5.</b> <code>MVP_PLAN.md</code> listed "GPT-4o / Claude 3.5". Only OpenAI is wired up; the marketing site still claims Claude 3.5.</li>
+    <li><b>A per-workspace model choice.</b> Settings saves <code>defaultLlm</code>, but the route ignores it.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Real token streaming with no extra library.</li><li>Sources arrive before the answer, so citations render at once.</li><li>Chats are stored and resumable.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>The event protocol is custom, so client and server must change together.</li><li>Only the latest question is embedded; history goes to the model but not to retrieval.</li><li>Model name is hard-coded.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>The route does not check that <code>sessionId</code> belongs to the caller's workspace (<code>app/api/ask/route.ts:103-123</code>). Anyone can write to and read history from another session.</li>
+    <li><span class="sev h">High</span>The UI handles only <code>sources</code> and <code>text</code> (<code>AskMain.tsx:525-544</code>). On <code>no_knowledge</code> (sent at <code>route.ts:191</code>) or <code>error</code> (lines 82, 336) the spinner never stops.</li>
+    <li><span class="sev h">High</span>Follow-ups are not rewritten before search (<code>route.ts:158</code>). See <a href="#adr-025">ADR-025</a>.</li>
+    <li><span class="sev m">Medium</span>The server never returns the saved message id, so feedback on a new answer always 404s. <code>defaultLlm</code> is ignored (<code>route.ts:276</code>). The history filter drops any earlier message whose text equals the new question (<code>route.ts:118</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-011">ADR-011</a><a href="#adr-013">ADR-013</a><a href="#adr-017">ADR-017</a><a href="#adr-025">ADR-025</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/ask/route.ts:100-123, 249-350</code> <code>app/dashboard/ask/</code> (<code>AskMain.tsx</code>) <code>FEATURE_2_STATEFUL_ASK.md</code> <code>MVP_PLAN.md</code></p>
+</article>
+
+<!-- ================= ADR-011 ================= -->
+<article class="adr" id="adr-011" data-status="accepted">
+  <header><span class="aid">ADR-011</span><h3>Similarity above 0.55, top 8 chunks, and a "no knowledge" refusal</h3><span class="badge b-acc">Accepted</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-30 (reconstructed, <code>&gt; 0.55</code> and <code>NO_KNOWLEDGE_RESPONSE</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> AI / Retrieval</li></ul>
+  <h4>Context</h4>
+  <p>The product promise is "answers from your own knowledge, with sources". If weak matches reach the model, it will still write a confident answer from general knowledge. That is a hallucination (a made-up answer). Too strict a cut-off hides useful matches.</p>
+  <h4>Decision</h4>
+  <p>In the raw pgvector query keep only chunks with <code>1 - (embedding &lt;=&gt; query) &gt; 0.55</code>, ordered by distance, <code>LIMIT 8</code>. If zero chunks pass, do <b>not</b> call the model. Stream a fixed <code>NO_KNOWLEDGE_RESPONSE</code> that ends "I will never fabricate answers from outside your connected knowledge base." The system prompt repeats the rule ("NO HALLUCINATION").</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>The 0.6 / top 5 defaults of <code>match_chunks()</code>.</b> Stricter and smaller. Loosened in the route for better recall.</li>
+    <li><b>Always call the model and let it say "I don't know".</b> Cheaper to build, but models often answer anyway.</li>
+    <li><b>A reranker</b> (a second model that re-scores the top results). Better precision; not built.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>A hard guard against invented answers; no model cost when nothing matches.</li><li>8 chunks of about 400 words fit the prompt with room for history.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>A fixed threshold does not suit every model or language. Switching to ada-002 (<a href="#adr-008">ADR-008</a>) changes the score scale.</li><li>Pure vector search misses exact names, ids and codes.</li><li>Several of the 8 slots can go to chunks from one document.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>The UI does not render the <code>no_knowledge</code> event, so the guard currently looks like a hang (see <a href="#adr-010">ADR-010</a>). The guard itself works.</li>
+    <li><span class="sev m">Medium</span>No dedupe per document and no keyword search. See <a href="#adr-025">ADR-025</a>.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-002">ADR-002</a><a href="#adr-008">ADR-008</a><a href="#adr-009">ADR-009</a><a href="#adr-010">ADR-010</a><a href="#adr-012">ADR-012</a><a href="#adr-013">ADR-013</a><a href="#adr-025">ADR-025</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/ask/route.ts:63-70, 162-215</code> <code>scripts/init-pgvector.ts:60-91</code></p>
+</article>
+
+<!-- ================= ADR-012 ================= -->
+<article class="adr" id="adr-012" data-status="revisit">
+  <header><span class="aid">ADR-012</span><h3>Permission-aware retrieval through an allowed-source list</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-30 (reconstructed, <code>path: ["permissions"]</code> first seen in the ask route)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>A user who connects their own Gmail should not have their email surface in a colleague's answers. Search must only look at sources the asker is allowed to see. Filtering after search would leak through scores and waste slots.</p>
+  <h4>Decision</h4>
+  <p>Before the vector query, build a set of allowed source ids: the user's own sources, plus sources whose <code>config.permissions === "everyone"</code>, plus <b>all</b> workspace sources if <code>user.role === "admin"</code> or the role holds <code>sources:read</code>. Filter the SQL with <code>dc.source_id::text IN (…)</code>. If the set is empty, use the sentinel id <code>00000000-0000-0000-0000-000000000000</code> so the query matches nothing rather than everything.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Postgres row-level security.</b> Enforced in the database, but the app connects as one service user, so it would need per-request settings.</li>
+    <li><b>Mirroring each provider's own sharing rules</b> (Drive ACLs, Slack channel membership). Most correct, much more work.</li>
+    <li><b>Workspace-wide visibility only.</b> What <code>NOTION_CONNECTOR.md</code> assumed ("queries document_chunks by workspace_id — no changes are required").</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>The filter runs inside the SQL, before ranking.</li><li>The sentinel id fails closed.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Visibility is per source, not per document or channel.</li><li>Three extra queries on every ask.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>The filter restricts nothing in practice. All 4 default roles include <code>sources:read</code> (<code>lib/rbac.ts:26-55</code>), which adds every source (<code>app/api/ask/route.ts:146</code>, also <code>app/api/search/route.ts:54</code>).</li>
+    <li><span class="sev c">Critical</span><code>POST /api/sources/[sourceId]/config</code> has no auth (lines 12-28) and can set <code>permissions: "everyone"</code> on any source.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-006">ADR-006</a><a href="#adr-011">ADR-011</a><a href="#adr-021">ADR-021</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/ask/route.ts:125-156</code> <code>app/api/search/route.ts</code> <code>lib/rbac.ts</code></p>
+</article>
+
+<!-- ================= ADR-013 ================= -->
+<article class="adr" id="adr-013" data-status="revisit">
+  <header><span class="aid">ADR-013</span><h3>Freshness score that decays per source type</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-30 (reconstructed, <code>decayRate</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> AI / Retrieval</li></ul>
+  <h4>Context</h4>
+  <p>Company knowledge goes out of date at different speeds. A Slack message from last month is often already wrong; a design doc can stay true for a year. Users should be warned when an answer rests on old material.</p>
+  <h4>Decision</h4>
+  <p><code>calculateTemporalConfidence()</code> starts at 100 and subtracts points per day of age, using the document's <code>updated_at</code> (falling back to the chunk's <code>created_at</code>). Rates per day: <code>slack_channel</code> 2.0, default 0.5, <code>linear_issue</code> 0.4, <code>github_issue</code>/<code>github_pr</code> 0.3, <code>notion_page</code>/<code>google_doc</code> 0.2. Labels: Fresh (80 or more), Aged (50 to 79), Stale (under 50). The label and score go into each source header in the prompt and into the <code>sources</code> event for the UI. The prompt tells the model to flag Stale or Aged facts.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Use freshness to re-rank results</b>, not only to label them. More useful, but it can bury the only relevant chunk.</li>
+    <li><b>One decay rate for all types.</b> Simpler, but treats Slack and design docs the same.</li>
+    <li><b>No freshness at all.</b> Freshness is a core selling point of the product, so it was kept.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Cheap: computed per result, no extra queries.</li><li>Gives the model and the user a clear "this may be old" signal.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Rates are hand-picked, not measured.</li><li>Labels only; ranking ignores age.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>The age is usually the <b>index</b> time, not the content time. <code>Document.updatedAt</code> is <code>@updatedAt</code>, so it resets on every re-index. Only Linear and Slack pass a source date. A two-year-old Drive doc synced today shows as Fresh.</li>
+    <li><span class="sev m">Medium</span>The type comes from <code>meta.file_type ?? meta.source_type</code> (<code>app/api/ask/route.ts:221</code>). Any connector that writes a different string (for example <code>gmail</code> or <code>manual_upload</code>) gets the 0.5 default.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-010">ADR-010</a><a href="#adr-011">ADR-011</a><a href="#adr-014">ADR-014</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/ask/route.ts:38-61, 217-247</code> <code>prisma/schema.prisma</code> (<code>Document</code>)</p>
+</article>
+
+<!-- ================= ADR-014 ================= -->
+<article class="adr" id="adr-014" data-status="revisit">
+  <header><span class="aid">ADR-014</span><h3>One connector file per provider, all on one pipeline shape</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, <code>google-drive.ts</code> first seen; Notion, Gmail, GitHub 2026-05-27; Slack, Linear 2026-05-29; upload route 2026-05-28)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Ingestion</li></ul>
+  <h4>Context</h4>
+  <p>Corely connects to six providers (Notion, Gmail, Google Drive, GitHub, Slack, Linear). Each has its own API, auth and paging. But the steps after fetching are the same. A shared shape makes each new connector faster to write.</p>
+  <h4>Decision</h4>
+  <p>Each provider gets one file in <code>modules/sources/connectors/</code> that exports one <code>sync&lt;Provider&gt;(sourceId)</code>. Each follows the same steps: load and decrypt the token, page through the API, skip unchanged documents using a hash of the content (<code>contentHash</code>), chunk (<a href="#adr-009">ADR-009</a>), embed (<a href="#adr-008">ADR-008</a>), insert chunks with <code>supabaseAdmin</code>, and set <code>Source.status</code> from <code>syncing</code> to <code>synced</code> or <code>error</code>. OAuth is a <code>connect</code> + <code>callback</code> route pair per provider under <code>app/api/sources/&lt;provider&gt;/</code>. A second path, <code>app/api/sources/upload/route.ts</code>, handles manual files (PDF via <code>pdf-parse</code>, DOCX via <code>mammoth</code>, else plain text) into a single <code>manual_upload</code> source per workspace.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>A shared base class or pipeline module</b> (<code>ingest-document.ts</code> in the <code>MVP_PLAN.md</code> folder plan). Would stop the copies from drifting. Not built; each file copies the steps.</li>
+    <li><b>A third-party sync service</b> (Airbyte, Nango, Unstructured). Faster coverage, but a new vendor and less control over chunking.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Each connector reads top to bottom on its own.</li><li>The hash skip avoids paying to re-embed unchanged content.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Copy-paste has drifted: Slack and Linear use MD5 for <code>contentHash</code> (<code>slack.ts:189</code>, <code>linear.ts:196</code>), the others SHA-256; Slack and Linear write chunks differently (see <a href="#adr-003">ADR-003</a>).</li><li>Fixes must be made in seven places.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span>Slack and Linear content is never searchable (duplicate-key insert, <code>slack.ts:243-260</code>, <code>linear.ts:244-261</code>).</li>
+    <li><span class="sev h">High</span>Only Notion has <code>withRetry</code> (401 means reconnect, 429 means back off 1s, 2s, 4s; <code>notion.ts:375-394</code>) and only Notion purges documents removed upstream (<code>notion.ts:128-147</code>). <code>CLAUDE.md</code> wrongly says all connectors do both.</li>
+    <li><span class="sev h">High</span>Early errors (no token, refresh failure, "Gmail OAuth is not configured") are thrown before the <code>try</code> block, so the status stays <code>syncing</code> for ever.</li>
+    <li><span class="sev h">High</span>Gmail incremental sync never runs: <code>buildQuery</code> returns the stored <code>config.query</code> first (<code>gmail.ts:136-150</code>), and the callback always stores one (<code>gmail/callback/route.ts:95</code>). Hard cap of 100 threads.</li>
+    <li><span class="sev m">Medium</span>Upload has no server-side type or size check and no hash dedupe; <code>.doc</code> files go to <code>mammoth</code>, which only reads DOCX.</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-003">ADR-003</a><a href="#adr-007">ADR-007</a><a href="#adr-008">ADR-008</a><a href="#adr-009">ADR-009</a><a href="#adr-015">ADR-015</a><a href="#adr-020">ADR-020</a></p>
+  <h4>Evidence</h4><p class="refs"><code>modules/sources/connectors/*.ts</code> <code>app/api/sources/&lt;provider&gt;/{connect,callback}/route.ts</code> <code>app/api/sources/upload/route.ts</code> <code>NOTION_CONNECTOR.md</code> <code>GOOGLE_DRIVE_CONNECTOR.md</code></p>
+</article>
+
+<!-- ================= ADR-015 ================= -->
+<article class="adr" id="adr-015" data-status="revisit">
+  <header><span class="aid">ADR-015</span><h3>Run syncs fire-and-forget inside the web request; BullMQ present but unused</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, sync route, <code>lib/redis.ts</code> and <code>workers/index.ts</code> all first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Ingestion</li></ul>
+  <h4>Context</h4>
+  <p>A sync can take minutes. The plan was a queue: the API adds a job and a separate worker runs it. But a worker needs Redis and a second running process, which is extra setup for local development and early demos.</p>
+  <h4>Decision</h4>
+  <p><code>POST /api/sources/[sourceId]/sync</code> returns 409 if the source is already <code>syncing</code>, sets <code>status: "syncing"</code>, then dynamically imports the connector and calls <code>sync*()</code> <b>without awaiting it</b>, returning at once with a made-up <code>jobId</code>. The queue code still exists: <code>lib/redis.ts</code> defines <code>sourceQueue</code> (<code>"corely-sources"</code>, 3 attempts, exponential backoff from 5s), and <code>workers/index.ts</code> handles all 6 job names with concurrency 2. The worker probes Redis for 1.5s at start and drops into an idle "standby" heartbeat if Redis is not there. Nothing ever adds a job to the queue.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>BullMQ worker from day one</b>, as <code>MVP_PLAN.md</code> ("a background worker queue from day one") and <code>GOOGLE_DRIVE_CONNECTOR.md</code> ("enqueue sync-google-drive job") planned. Not wired in. Now proposed in <a href="#adr-020">ADR-020</a>.</li>
+    <li><b>Hosted job runners</b> (Inngest, Trigger.dev, Vercel cron). Not in the planning docs.</li>
+    <li><b>Await the sync in the request.</b> Would time out on large sources.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Works with no Redis and no second process.</li><li>The UI gets an instant reply and polls the status.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>No retries, no concurrency limit, no visibility. A restart or deploy kills running syncs mid-way.</li><li>Heavy embedding work shares CPU and memory with user requests.</li><li>No automatic or scheduled sync of any kind.</li><li>Dead code to maintain (queue and worker).</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>A sync that dies leaves <code>syncing</code> set, and every retry then gets 409 (<code>app/api/sources/[sourceId]/sync/route.ts:25-27</code>). There is no stale-status recovery.</li>
+    <li><span class="sev h">High</span>The UI sends <code>syncSchedule</code> (hourly/daily/weekly), but <code>config/route.ts:20</code> ignores it.</li>
+    <li><span class="sev m">Medium</span>Drive and Notion webhook routes are stubs; no other provider has webhooks.</li>
+    <li><span class="sev m">Medium</span><code>docker-compose.yml</code> deliberately has no worker service, because it "would sit idle".</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a><a href="#adr-014">ADR-014</a><a href="#adr-017">ADR-017</a><a href="#adr-018">ADR-018</a><a href="#adr-020">ADR-020</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/sources/[sourceId]/sync/route.ts:25-107</code> <code>lib/redis.ts:27-35</code> <code>workers/index.ts</code> <code>docker-compose.yml</code> <code>MVP_PLAN.md</code></p>
+</article>
+
+<!-- ================= ADR-016 ================= -->
+<article class="adr" id="adr-016" data-status="revisit">
+  <header><span class="aid">ADR-016</span><h3>Dummy env fallbacks so the build needs no secrets</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-26 (reconstructed, first <code>dummy</code> fallback in <code>lib/</code>)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Platform</li></ul>
+  <h4>Context</h4>
+  <p><code>next build</code> imports server modules, and clients such as Prisma, OpenAI and Supabase are created when their module loads. Without values they throw, so the build fails on a machine or CI runner with no secrets.</p>
+  <h4>Decision</h4>
+  <p>Give each client a dummy default: <code>DATABASE_URL</code> falls back to <code>postgresql://postgres:dummy-password-for-build@localhost:5432/postgres</code> (<code>lib/db.ts:10-12</code>), OpenAI to <code>"dummy-key-for-build"</code> (<code>lib/openai.ts:7</code>), Supabase URL and keys to dummy strings (<code>lib/supabase.ts:3-5</code>), Redis to <code>redis://127.0.0.1:6379</code> (<code>lib/redis.ts:21</code>). There is no <code>.env.example</code>. <code>ENCRYPTION_KEY</code> is the only one with no fallback.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Lazy clients</b> (create them on first use inside a function). The build would never touch them, and production would fail fast on a missing value.</li>
+    <li><b>Schema validation at start-up</b> with <code>zod</code> (already a dependency) that allows a "build" mode. Proposed in <a href="#adr-024">ADR-024</a>.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li><code>npm run build</code> and the Docker build need no secrets.</li><li>New developers can start the UI before getting keys.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>A production deploy with a missing variable starts "fine" and fails later, often silently.</li><li>Fallbacks have spread to real secrets, which is dangerous.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev c">Critical</span><code>lib/email.ts:6-7</code> falls back to a <b>real</b> Gmail address and app password, committed in <code>2cd2cb7</code>. Rotate it in Google first, then remove it.</li>
+    <li><span class="sev c">Critical</span><code>JWT_SECRET</code> falls back to a known string (<code>lib/auth-server.ts:6</code>). See <a href="#adr-005">ADR-005</a>.</li>
+    <li><span class="sev m">Medium</span>The front-end login form falls back to <code>"password123"</code> (<code>app/lib/auth-context.tsx:91-94</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a><a href="#adr-005">ADR-005</a><a href="#adr-018">ADR-018</a><a href="#adr-024">ADR-024</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/db.ts</code> <code>lib/openai.ts</code> <code>lib/supabase.ts</code> <code>lib/redis.ts</code> <code>lib/email.ts</code> <code>lib/auth-server.ts</code> <code>Dockerfile</code> (build step comment)</p>
+</article>
+
+<!-- ================= ADR-017 ================= -->
+<article class="adr" id="adr-017" data-status="accepted">
+  <header><span class="aid">ADR-017</span><h3>Redis rate limit with an in-memory fallback</h3><span class="badge b-acc">Accepted</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-27 (reconstructed, <code>lib/rate-limit.ts</code> first seen; in-memory fallback added 2026-05-30)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Platform</li></ul>
+  <h4>Context</h4>
+  <p>Each ask costs an embedding call and a gpt-4o call. One user or script could run up a large OpenAI bill. Redis is not always running in development.</p>
+  <h4>Decision</h4>
+  <p><code>rateLimit(identifier, limit, windowSecs)</code> uses Redis <code>INCR</code> plus <code>EXPIRE</code> (a fixed window). The Redis client is only created when <code>REDIS_URL</code> is set, with a 500 ms command timeout and no reconnect. If Redis is missing or fails, it counts in a process-local <code>Map</code> instead. It "fails closed": limits still apply. <code>/api/ask</code> uses 20 requests per 60 seconds per user, raised from 5. Over the limit it returns status 429 as an SSE <code>error</code> event. <code>docker-compose.yml</code> runs <code>redis:7-alpine</code> for this.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Upstash Redis</b> (planned in <code>MVP_PLAN.md</code>). Works with the same code through <code>REDIS_URL</code>.</li>
+    <li><b>Sliding-window or token-bucket limits.</b> Smoother at window edges; more code.</li>
+    <li><b>Fail open</b> when Redis is down. Rejected in a code comment: "fails CLOSED — enforces limits even without Redis".</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Protects the most expensive route; never crashes when Redis is offline.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>The memory fallback is per process and is lost on restart.</li><li>The memory map is never cleaned, so it grows with users.</li><li>A fixed window allows up to 40 requests across a window edge.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev m">Medium</span>Only <code>/api/ask</code> uses it. Register, forgot-password, search and upload have no limit; login has its own in-memory map (<code>login/route.ts:14-17</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a><a href="#adr-010">ADR-010</a><a href="#adr-020">ADR-020</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/rate-limit.ts</code> <code>app/api/ask/route.ts:76-91</code> <code>docker-compose.yml</code></p>
+</article>
+
+<!-- ================= ADR-018 ================= -->
+<article class="adr" id="adr-018" data-status="accepted">
+  <header><span class="aid">ADR-018</span><h3>Docker image on Debian slim, dev packages kept</h3><span class="badge b-acc">Accepted</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (reconstructed, <code>Dockerfile</code> and <code>docker-compose.yml</code> first seen in commit "add the deployment files")</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Platform</li></ul>
+  <h4>Context</h4>
+  <p>The app needs a repeatable way to run outside <code>npm run dev</code>. Prisma's library engine needs OpenSSL. Some packages the app needs at run time are listed as dev dependencies. Two features load files at run time, not build time.</p>
+  <h4>Decision</h4>
+  <p>A three-step Dockerfile on <code>node:22-bookworm-slim</code> (Debian) with <code>openssl</code> and <code>ca-certificates</code>. Install with <code>npm ci</code> <b>including</b> dev packages, build with <code>NODE_OPTIONS=--max-old-space-size=4096</code>, delete <code>.next/cache</code> (about 964 MB), and copy the whole app, including <code>node_modules</code>, into the runner. Run as the <code>node</code> user on port 3000. <code>docker-compose.yml</code> adds <code>redis:7-alpine</code> with a health check and a volume. There is no database container (Postgres is on Supabase) and no worker service.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Alpine base.</b> Smaller, but Prisma's native engine needs extra OpenSSL work there.</li>
+    <li><b><code>npm ci --omit=dev</code> or Next.js <code>output: "standalone"</code>.</b> Much smaller, but breaks start-up: <code>lib/db.ts</code> imports <code>@prisma/adapter-pg</code> and <code>pg</code>, and <code>npm run worker</code> needs <code>tsx</code>, all in <code>devDependencies</code>. Upload <code>require("pdf-parse")</code> and looks up <code>pdfjs-dist/legacy/build/pdf.worker.mjs</code> at run time.</li>
+    <li><b>Vercel plus Railway</b> (the <code>MVP_PLAN.md</code> plan). Not chosen for this deploy path.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Builds with no secrets (<a href="#adr-016">ADR-016</a>); env is read at start, so no rebuild after changing <code>.env</code>.</li><li>Non-root user; Redis is not exposed to the host.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>The image is about 2.6 GB, roughly 1.7 GB of it <code>node_modules</code>.</li><li>Needs about 5 GB of Docker memory to build.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev m">Medium</span>Moving <code>@prisma/adapter-pg</code>, <code>pg</code> and <code>tsx</code> to <code>dependencies</code> would allow <code>--omit=dev</code> (noted at the bottom of the <code>Dockerfile</code>).</li>
+    <li><span class="sev m">Medium</span>The pgvector setup must still be run by hand once (<a href="#adr-004">ADR-004</a>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a><a href="#adr-004">ADR-004</a><a href="#adr-015">ADR-015</a><a href="#adr-016">ADR-016</a><a href="#adr-020">ADR-020</a></p>
+  <h4>Evidence</h4><p class="refs"><code>Dockerfile</code> <code>docker-compose.yml</code> <code>package.json</code> <code>prisma/schema.prisma:3</code></p>
+</article>
+
+<!-- ================= ADR-019 ================= -->
+<article class="adr" id="adr-019" data-status="revisit">
+  <header><span class="aid">ADR-019</span><h3>Rule-based insights, no LLM</h3><span class="badge b-rev">Accepted – needs revisiting</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-05-29 (reconstructed, <code>lib/insights-generator.ts</code> first seen)</li><li><b>Deciders:</b> Krishil Agrawal (inferred from git)</li><li><b>Area:</b> Platform</li></ul>
+  <h4>Context</h4>
+  <p>The dashboard and Insights page need something to show from day one. LLM-written insights cost money on every page load and are hard to make reliable.</p>
+  <h4>Decision</h4>
+  <p><code>lib/insights-generator.ts</code> builds insights from recent database activity with fixed rules and <code>date-fns</code> (<code>subHours</code>, <code>subDays</code>, <code>formatDistanceToNow</code>). Each insight gets a category, a priority (<code>Low | Medium | High | Critical</code>), colours from fixed style maps, and an id from a module-level counter (<code>dyn-insight-N</code>). No model is called anywhere on this path.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>LLM-generated insights</b> stored in the <code>DashboardInsight</code> table. The table exists but nothing writes to it.</li>
+    <li><b>Hide the panel until real insights exist.</b> The audit recommends this for the fake parts.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Free, fast and predictable.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Insights are shallow and can look made-up next to the "AI" branding.</li><li>Ids from a counter reset on restart and are not unique across processes.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Known issues today</h5><ul>
+    <li><span class="sev h">High</span>Priority colours never apply: the UI expects <code>HIGH</code>/<code>MEDIUM</code> (<code>InsightsPanel.tsx:106</code>) but the generator emits <code>High</code>/<code>Medium</code>/<code>Critical</code> (<code>lib/insights-generator.ts:30</code>).</li>
+    <li><span class="sev h">High</span>The Insights page shows fixed trends (<code>insights/page.tsx:364, 380, 396, 412</code>), an invented "Actioned Rate" (line 124) and a timeline of docs + chats + 10 (<code>api/insights/route.ts:41</code>).</li>
+  </ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-001">ADR-001</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/insights-generator.ts</code> <code>app/api/insights/route.ts</code> <code>prisma/schema.prisma</code> (<code>DashboardInsight</code>)</p>
+</article>
+
+<!-- ================= PROPOSED ================= -->
+
+<!-- ================= ADR-020 ================= -->
+<article class="adr" id="adr-020" data-status="proposed">
+  <header><span class="aid">ADR-020</span><h3>Move syncing onto the BullMQ worker, with scheduled jobs</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Ingestion</li><li><b>Would supersede:</b> part of ADR-015</li></ul>
+  <h4>Context</h4>
+  <p>Syncs run inside web requests with no retries and no schedule (<a href="#adr-015">ADR-015</a>). Sources go stale, and a restart can leave a source stuck in <code>syncing</code>. The queue and worker are already written and handle all 6 job names.</p>
+  <h4>Decision</h4>
+  <p>Make the sync route call <code>sourceQueue.add("sync-&lt;provider&gt;", { sourceId, workspaceId })</code>. Run the worker as a second service in <code>docker-compose.yml</code> (same image, <code>npm run worker</code>). Keep the direct call only as a fallback when Redis is not reachable. Save <code>syncSchedule</code> from the config route and create BullMQ repeatable jobs for hourly, daily or weekly. Wrap each connector body in <code>try/catch</code> so any failure sets <code>status: "error"</code>, and reset stale <code>syncing</code> rows on worker start. Later, have the Drive and Notion webhooks add jobs too.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Keep fire-and-forget and add a cron route.</b> Still no retries, and still runs in the web process.</li>
+    <li><b>A hosted job runner</b> (Inngest, Trigger.dev). Less to run, but a new vendor when BullMQ code already exists.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Retries (3 attempts, backoff from 5s), concurrency 2, and automatic sync.</li><li>Web requests stay fast; deploys no longer kill syncs mid-way.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Redis becomes required for production syncing.</li><li>One more process to deploy and watch.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>How to show queue progress in the Sources UI (sync-history rows per run are planned).</li><li>Whether to keep the direct-call fallback in production or only in development.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-014">ADR-014</a><a href="#adr-015">ADR-015</a><a href="#adr-017">ADR-017</a><a href="#adr-018">ADR-018</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/redis.ts</code> <code>workers/index.ts:76-111</code> <code>app/api/sources/[sourceId]/sync/route.ts</code> <code>app/api/sources/[sourceId]/config/route.ts:20</code></p>
+</article>
+
+<!-- ================= ADR-021 ================= -->
+<article class="adr" id="adr-021" data-status="proposed">
+  <header><span class="aid">ADR-021</span><h3>Protect routes with <code>middleware.ts</code></h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>There is no <code>middleware.ts</code>. A logged-out visitor to <code>/dashboard</code> gets a client-side redirect (<code>app/lib/auth-context.tsx:65-70</code>), and the server page throws into <code>error.tsx</code>. Each API route must remember to call <code>auth()</code>, and seven do not.</p>
+  <h4>Decision</h4>
+  <p>Add a root <code>middleware.ts</code> that verifies the <code>corely_session</code> JWT with <code>jose</code> (it runs on the Edge runtime) and redirects to <code>/login</code> for <code>/dashboard/:path*</code>. For <code>/api/*</code> (except auth, OAuth callbacks and webhooks) return 401 early. Keep <code>auth()</code> in every handler as the real check, because middleware cannot load the user from Prisma. Read the Next.js guide in <code>node_modules/next/dist/docs/</code> first, as <code>AGENTS.md</code> warns that conventions differ in this version.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Only fix the seven routes.</b> Needed anyway, but leaves no safety net for the next route.</li>
+    <li><b>A server-side check in <code>app/dashboard/layout.tsx</code>.</b> Covers pages, not API routes.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>A second layer of defence; clean redirect instead of an error page.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Two places to keep in sync; a wrong matcher can block webhooks or OAuth callbacks.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>Which public API paths need allow-listing (<code>/api/auth/*</code>, <code>/api/sources/*/callback</code>, <code>/api/webhooks/*</code>, future <code>/api/v1/*</code> with API keys).</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-005">ADR-005</a><a href="#adr-012">ADR-012</a><a href="#adr-027">ADR-027</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/lib/auth-context.tsx:65-70</code> <code>lib/auth-server.ts</code> <code>AGENTS.md</code></p>
+</article>
+
+<!-- ================= ADR-022 ================= -->
+<article class="adr" id="adr-022" data-status="proposed">
+  <header><span class="aid">ADR-022</span><h3>A separate signing key for OAuth state, with a checked nonce</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Auth / Security</li><li><b>Amends:</b> ADR-005</li></ul>
+  <h4>Context</h4>
+  <p>The OAuth <code>state</code> parameter (a value sent to the provider and returned in the callback, used to stop forged callbacks) is a JWT signed by the session <code>encrypt()</code> from <code>lib/auth-server.ts</code>. It carries <code>userId</code> and <code>workspaceId</code> and lands in browser history and provider logs. It is plausibly usable as a <code>corely_session</code> cookie for 24h. The nonce comes from <code>Math.random()</code> and is never checked in the callbacks.</p>
+  <h4>Decision</h4>
+  <p>Sign state with a separate key (<code>OAUTH_STATE_SECRET</code>), a purpose claim (<code>typ: "oauth_state"</code>) and a 10-minute expiry. Make <code>getSession()</code> reject any token without the session purpose. Generate the nonce with <code>crypto.randomBytes</code>, store it in a short-lived httpOnly cookie, and compare it in every callback.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Store state in the database</b> and send only a random id. Strongest, but needs a table and cleanup.</li>
+    <li><b>Keep one key but add a purpose claim.</b> Fixes reuse, but a leak of one key still breaks both.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>A leaked state value can no longer log anyone in.</li><li>Forged callbacks (login CSRF) are blocked by the nonce check.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>One more secret to manage; six connect and six callback routes to change.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>Whether to also end the current 24h sessions after the change.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-005">ADR-005</a><a href="#adr-014">ADR-014</a><a href="#adr-024">ADR-024</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/sources/*/connect/route.ts</code> (e.g. <code>notion/connect/route.ts:23-24</code>) <code>app/api/sources/notion/callback/route.ts:55-64</code> <code>lib/auth-server.ts:15-28</code></p>
+</article>
+
+<!-- ================= ADR-023 ================= -->
+<article class="adr" id="adr-023" data-status="proposed">
+  <header><span class="aid">ADR-023</span><h3>Replace crypto-js with Node crypto AES-256-GCM</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Auth / Security</li><li><b>Would supersede:</b> ADR-007</li></ul>
+  <h4>Context</h4>
+  <p><code>lib/crypto.ts</code> uses crypto-js passphrase mode: MD5 key derivation with 1 iteration, AES-CBC, no integrity check, and an empty string on a wrong key. The library is discontinued.</p>
+  <h4>Decision</h4>
+  <p>Use Node's built-in <code>crypto</code> with AES-256-GCM (encryption that also detects tampering). Take a 32-byte key from <code>ENCRYPTION_KEY</code> (base64). Store <code>v1:&lt;iv&gt;:&lt;tag&gt;:&lt;ciphertext&gt;</code> with a random 12-byte IV per value. <code>decrypt()</code> throws on a bad tag. During rollout, read old crypto-js values when there is no <code>v1:</code> prefix, and run a one-off script that re-encrypts every stored token. Then remove <code>crypto-js</code>.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>libsodium (<code>secretbox</code>).</b> Also strong, but a native or WASM dependency for no extra gain here.</li>
+    <li><b>A managed key service</b> (KMS, Supabase Vault). Better key rotation; more setup. Can come later on top of this format.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Modern, authenticated encryption; one fewer package.</li><li>The version prefix allows key rotation later.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>A migration script must touch every <code>Source</code> row. A mistake locks out all connected sources.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>Back up the <code>sources</code> table before re-encrypting.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-007">ADR-007</a><a href="#adr-014">ADR-014</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/crypto.ts</code> <code>package.json</code></p>
+</article>
+
+<!-- ================= ADR-024 ================= -->
+<article class="adr" id="adr-024" data-status="proposed">
+  <header><span class="aid">ADR-024</span><h3>Adopt Prisma migrations and zod env validation</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Data (and Platform)</li><li><b>Would supersede:</b> ADR-004; amends ADR-016</li></ul>
+  <h4>Context</h4>
+  <p>Schema changes go straight to the database with <code>db push</code> and leave no history (<a href="#adr-004">ADR-004</a>). Missing env values are hidden by dummy fallbacks (<a href="#adr-016">ADR-016</a>), including a real email password.</p>
+  <h4>Decision</h4>
+  <p>Create a baseline migration from the current database with <code>prisma migrate diff</code>, and move the pgvector steps from <code>scripts/init-pgvector.ts</code> into a hand-written SQL migration. Use <code>prisma migrate deploy</code> in production. Add <code>lib/env.ts</code> that parses <code>process.env</code> with <code>zod</code> (already a dependency) and fails at start-up when <code>JWT_SECRET</code>, <code>ENCRYPTION_KEY</code>, <code>DATABASE_URL</code>, <code>OPENAI_API_KEY</code> or the email values are missing. Allow placeholders only during <code>next build</code>. Add a <code>.env.example</code>.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Keep <code>db push</code> but add a CI check.</b> Still no rollback or history.</li>
+    <li><b>t3-env or envalid.</b> Same idea with another package; zod is already installed.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Repeatable database setup in one command; reviewed schema changes.</li><li>Misconfigured deploys fail at once with a clear message.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Baselining a live database needs care.</li><li>Every schema change now needs a migration file.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>The build relies on fallbacks today (the <code>Dockerfile</code> comment says so); the build mode must keep that working.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-004">ADR-004</a><a href="#adr-016">ADR-016</a><a href="#adr-002">ADR-002</a><a href="#adr-022">ADR-022</a></p>
+  <h4>Evidence</h4><p class="refs"><code>package.json</code> <code>scripts/init-pgvector.ts</code> <code>lib/db.ts</code> <code>lib/email.ts</code> <code>lib/auth-server.ts</code></p>
+</article>
+
+<!-- ================= ADR-025 ================= -->
+<article class="adr" id="adr-025" data-status="proposed">
+  <header><span class="aid">ADR-025</span><h3>Hybrid search (tsvector + pgvector) with follow-up question rewriting</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> AI / Retrieval</li><li><b>Amends:</b> ADR-010, ADR-011</li></ul>
+  <h4>Context</h4>
+  <p>Only the latest question is embedded (<code>app/api/ask/route.ts:158</code>), so "and who approved it?" finds nothing. Pure vector search misses exact names, ticket ids and error codes. Several of the 8 slots can come from one document.</p>
+  <h4>Decision</h4>
+  <p>First, when there is history, ask a small, cheap model to rewrite the follow-up into a standalone question, and embed that. Second, add a generated <code>tsvector</code> column (Postgres full-text search) with a GIN index on <code>document_chunks.content</code>. Run the keyword query and the vector query, and merge them with reciprocal rank fusion (a simple way to combine two ranked lists). Keep at most 2 chunks per document. Keep the 0.55 refusal guard on the vector side.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>A reranker model</b> (for example Cohere Rerank). Better precision, but adds latency and a vendor. Can be added after this.</li>
+    <li><b>Embed the whole history.</b> Cheap, but old topics pull results off course.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Follow-ups work; exact-term questions work; more varied sources.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>One extra model call on follow-ups; one more index to keep.</li><li>Needs a migration (<a href="#adr-024">ADR-024</a>).</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>The full-text language setting (<code>english</code> or <code>simple</code>) for mixed-language workspaces.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-002">ADR-002</a><a href="#adr-009">ADR-009</a><a href="#adr-010">ADR-010</a><a href="#adr-011">ADR-011</a><a href="#adr-024">ADR-024</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/ask/route.ts:109-179</code> <code>scripts/init-pgvector.ts</code></p>
+</article>
+
+<!-- ================= ADR-026 ================= -->
+<article class="adr" id="adr-026" data-status="proposed">
+  <header><span class="aid">ADR-026</span><h3>Invite-token flow instead of emailed passwords</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>Inviting a member creates the user with a generated password, emails it in plain text, and returns it in the API response as <code>_devPassword</code> (<code>app/api/teams/members/route.ts:104-105</code>). The login link is hard-coded to <code>https://corely-khaki.vercel.app/login</code> (line 81). The <code>teamIds</code> connect is not scoped to the workspace (line 65).</p>
+  <h4>Decision</h4>
+  <p>Create an <code>Invite</code> row with a random token, store only its SHA-256 hash, and set a 7-day expiry. Email a link built from <code>NEXT_PUBLIC_APP_URL</code> to an accept page where the person sets their own password. Support resend and revoke. Check that every <code>teamId</code> belongs to the inviter's workspace. Remove <code>_devPassword</code> and the no-password login path (<code>login/route.ts:69-78</code>).</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Magic-link login for everyone.</b> Larger change to <a href="#adr-005">ADR-005</a>.</li>
+    <li><b>Keep temp passwords but force a change on first login.</b> The password still travels by email.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>No passwords in email or API responses; invites can expire and be revoked.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>A new table, a new page and email templates.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>Whether invited users can belong to more than one workspace (today <code>User</code> has one <code>workspaceId</code>).</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-005">ADR-005</a><a href="#adr-006">ADR-006</a></p>
+  <h4>Evidence</h4><p class="refs"><code>app/api/teams/members/route.ts</code> <code>app/api/auth/login/route.ts</code> <code>lib/email.ts</code></p>
+</article>
+
+<!-- ================= ADR-027 ================= -->
+<article class="adr" id="adr-027" data-status="proposed">
+  <header><span class="aid">ADR-027</span><h3>API-key auth with a lookup prefix</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> Auth / Security</li></ul>
+  <h4>Context</h4>
+  <p>Settings can create API keys, but nothing ever checks them. Keys are stored as bcrypt hashes (<code>app/api/settings/api-keys/route.ts:46</code>), and <code>ApiKey</code> has only <code>keyHash</code> and <code>hint</code>. bcrypt cannot be searched, so finding the key for a request would mean comparing against every key. <code>lastUsedAt</code> is never written.</p>
+  <h4>Decision</h4>
+  <p>Issue keys as <code>crly_&lt;prefix&gt;_&lt;secret&gt;</code>. Store the prefix in a new indexed, unique column and a SHA-256 hash of the secret (the secret is long and random, so a slow hash is not needed). Look up by prefix, compare the hash in constant time, write <code>lastUsedAt</code>, and attach the workspace. Add a small public API (<code>/api/v1/ask</code>, <code>/api/v1/search</code>) that accepts <code>Authorization: Bearer</code>, with its own rate limit (<a href="#adr-017">ADR-017</a>). Gate key management behind a new <code>apikeys:manage</code> permission.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Keep bcrypt and scan all keys.</b> Slow and grows with the number of keys.</li>
+    <li><b>Signed JWT keys.</b> Hard to revoke without a deny list.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>One indexed lookup per request; keys can be revoked and audited.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Existing keys cannot be converted and must be reissued.</li><li>A public API is a new surface to secure and version.</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>Which permissions a key carries: the creator's role, or a scope chosen at creation.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-005">ADR-005</a><a href="#adr-006">ADR-006</a><a href="#adr-017">ADR-017</a><a href="#adr-021">ADR-021</a></p>
+  <h4>Evidence</h4><p class="refs"><code>prisma/schema.prisma:265-277</code> <code>app/api/settings/api-keys/route.ts</code> <code>SettingsMain.tsx:557</code> (docs snippet for an API that does not exist)</p>
+</article>
+
+<!-- ================= ADR-028 ================= -->
+<article class="adr" id="adr-028" data-status="proposed">
+  <header><span class="aid">ADR-028</span><h3>Remove the silent embedding-model fallback and batch embeddings</h3><span class="badge b-prop">Proposed</span></header>
+  <ul class="meta"><li><b>Date:</b> 2026-10-04 (proposed)</li><li><b>Deciders:</b> Krishil Agrawal (to confirm)</li><li><b>Area:</b> AI / Retrieval</li><li><b>Amends:</b> ADR-008</li></ul>
+  <h4>Context</h4>
+  <p><code>generateEmbedding()</code> switches to <code>text-embedding-ada-002</code> on some errors (<code>lib/openai.ts:16-52</code>). The vectors have the same size but a different meaning, so mixed data silently breaks search. Each chunk is also a separate API call.</p>
+  <h4>Decision</h4>
+  <p>Remove the fallback. On a model or permission error, throw a clear error so the sync sets <code>status: "error"</code>. Save the model name in each chunk's <code>metadata</code>. Add <code>generateEmbeddings(texts[])</code> that sends up to about 100 inputs per request, and use it in every connector and in upload.</p>
+  <h4>Alternatives considered</h4>
+  <ul>
+    <li><b>Keep the fallback but tag chunks with the model</b> and only compare like with like. Complex, and doubles the index in practice.</li>
+    <li><b>Make the model a setting.</b> Useful later; still must never change silently.</li>
+  </ul>
+  <h4>Consequences</h4>
+  <div class="cons">
+    <div class="pos"><h5>Positive</h5><ul><li>Search quality stays consistent; failures are visible.</li><li>Far fewer API calls and faster syncs.</li></ul></div>
+    <div class="neg"><h5>Negative</h5><ul><li>Keys without 3-small access stop working until fixed.</li><li>Existing ada-002 chunks, if any, need a re-embed (<code>scripts/reindex.ts</code> covers Google Drive only).</li></ul></div>
+  </div>
+  <div class="issues"><h5>Open questions</h5><ul><li>How to detect chunks already embedded with ada-002, since the model was never recorded.</li></ul></div>
+  <h4>Related ADRs</h4><p class="refs"><a href="#adr-008">ADR-008</a><a href="#adr-011">ADR-011</a><a href="#adr-014">ADR-014</a></p>
+  <h4>Evidence</h4><p class="refs"><code>lib/openai.ts</code> <code>modules/sources/connectors/*.ts</code> <code>app/api/sources/upload/route.ts</code> <code>scripts/reindex.ts</code></p>
+</article>
+
+</section>
+</main>
+</div>
+
+<footer>Generated 2026-10-04 from a read-only audit of the Corely repository (branch master).</footer>
+
+<script>
+(function () {
+  // Theme toggle: auto -> light -> dark -> auto
+  var root = document.documentElement;
+  var btn = document.getElementById("themeBtn");
+  var order = ["auto", "light", "dark"];
+  function apply(t) {
+    if (t === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+    btn.textContent = "Theme: " + t;
+  }
+  var saved = "auto";
+  try { saved = localStorage.getItem("corely-doc-theme") || "auto"; } catch (e) {}
+  apply(saved);
+  btn.addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme") || "auto";
+    var next = order[(order.indexOf(cur) + 1) % order.length];
+    apply(next);
+    try { localStorage.setItem("corely-doc-theme", next); } catch (e) {}
+  });
+
+  // Open the table of contents on wide screens
+  var det = document.getElementById("tocDetails");
+  function syncToc() { if (window.matchMedia("(min-width: 1000px)").matches) det.open = true; }
+  syncToc();
+  window.addEventListener("resize", syncToc);
+
+  // Status filter
+  var buttons = document.querySelectorAll(".filters button");
+  var cards = document.querySelectorAll(".adr");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var f = b.getAttribute("data-filter");
+      buttons.forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      cards.forEach(function (c) {
+        c.classList.toggle("hidden", f !== "all" && c.getAttribute("data-status") !== f);
+      });
+    });
+  });
+
+  // Show a card again if someone jumps to it while it is filtered out
+  function reveal() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.classList.contains("hidden")) {
+      buttons[0].click();
+      el.scrollIntoView();
+    }
+  }
+  window.addEventListener("hashchange", reveal);
+
+  // Copy the template
+  document.querySelectorAll(".copy-btn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = document.getElementById(b.getAttribute("data-copy")).innerText;
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { b.textContent = "Select and copy"; });
+      } else { b.textContent = "Select and copy"; }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corely System Design</title>
+<meta name="description" content="System design and technology document for the Corely repository: architecture, tech stack, data model, API surface, security, deployment and a proposed target architecture.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f9; --border:#e3e6eb; --text:#1a1d23; --muted:#5b6472; --accent:#4f46e5;
+  --critical:#dc2626; --high:#ea580c; --medium:#ca8a04; --ok:#16a34a;
+  --accent-soft:rgba(79,70,229,.10); --critical-soft:rgba(220,38,38,.08);
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2; --accent:#818cf8;
+    --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+    --accent-soft:rgba(129,140,248,.14); --critical-soft:rgba(248,113,113,.10);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2; --accent:#818cf8;
+  --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+  --accent-soft:rgba(129,140,248,.14); --critical-soft:rgba(248,113,113,.10);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 var(--sans);overflow-x:hidden}
+a{color:var(--accent)}
+code,kbd,pre{font-family:var(--mono);font-size:.86em}
+code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 .3em;overflow-wrap:anywhere}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow-x:auto;line-height:1.5}
+pre code{border:0;padding:0;background:none}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:8px 16px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:-.01em;margin-right:6px;white-space:nowrap}
+.docnav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.docnav a{text-decoration:none;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:13.5px;font-weight:500;white-space:nowrap}
+.docnav a:hover{background:var(--surface);color:var(--text)}
+.docnav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.theme-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;padding:4px 10px;font:500 13px var(--sans);cursor:pointer}
+
+/* layout */
+.layout{display:block;max-width:1240px;margin:0 auto}
+.toc{border-bottom:1px solid var(--border);padding:12px 16px;font-size:14px}
+.toc h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 6px}
+.toc ol{margin:0;padding-left:20px;columns:2;column-gap:24px}
+.toc li{margin:2px 0;break-inside:avoid}
+.toc a{color:var(--text);text-decoration:none}
+.toc a:hover{color:var(--accent)}
+main{max-width:900px;margin:0 auto;padding:8px 16px 40px;min-width:0}
+@media (min-width:1000px){
+  .layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding:0 24px}
+  .toc{position:sticky;top:52px;align-self:start;max-height:calc(100vh - 60px);overflow-y:auto;border-bottom:0;border-right:1px solid var(--border);padding:24px 16px 24px 0}
+  .toc ol{columns:1}
+  main{margin:0;padding:8px 0 40px}
+}
+
+h1{font-size:30px;line-height:1.2;letter-spacing:-.02em;margin:28px 0 6px}
+h2{font-size:22px;letter-spacing:-.01em;margin:44px 0 10px;padding-top:12px;border-top:1px solid var(--border)}
+h3{font-size:17px;margin:26px 0 8px}
+.lede{color:var(--muted);font-size:16px;margin-top:0}
+.meta{color:var(--muted);font-size:13px}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin:12px 0 18px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--border)}
+th{background:var(--surface);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td code{font-size:12px}
+td.v{white-space:nowrap;font-family:var(--mono);font-size:12px}
+tr.open td{background:var(--critical-soft)}
+tr.open td.auth{color:var(--critical);font-weight:600}
+tr.open td:first-child{box-shadow:inset 3px 0 0 var(--critical)}
+
+/* badges */
+.b{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;line-height:1.5}
+.b.crit{color:var(--critical)} .b.high{color:var(--high)} .b.med{color:var(--medium)} .b.ok{color:var(--ok)} .b.mut{color:var(--muted)} .b.acc{color:var(--accent)}
+
+.callout{border:1px solid var(--border);border-left:4px solid var(--accent);background:var(--surface);border-radius:8px;padding:10px 14px;margin:14px 0}
+.callout.warn{border-left-color:var(--high)}
+.callout.crit{border-left-color:var(--critical)}
+.callout p{margin:4px 0}
+
+.cards{display:grid;grid-template-columns:1fr;gap:12px;margin:12px 0}
+@media (min-width:700px){.cards{grid-template-columns:1fr 1fr}}
+.card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.card h3{margin:0 0 6px;font-size:16px}
+.card h4{margin:10px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.card ul{margin:0;padding-left:18px}
+.card li{margin:3px 0}
+
+dl.gloss{margin:12px 0}
+dl.gloss dt{font-weight:600;margin-top:10px}
+dl.gloss dd{margin:2px 0 0 0;color:var(--text)}
+
+/* diagrams */
+figure.diagram{margin:16px 0 22px;border:1px solid var(--border);border-radius:10px;background:var(--bg);padding:10px}
+.svgwrap{overflow-x:auto}
+.svgwrap svg{display:block;width:100%;height:auto;min-width:680px}
+figcaption{color:var(--muted);font-size:13px;margin-top:8px;padding:0 4px}
+svg .bx{fill:var(--surface);stroke:var(--border);stroke-width:1.5}
+svg .bxa{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+svg .bxc{fill:var(--critical-soft);stroke:var(--critical);stroke-width:1.5}
+svg .bxd{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:6 4}
+svg .bxn{fill:var(--bg);stroke:var(--border);stroke-width:1.2}
+svg .hd{fill:var(--accent-soft);stroke:none}
+svg .tt{fill:var(--text);font:600 13px var(--sans)}
+svg .tx{fill:var(--text);font:12px var(--sans)}
+svg .tm{fill:var(--muted);font:11px var(--sans)}
+svg .mono{fill:var(--muted);font:10.5px var(--mono)}
+svg .ms{fill:var(--muted);font:9px var(--mono)}
+svg .tc{fill:var(--critical);font:600 11px var(--sans)}
+svg .ta{fill:var(--accent);font:700 13px var(--sans);letter-spacing:.08em}
+svg .ln{stroke:var(--muted);stroke-width:1.4;fill:none}
+svg .lna{stroke:var(--accent);stroke-width:1.6;fill:none}
+svg .lnd{stroke:var(--muted);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+svg .lnc{stroke:var(--critical);stroke-width:1.6;fill:none}
+svg .lnw{stroke:var(--border);stroke-width:1.3;fill:none}
+svg .life{stroke:var(--border);stroke-width:1.4;stroke-dasharray:4 4}
+svg .ah{fill:var(--muted)} svg .aha{fill:var(--accent)} svg .ahc{fill:var(--critical)}
+
+footer{border-top:1px solid var(--border);color:var(--muted);font-size:13px;padding:16px;text-align:center;margin-top:30px}
+@media (max-width:600px){h1{font-size:25px}h2{font-size:19px}.toc ol{columns:1}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Corely docs</span>
+  <nav class="docnav" aria-label="Sibling documents">
+    <a href="corely-findings.html">Gap Analysis</a>
+    <a href="corely-adr.html">Architecture Decisions</a>
+    <a href="corely-ai-pipelines.html">AI Pipelines</a>
+    <a href="corely-system-design.html" aria-current="page">System Design</a>
+  </nav>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Table of contents">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#architecture">High-level architecture</a></li>
+    <li><a href="#stack">Tech stack</a></li>
+    <li><a href="#request-flow">Request flow</a></li>
+    <li><a href="#data-model">Data model</a></li>
+    <li><a href="#api">API surface</a></li>
+    <li><a href="#security">Auth and security</a></li>
+    <li><a href="#ingestion">Ingestion and retrieval</a></li>
+    <li><a href="#deployment">Deployment</a></li>
+    <li><a href="#nfr">Non-functional review</a></li>
+    <li><a href="#target">Target architecture (proposed)</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</nav>
+
+<main>
+<h1>Corely System Design</h1>
+<p class="lede">How Corely is built today, which tools it uses, where the weak spots are, and where it could go next.</p>
+<p class="meta">Source: a read-only audit of <code>C:\dev\Corely</code>, branch <code>master</code>, commit <code>14a5dc5</code>. Every claim points to a file. "Today" means the code as it is, not the plans in the root <code>*.md</code> files.</p>
+
+<div class="callout warn">
+  <p><strong>Correction to CLAUDE.md.</strong> CLAUDE.md says every connector purges deleted items and wraps provider calls in <code>withRetry</code>. In the code, only <code>modules/sources/connectors/notion.ts</code> does both (<code>withRetry</code> at line 375, purge at lines 129-147). The other five connectors do neither.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="overview">1. Overview</h2>
+<p>Corely is a web app that acts as a company's "institutional memory". It connects to the tools a team already uses, reads their content, and lets people ask questions about it in plain language. Answers come back with citations and a note on how fresh the source is.</p>
+<p>Under the hood it is a <strong>RAG</strong> app (retrieval-augmented generation: find the relevant text first, then ask a language model to answer using only that text). It is built with Next.js 15 App Router, Postgres with the pgvector extension (stores and searches number vectors), and OpenAI.</p>
+
+<h3>Main users</h3>
+<div class="tbl"><table>
+<thead><tr><th>User</th><th>How they get in</th><th>What they do</th></tr></thead>
+<tbody>
+<tr><td><strong>Workspace admin</strong></td><td>Registers through <code>POST /api/auth/register</code>. This creates a <code>Workspace</code> (plan <code>"trial"</code>), seeds the 4 default roles, and makes the user <code>role: "admin"</code> with the Admin role.</td><td>Connects data sources, invites members, manages teams and roles, views audit logs (the only route that checks <code>user.role === "admin"</code> is <code>/api/audit-logs</code>).</td></tr>
+<tr><td><strong>Workspace member</strong></td><td>Invited through <code>POST /api/teams/members</code>. Gets a temporary password by email.</td><td>Asks Corely questions, browses memory and insights, connects their own sources. Note: because every default role has <code>sources:read</code>, every member can search every source in the workspace.</td></tr>
+</tbody></table></div>
+
+<h3>Core use cases</h3>
+<ol>
+  <li><strong>Connect a source.</strong> OAuth into Notion, Gmail, Google Drive, GitHub, Slack or Linear, or upload a file (PDF, DOCX, plain text).</li>
+  <li><strong>Sync and index.</strong> Pull content, split it into chunks, turn each chunk into an embedding (a list of 1536 numbers that captures meaning), and store it.</li>
+  <li><strong>Ask Corely.</strong> Ask a question. Corely finds the closest chunks, scores their freshness, and streams a <code>gpt-4o</code> answer with sources. Chats are saved as sessions.</li>
+  <li><strong>Search.</strong> <code>POST /api/search</code> returns matching chunks without an AI answer.</li>
+  <li><strong>Workspace admin.</strong> Teams, roles, API keys, notifications, settings, org memory, workflows and insights. Several of these are partly fake or simulated today (see <a href="#api">API surface</a>).</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="architecture">2. High-level architecture</h2>
+<p>Corely is one Next.js app. The same Node process serves the marketing pages, the dashboard, all API routes, and also runs source syncs in the background. Postgres (hosted on Supabase) is the only database. Redis is optional.</p>
+
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 640" role="img" aria-label="High-level architecture of Corely">
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="aha" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahc" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<!-- Browser -->
+<rect class="bx" x="20" y="60" width="210" height="300" rx="10"/>
+<text class="tt" x="35" y="85">Browser</text>
+<rect class="bxa" x="35" y="100" width="180" height="112" rx="8"/>
+<text class="tx" x="45" y="121">Marketing site</text>
+<text class="tm" x="45" y="139">/, /contact and other pages</text>
+<text class="tm" x="45" y="155">Lenis smooth scroll</text>
+<text class="tm" x="45" y="171">Framer Motion, three.js Hero3D</text>
+<text class="mono" x="45" y="190">components/landing/</text>
+<text class="mono" x="45" y="204">app/components/</text>
+<rect class="bxa" x="35" y="225" width="180" height="122" rx="8"/>
+<text class="tx" x="45" y="246">Dashboard /dashboard/*</text>
+<text class="tm" x="45" y="264">mostly "use client" pages</text>
+<text class="tm" x="45" y="280">AuthProvider</text>
+<text class="mono" x="45" y="296">app/lib/auth-context.tsx</text>
+<text class="tm" x="45" y="314">fetch('/api/*') JSON envelope</text>
+<text class="tm" x="45" y="330">SSE reader for Ask Corely</text>
+<!-- Browser <-> Next -->
+<line class="lna" x1="232" y1="170" x2="298" y2="170" marker-start="url(#aha)" marker-end="url(#aha)"/>
+<text class="tm" x="243" y="162">HTTPS</text>
+<text class="tm" x="237" y="188">cookie</text>
+<!-- Next server -->
+<rect class="bx" x="300" y="20" width="390" height="420" rx="10"/>
+<text class="tt" x="315" y="45">Next.js 15.5 server (Node, App Router)</text>
+<rect class="bxa" x="315" y="60" width="360" height="62" rx="8"/>
+<text class="tx" x="325" y="81">App Router pages</text>
+<text class="tm" x="325" y="99">app/dashboard/page.tsx is a server component:</text>
+<text class="tm" x="325" y="114">auth() + prisma, then DashboardClient.tsx</text>
+<rect class="bxa" x="315" y="135" width="360" height="82" rx="8"/>
+<text class="tx" x="325" y="156">API route handlers: 59 route.ts files in app/api/</text>
+<text class="tm" x="325" y="174">auth() / requirePermission()</text>
+<text class="tm" x="325" y="190">{ success, data | error, version } envelope</text>
+<text class="tm" x="325" y="206">/api/ask streams SSE (hand-rolled ReadableStream)</text>
+<rect class="bx" x="315" y="230" width="360" height="95" rx="8" style="fill:var(--bg)"/>
+<text class="tx" x="325" y="251">Shared server code (lib/)</text>
+<text class="mono" x="325" y="270">auth-server · rbac · db (Prisma + pg Pool)</text>
+<text class="mono" x="325" y="287">supabase · openai · rate-limit · crypto</text>
+<text class="mono" x="325" y="304">email · notifications · insights-generator</text>
+<rect class="bxa" x="315" y="340" width="360" height="88" rx="8"/>
+<text class="tx" x="325" y="361">Connectors modules/sources/connectors/*.ts</text>
+<text class="tm" x="325" y="379">sync&lt;Provider&gt;(sourceId) runs inside this process,</text>
+<text class="tm" x="325" y="395">fire-and-forget from POST /api/sources/[id]/sync</text>
+<text class="tm" x="325" y="411">fetch → dedupe → chunk → embed → insert</text>
+<!-- right column -->
+<rect class="bxa" x="740" y="20" width="220" height="140" rx="10"/>
+<text class="tt" x="755" y="44">Postgres on Supabase</text>
+<text class="tm" x="755" y="63">18 Prisma models + pgvector</text>
+<text class="mono" x="755" y="82">document_chunks.embedding</text>
+<text class="mono" x="755" y="98">vector(1536), HNSW cosine</text>
+<text class="tm" x="755" y="118">Prisma (pg Pool) for rows</text>
+<text class="tm" x="755" y="134">supabaseAdmin (REST) for</text>
+<text class="tm" x="755" y="150">embedding inserts</text>
+<rect class="bx" x="740" y="180" width="220" height="85" rx="10"/>
+<text class="tt" x="755" y="203">OpenAI API</text>
+<text class="mono" x="755" y="222">text-embedding-3-small</text>
+<text class="mono" x="755" y="238">(fallback ada-002)</text>
+<text class="mono" x="755" y="254">gpt-4o, stream, temp 0.2</text>
+<rect class="bx" x="740" y="285" width="220" height="80" rx="10"/>
+<text class="tt" x="755" y="308">Redis 7 (optional)</text>
+<text class="tm" x="755" y="327">rate-limit counters (ioredis)</text>
+<text class="tm" x="755" y="343">BullMQ queue "corely-sources"</text>
+<text class="tm" x="755" y="358">(nothing adds jobs)</text>
+<rect class="bx" x="740" y="385" width="220" height="60" rx="10"/>
+<text class="tt" x="755" y="408">Gmail SMTP</text>
+<text class="tm" x="755" y="427">nodemailer: reset + invite emails</text>
+<!-- arrows to right column -->
+<line class="ln" x1="690" y1="90" x2="738" y2="90" marker-end="url(#ah)"/>
+<line class="ln" x1="690" y1="222" x2="738" y2="222" marker-end="url(#ah)"/>
+<line class="ln" x1="690" y1="322" x2="738" y2="322" marker-end="url(#ah)"/>
+<line class="ln" x1="690" y1="415" x2="738" y2="415" marker-end="url(#ah)"/>
+<!-- worker -->
+<rect class="bxd" x="740" y="480" width="220" height="120" rx="10"/>
+<text class="tt" x="755" y="503">BullMQ worker (optional)</text>
+<text class="mono" x="755" y="522">npm run worker</text>
+<text class="tm" x="755" y="540">workers/index.ts, concurrency 2</text>
+<text class="tm" x="755" y="556">handles all 6 sync-* job names</text>
+<text class="tm" x="755" y="572">idle today: no code enqueues</text>
+<text class="tm" x="755" y="588">standby if Redis is down (1.5 s)</text>
+<line class="lnd" x1="850" y1="480" x2="850" y2="367" marker-end="url(#ah)"/>
+<!-- providers -->
+<rect class="bx" x="20" y="480" width="670" height="140" rx="10"/>
+<text class="tt" x="35" y="505">OAuth providers (6)</text>
+<rect class="bxn" x="35" y="520" width="100" height="52" rx="6"/><text class="tx" x="45" y="541">Notion</text><text class="ms" x="45" y="560">@notionhq/client</text>
+<rect class="bxn" x="145" y="520" width="100" height="52" rx="6"/><text class="tx" x="155" y="541">Gmail</text><text class="ms" x="155" y="560">googleapis</text>
+<rect class="bxn" x="255" y="520" width="100" height="52" rx="6"/><text class="tx" x="265" y="541">Google Drive</text><text class="ms" x="265" y="560">googleapis</text>
+<rect class="bxn" x="365" y="520" width="100" height="52" rx="6"/><text class="tx" x="375" y="541">GitHub</text><text class="ms" x="375" y="560">octokit</text>
+<rect class="bxn" x="475" y="520" width="100" height="52" rx="6"/><text class="tx" x="485" y="541">Slack</text><text class="ms" x="485" y="560">fetch</text>
+<rect class="bxn" x="585" y="520" width="95" height="52" rx="6"/><text class="tx" x="595" y="541">Linear</text><text class="ms" x="595" y="560">fetch</text>
+<text class="tm" x="35" y="600">Tokens are stored AES-encrypted on the Source row (lib/crypto.ts) and decrypted for each sync.</text>
+<line class="ln" x1="500" y1="440" x2="500" y2="478" marker-end="url(#ah)"/>
+<text class="tm" x="508" y="464">API calls with decrypted tokens</text>
+<line class="lnd" x1="120" y1="362" x2="120" y2="478" marker-end="url(#ah)"/>
+<text class="tm" x="128" y="425">OAuth consent redirect</text>
+</svg>
+</div>
+<figcaption>One Next.js process serves both front ends and every API route, runs the connectors in-process, and talks to Supabase Postgres, OpenAI, optional Redis, Gmail SMTP and the six OAuth providers, while the dashed BullMQ worker exists but receives no jobs.</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="stack">3. Tech stack</h2>
+<p>Versions below are the ranges in <code>package.json</code>. The lockfile (<code>package-lock.json</code>) resolves each to the same number shown after the caret (for example <code>next</code> 15.5.18, <code>react</code> 19.2.4, <code>prisma</code> 7.8.0, <code>typescript</code> 5.9.3, <code>eslint</code> 9.39.4). "Usage" was checked with a search of <code>app/</code>, <code>components/</code>, <code>lib/</code>, <code>modules/</code>, <code>workers/</code> and <code>scripts/</code>.</p>
+<p>Legend: <span class="b ok">used</span> <span class="b med">barely used</span> <span class="b crit">installed, unused</span></p>
+
+<h3>Frontend</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>next</code></td><td class="v">^15.5.18</td><td>App Router framework: pages, layouts, route handlers, server components.</td><td><code>app/**</code>, <code>next.config.ts</code> (empty config)</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>react</code> / <code>react-dom</code></td><td class="v">19.2.4</td><td>UI library (pinned exact version).</td><td>every <code>.tsx</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>tailwindcss</code></td><td class="v">^3.4.19</td><td>Utility CSS. <code>darkMode: ["class"]</code>. A custom plugin exposes every Tailwind colour as a CSS variable.</td><td><code>tailwind.config.ts</code>, <code>postcss.config.js</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>tailwindcss-animate</code>, <code>@tailwindcss/typography</code></td><td class="v">^1.0.7 / ^0.5.19</td><td>Tailwind plugins for animations and prose styles.</td><td><code>tailwind.config.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>@radix-ui/react-avatar</code>, <code>-progress</code>, <code>-scroll-area</code>, <code>-tooltip</code></td><td class="v">^1.1.11 / ^1.1.8 / ^1.2.10 / ^1.2.8</td><td>Headless UI parts (shadcn style).</td><td>no imports found</td><td><span class="b crit">unused</span></td></tr>
+<tr><td><code>class-variance-authority</code></td><td class="v">^0.7.1</td><td>Variant helper for shadcn components.</td><td>no imports found</td><td><span class="b crit">unused</span></td></tr>
+<tr><td><code>clsx</code> + <code>tailwind-merge</code></td><td class="v">^2.1.1 / ^3.6.0</td><td>The <code>cn()</code> class-name helper.</td><td><code>lib/utils.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>framer-motion</code></td><td class="v">^12.40.0</td><td>Animations in the dashboard and contact page.</td><td><code>app/dashboard/components/Sidebar.tsx</code>, <code>AskMain.tsx</code>, <code>InsightsPanel.tsx</code>, <code>app/contact/page.tsx</code> and more</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>gsap</code></td><td class="v">^3.15.0</td><td>Animation library. CLAUDE.md lists it as landing-only.</td><td>no imports found</td><td><span class="b crit">unused</span></td></tr>
+<tr><td><code>lenis</code></td><td class="v">^1.3.23</td><td>Smooth scrolling. Mounted in the root layout.</td><td><code>app/components/LenisProvider.tsx</code> (via <code>app/layout.tsx</code>), <code>components/LenisProvider.tsx</code> (duplicate)</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>three</code>, <code>@react-three/fiber</code>, <code>@react-three/drei</code></td><td class="v">^0.184.0 / ^9.6.1 / ^10.7.7</td><td>3D hero scene on the landing page.</td><td><code>components/landing/Hero3D.tsx</code> only</td><td><span class="b med">1 file</span></td></tr>
+<tr><td><code>cmdk</code></td><td class="v">^1.1.1</td><td>Command palette (Ctrl+K).</td><td><code>app/dashboard/components/CommandPalette.tsx</code></td><td><span class="b med">1 file</span></td></tr>
+<tr><td><code>@tanstack/react-table</code></td><td class="v">^8.21.3</td><td>Data tables.</td><td><code>app/dashboard/components/DataTable.tsx</code>, <code>insights/page.tsx</code>, <code>teams/page.tsx</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>recharts</code></td><td class="v">^3.8.1</td><td>Charts.</td><td><code>app/dashboard/insights/page.tsx</code>, <code>app/dashboard/teams/page.tsx</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>react-markdown</code></td><td class="v">^10.1.0</td><td>Renders the AI answer as Markdown.</td><td><code>app/dashboard/ask-corely/components/AskMain.tsx</code></td><td><span class="b med">1 file</span></td></tr>
+<tr><td><code>sonner</code></td><td class="v">^2.0.7</td><td>Toast messages.</td><td><code>app/dashboard/layout.tsx</code>, <code>SettingsMain.tsx</code>, <code>teams/page.tsx</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>lucide-react</code></td><td class="v">^1.16.0</td><td>Icons across the dashboard.</td><td>most dashboard components</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>react-icons</code></td><td class="v">^5.6.0</td><td>Brand logos (<code>react-icons/si</code>).</td><td><code>components/landing/HeroSection.tsx</code> only</td><td><span class="b med">1 file</span></td></tr>
+<tr><td><code>date-fns</code></td><td class="v">^4.3.0</td><td>Date maths and "3 hours ago" labels.</td><td><code>lib/insights-generator.ts</code>, <code>app/dashboard/components/Topbar.tsx</code>, <code>WorkflowsRightSidebar.tsx</code></td><td><span class="b ok">used</span></td></tr>
+</tbody></table></div>
+
+<h3>Backend</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>zod</code></td><td class="v">^4.4.3</td><td>Request body validation.</td><td>11 routes, e.g. <code>app/api/ask/route.ts</code>, <code>auth/login</code>, <code>auth/register</code>, <code>search</code>, <code>settings</code>, <code>teams/members</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>googleapis</code></td><td class="v">^172.0.0</td><td>Google OAuth2 client plus Drive and Gmail APIs.</td><td><code>modules/sources/connectors/google-drive.ts</code>, <code>gmail.ts</code>, the gmail and google-drive connect/callback routes, <code>sources/[sourceId]/folders</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>@notionhq/client</code></td><td class="v">^5.22.0</td><td>Notion API.</td><td><code>modules/sources/connectors/notion.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>octokit</code></td><td class="v">^5.0.5</td><td>GitHub API.</td><td><code>modules/sources/connectors/github.ts</code> (the repo-list route uses plain <code>fetch</code>)</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>nodemailer</code></td><td class="v">^8.0.9</td><td>Sends email through Gmail SMTP (<code>service: "gmail"</code>).</td><td><code>lib/email.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>pdf-parse</code></td><td class="v">^2.4.5</td><td>PDF text extraction (pulls in <code>pdfjs-dist</code> 5.4.296). Loaded with <code>require()</code> at run time, with <code>DOMMatrix</code>/<code>ImageData</code>/<code>Path2D</code> polyfills.</td><td><code>app/api/sources/upload/route.ts</code>, <code>modules/sources/connectors/google-drive.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>mammoth</code></td><td class="v">^1.12.0</td><td>DOCX text extraction.</td><td><code>app/api/sources/upload/route.ts</code>, <code>google-drive.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>docx</code></td><td class="v">^9.7.1</td><td>Word file <em>writer</em>. The code only mentions the <code>.docx</code> file extension; nothing imports the package.</td><td>no imports found</td><td><span class="b crit">unused</span></td></tr>
+</tbody></table></div>
+
+<h3>Data</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package / tool</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>prisma</code> + <code>@prisma/client</code></td><td class="v">^7.8.0</td><td>Schema, client generation, <code>db push</code>. Generator <code>prisma-client-js</code> with <code>engineType = "library"</code>.</td><td><code>prisma/schema.prisma</code>, <code>prisma.config.ts</code>, <code>lib/db.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>@prisma/adapter-pg</code></td><td class="v">^7.8.0</td><td>Driver adapter: Prisma talks to Postgres through a <code>pg</code> Pool. Listed under <strong>devDependencies</strong> but needed at run time.</td><td><code>lib/db.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>pg</code></td><td class="v">^8.21.0</td><td>Postgres driver for the adapter. Also a <strong>devDependency</strong> needed at run time.</td><td><code>lib/db.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>@supabase/supabase-js</code></td><td class="v">^2.106.2</td><td><code>supabaseAdmin</code> (service-role key) writes and deletes <code>document_chunks</code> rows with embeddings. The anon <code>supabase</code> client is exported but never imported.</td><td><code>lib/supabase.ts</code>; used by all 6 connectors, <code>sources/upload</code>, <code>documents</code>, <code>documents/[documentId]</code>, <code>sources/[sourceId]</code></td><td><span class="b ok">used</span> (anon client <span class="b crit">unused</span>)</td></tr>
+<tr><td>PostgreSQL + pgvector</td><td class="v">hosted</td><td>Single database. <code>vector(1536)</code> column, HNSW cosine index.</td><td><code>scripts/init-pgvector.ts</code>, raw SQL in <code>app/api/ask/route.ts</code>, <code>app/api/search/route.ts</code></td><td><span class="b ok">used</span></td></tr>
+</tbody></table></div>
+
+<h3>AI</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>openai</code></td><td class="v">^6.39.0</td><td>Embeddings (<code>text-embedding-3-small</code>, silent fallback to <code>text-embedding-ada-002</code>) and chat (<code>gpt-4o</code>, <code>temperature: 0.2</code>, <code>max_tokens: 1500</code>, <code>stream: true</code>).</td><td><code>lib/openai.ts</code>, <code>app/api/ask/route.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>ai</code> (Vercel AI SDK)</td><td class="v">^6.0.191</td><td>Streaming helpers. Not used: <code>/api/ask</code> builds its SSE stream by hand with <code>ReadableStream</code> and <code>TextEncoder</code>. The only hits for "ai" are plain strings in settings components.</td><td>no imports found</td><td><span class="b crit">unused</span></td></tr>
+<tr><td>Chunker (own code)</td><td class="v">n/a</td><td>400-word chunks with 50-word overlap. Splits on whitespace. <code>tokenCount</code> is really a word count.</td><td><code>modules/ai/chunker.ts</code></td><td><span class="b ok">used</span></td></tr>
+</tbody></table></div>
+
+<h3>Auth and security</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>jose</code></td><td class="v">^6.2.3</td><td>Signs and checks the session JWT and the OAuth <code>state</code> JWT (HS256, 24h).</td><td><code>lib/auth-server.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>bcryptjs</code></td><td class="v">^3.0.3</td><td>Password hashing (cost 10) and API-key hashing.</td><td><code>auth/login</code>, <code>auth/register</code>, <code>auth/reset-password</code>, <code>settings/password</code>, <code>settings/api-keys</code>, <code>teams/members</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>crypto-js</code></td><td class="v">^4.2.0</td><td>AES encryption of stored OAuth tokens (passphrase mode). The package is discontinued.</td><td><code>lib/crypto.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td>Node <code>crypto</code></td><td class="v">built-in</td><td>SHA-256 <code>contentHash</code> for dedupe.</td><td>connectors, <code>app/api/documents/route.ts</code></td><td><span class="b ok">used</span></td></tr>
+</tbody></table></div>
+
+<h3>Background jobs</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>bullmq</code></td><td class="v">^5.77.4</td><td>Job queue <code>"corely-sources"</code> (3 attempts, exponential backoff from 5 s) and its worker. Nothing calls <code>sourceQueue.add()</code>, so the queue is always empty.</td><td><code>lib/redis.ts</code>, <code>workers/index.ts</code></td><td><span class="b med">wired, idle</span></td></tr>
+<tr><td><code>ioredis</code></td><td class="v">^5.11.0</td><td>Redis client for rate limiting (500 ms command timeout, no retry) and the worker's 1.5 s startup probe.</td><td><code>lib/rate-limit.ts</code>, <code>workers/index.ts</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>dotenv</code></td><td class="v">17.4.2 (not declared)</td><td>Loads <code>.env</code> for the worker and the Prisma config. It is not in <code>package.json</code>; it arrives as a dependency of another package.</td><td><code>workers/index.ts</code>, <code>prisma.config.ts</code></td><td><span class="b med">undeclared</span></td></tr>
+</tbody></table></div>
+
+<h3>Infra and DevOps</h3>
+<div class="tbl"><table>
+<thead><tr><th>Item</th><th>Version</th><th>Used for</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Docker base image</td><td class="v">node:22-bookworm-slim</td><td>All 3 build stages. Debian, not Alpine, because the Prisma <code>library</code> engine needs OpenSSL.</td><td><code>Dockerfile</code></td></tr>
+<tr><td>Redis image</td><td class="v">redis:7-alpine</td><td>Rate-limit store in docker-compose. About 40 MB.</td><td><code>docker-compose.yml</code></td></tr>
+<tr><td>Supabase</td><td class="v">hosted</td><td>Managed Postgres. No database container in compose.</td><td><code>docker-compose.yml</code> notes, <code>lib/supabase.ts</code></td></tr>
+<tr><td>Vercel (likely)</td><td class="v">n/a</td><td>Hardcoded <code>https://corely-khaki.vercel.app</code> links and <code>.vercel</code> in <code>.dockerignore</code>. No <code>vercel.json</code>.</td><td><code>app/api/auth/forgot-password/route.ts:38</code>, <code>app/api/teams/members/route.ts:81</code></td></tr>
+<tr><td>CI</td><td class="v">none</td><td>No <code>.github/</code> folder, no pipeline.</td><td>n/a</td></tr>
+</tbody></table></div>
+
+<h3>Tooling</h3>
+<div class="tbl"><table>
+<thead><tr><th>Package</th><th>Version</th><th>Used for</th><th>Where</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><code>typescript</code></td><td class="v">^5</td><td><code>strict: true</code>, target ES2017, <code>moduleResolution: "bundler"</code>, alias <code>@/*</code> to repo root.</td><td><code>tsconfig.json</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>eslint</code> + <code>eslint-config-next</code></td><td class="v">^9 / ^15.5.18</td><td>Flat config extending <code>next/core-web-vitals</code> and <code>next/typescript</code> through <code>FlatCompat</code>.</td><td><code>eslint.config.mjs</code></td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>tsx</code></td><td class="v">^4.22.3</td><td>Runs TypeScript directly: <code>npm run worker</code>, <code>scripts/*.ts</code>. A devDependency needed at run time for the worker.</td><td><code>package.json</code> scripts</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>postcss</code> + <code>autoprefixer</code></td><td class="v">^8.5.15 / ^10.5.0</td><td>CSS pipeline. Two configs exist: <code>postcss.config.js</code> (tailwindcss + autoprefixer) and <code>postcss.config.mjs</code>, which names <code>@tailwindcss/postcss</code>, a package that is not installed.</td><td>repo root</td><td><span class="b ok">used</span></td></tr>
+<tr><td><code>cross-env</code></td><td class="v">^10.1.0</td><td>Cross-platform env vars in scripts. No script uses it.</td><td>none</td><td><span class="b crit">unused</span></td></tr>
+<tr><td>Test runner</td><td class="v">none</td><td>No jest or vitest. <code>modules/sources/connectors/gmail-utils.test.ts</code> exists but nothing runs it.</td><td>n/a</td><td><span class="b crit">missing</span></td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="request-flow">4. Request flow</h2>
+<p>Almost every dashboard page is a client component (<code>"use client"</code>). It calls <code>fetch('/api/...')</code>. The browser sends the <code>corely_session</code> cookie on its own. The route handler checks who the user is, does its work, and returns one standard JSON shape.</p>
+
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 330" role="img" aria-label="Request flow from dashboard page to API route and back">
+<rect class="bxa" x="20" y="30" width="150" height="130" rx="8"/>
+<text class="tt" x="32" y="52">Dashboard page</text>
+<text class="tm" x="32" y="72">"use client" component</text>
+<text class="mono" x="32" y="90">fetch('/api/…')</text>
+<text class="tm" x="32" y="108">cookie corely_session</text>
+<text class="tm" x="32" y="124">sent by the browser</text>
+<rect class="bx" x="200" y="30" width="150" height="130" rx="8"/>
+<text class="tt" x="212" y="52">Route handler</text>
+<text class="mono" x="212" y="72">app/api/**/route.ts</text>
+<text class="tm" x="212" y="92">export const dynamic =</text>
+<text class="mono" x="212" y="108">"force-dynamic"</text>
+<text class="tm" x="212" y="126">(never cached at build)</text>
+<text class="tm" x="212" y="144">try { … } catch { … }</text>
+<rect class="bxa" x="380" y="30" width="170" height="130" rx="8"/>
+<text class="tt" x="392" y="52">auth()</text>
+<text class="mono" x="392" y="70">lib/auth-server.ts</text>
+<text class="tm" x="392" y="88">read corely_session</text>
+<text class="tm" x="392" y="104">jwtVerify, HS256</text>
+<text class="tm" x="392" y="120">load User + Workspace + Role</text>
+<text class="tm" x="392" y="136">auto-heal admin roleId</text>
+<text class="tm" x="392" y="152">throws "Unauthorized"</text>
+<rect class="bx" x="580" y="30" width="150" height="130" rx="8"/>
+<text class="tt" x="592" y="52">requirePermission(p)</text>
+<text class="tm" x="592" y="72">optional extra layer</text>
+<text class="tm" x="592" y="90">role.permissions</text>
+<text class="tm" x="592" y="106">includes p?</text>
+<text class="tm" x="592" y="124">else throws</text>
+<text class="mono" x="592" y="140">"Forbidden: …"</text>
+<rect class="bx" x="760" y="30" width="200" height="130" rx="8"/>
+<text class="tt" x="772" y="52">Handler logic</text>
+<text class="tm" x="772" y="72">Prisma for normal rows</text>
+<text class="tm" x="772" y="88">raw SQL / supabaseAdmin</text>
+<text class="tm" x="772" y="104">for vectors</text>
+<text class="mono" x="772" y="126">successResponse(data)</text>
+<text class="mono" x="772" y="142">errorResponse(msg, code)</text>
+<line class="ln" x1="170" y1="95" x2="198" y2="95" marker-end="url(#ah)"/>
+<line class="ln" x1="350" y1="95" x2="378" y2="95" marker-end="url(#ah)"/>
+<line class="ln" x1="550" y1="95" x2="578" y2="95" marker-end="url(#ah)"/>
+<line class="ln" x1="730" y1="95" x2="758" y2="95" marker-end="url(#ah)"/>
+<rect class="bx" x="200" y="210" width="560" height="100" rx="8" style="fill:var(--bg)"/>
+<text class="tt" x="214" y="232">JSON envelope (lib/api-response.ts, API_VERSION = "v1")</text>
+<text class="mono" x="214" y="254">{ "success": true,  "data": { … },          "version": "v1" }</text>
+<text class="mono" x="214" y="272">{ "success": false, "error": "Unauthorized", "version": "v1" }</text>
+<text class="tm" x="214" y="294">catch: "Unauthorized" → 401 · "Forbidden…" → 403 · anything else → 500</text>
+<path class="ln" d="M860,160 V260 H762" marker-end="url(#ah)"/>
+<path class="ln" d="M200,260 H95 V162" marker-end="url(#ah)"/>
+</svg>
+</div>
+<figcaption>A client page calls a force-dynamic route handler, which runs auth() and sometimes requirePermission() before its logic, and always answers with the same success/data/error/version envelope.</figcaption>
+</figure>
+
+<h3>The pieces</h3>
+<ul>
+  <li><strong>Envelope.</strong> <code>successResponse(data, status = 200)</code> and <code>errorResponse(message, status = 500)</code> in <code>lib/api-response.ts</code> wrap every answer as <code>{ success, data | error, version: "v1" }</code>. A few routes skip it and return plain JSON: <code>/api/context-stats</code>, <code>/api/sources/[sourceId]/github/repos</code>, and the 401 branch of the OAuth connect routes. <code>/api/ask</code> returns <code>text/event-stream</code> instead.</li>
+  <li><strong><code>auth()</code>.</strong> Reads the <code>corely_session</code> cookie, checks it with <code>jose</code> (HS256, key from <code>JWT_SECRET</code>), checks that <code>userId</code> and <code>workspaceId</code> are strings, then loads the user with <code>workspace</code> and <code>workspaceRole</code>. If an <code>admin</code> user has no <code>roleId</code>, it finds the workspace's "Admin" role and saves it ("auto-heal"). Returns <code>{ user, workspace }</code>.</li>
+  <li><strong><code>requirePermission(p)</code>.</strong> Calls <code>auth()</code>, then throws <code>"Forbidden: Insufficient permissions"</code> unless <code>user.workspaceRole.permissions</code> contains <code>p</code>. Only 7 route files use it: <code>insights</code>, <code>memory</code>, <code>sources</code> (GET), <code>teams</code>, <code>teams/[id]</code>, <code>teams/members</code>, <code>teams/[id]/members/[memberId]</code>.</li>
+  <li><strong><code>force-dynamic</code>.</strong> <code>export const dynamic = "force-dynamic"</code> tells Next.js to run the handler on every request and never pre-render it at build time. It is set on most auth or streaming routes, but not all (for example <code>context-stats</code>, <code>notifications</code>, <code>teams</code>, <code>workflows</code>, <code>users/me</code>, <code>search</code> do not set it). Those still run per request because they read cookies, which makes them dynamic.</li>
+  <li><strong>Server component path.</strong> <code>app/dashboard/page.tsx</code> is the exception. It calls <code>auth()</code> and <code>prisma</code> directly on the server and passes data to <code>DashboardClient.tsx</code>.</li>
+  <li><strong>No middleware.</strong> There is no <code>middleware.ts</code>. The dashboard is only guarded by a client-side redirect in <code>app/lib/auth-context.tsx</code> (lines 65-70) and by each API route's own checks.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="data-model">5. Data model</h2>
+<p><code>prisma/schema.prisma</code> defines 18 models. Every model except <code>Workspace</code> itself and <code>ChatMessage</code> has a <code>workspace_id</code> that points to <code>Workspace</code> with <code>onDelete: Cascade</code>. Deleting a workspace deletes everything in it. All ids are UUIDs with the database default <code>uuid_generate_v4()</code>.</p>
+
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 1000 840" role="img" aria-label="Entity relationship diagram of all Prisma models">
+<!-- hub spokes (drawn first, boxes cover them) -->
+<g class="lnw">
+<line x1="500" y1="405" x2="100" y2="70"/><line x1="500" y1="405" x2="300" y2="85"/><line x1="500" y1="405" x2="500" y2="70"/>
+<line x1="500" y1="405" x2="700" y2="70"/><line x1="500" y1="405" x2="900" y2="70"/>
+<line x1="500" y1="405" x2="120" y2="275"/><line x1="500" y1="405" x2="120" y2="445"/><line x1="500" y1="405" x2="120" y2="605"/>
+<line x1="500" y1="405" x2="880" y2="250"/><line x1="500" y1="405" x2="880" y2="535"/>
+<line x1="500" y1="405" x2="87" y2="765"/><line x1="500" y1="405" x2="252" y2="765"/><line x1="500" y1="405" x2="417" y2="765"/>
+<line x1="500" y1="405" x2="582" y2="765"/><line x1="500" y1="405" x2="747" y2="765"/><line x1="500" y1="405" x2="912" y2="765"/>
+</g>
+<!-- Workspace -->
+<rect class="bxa" x="390" y="330" width="220" height="150" rx="8"/>
+<rect class="hd" x="391" y="331" width="218" height="24" rx="7"/>
+<text class="tt" x="402" y="348">Workspace</text>
+<text class="mono" x="402" y="374">id uuid PK</text>
+<text class="mono" x="402" y="390">name</text>
+<text class="mono" x="402" y="406">slug  unique</text>
+<text class="mono" x="402" y="422">plan  "free" | "trial"</text>
+<text class="mono" x="402" y="438">settings Json</text>
+<text class="tm" x="402" y="462">hub of 16 relations, cascade</text>
+<!-- top row -->
+<rect class="bx" x="15" y="20" width="170" height="104" rx="8"/><rect class="hd" x="16" y="21" width="168" height="24" rx="7"/>
+<text class="tt" x="25" y="38">WorkspaceRole</text>
+<text class="mono" x="25" y="62">id PK · workspace_id</text>
+<text class="mono" x="25" y="78">name</text>
+<text class="mono" x="25" y="94">permissions Json [ ]</text>
+<text class="mono" x="25" y="110">description?</text>
+<rect class="bx" x="215" y="20" width="170" height="134" rx="8"/><rect class="hd" x="216" y="21" width="168" height="24" rx="7"/>
+<text class="tt" x="225" y="38">User</text>
+<text class="mono" x="225" y="62">id PK · workspace_id</text>
+<text class="mono" x="225" y="78">email unique</text>
+<text class="mono" x="225" y="94">password_hash?</text>
+<text class="mono" x="225" y="110">role "member"|"admin"</text>
+<text class="mono" x="225" y="126">role_id? FK</text>
+<text class="mono" x="225" y="142">reset_token? (plain)</text>
+<rect class="bx" x="415" y="20" width="170" height="104" rx="8"/><rect class="hd" x="416" y="21" width="168" height="24" rx="7"/>
+<text class="tt" x="425" y="38">Team</text>
+<text class="mono" x="425" y="62">id PK · workspace_id</text>
+<text class="mono" x="425" y="78">name · members Int</text>
+<text class="mono" x="425" y="94">health · know · actions</text>
+<text class="mono" x="425" y="110">users  M:N (implicit)</text>
+<rect class="bx" x="615" y="20" width="170" height="104" rx="8"/><rect class="hd" x="616" y="21" width="168" height="24" rx="7"/>
+<text class="tt" x="625" y="38">Notification</text>
+<text class="mono" x="625" y="62">id PK · workspace_id</text>
+<text class="mono" x="625" y="78">user_id? (null=all)</text>
+<text class="mono" x="625" y="94">title · message</text>
+<text class="mono" x="625" y="110">is_read · link?</text>
+<rect class="bx" x="815" y="20" width="170" height="104" rx="8"/><rect class="hd" x="816" y="21" width="168" height="24" rx="7"/>
+<text class="tt" x="825" y="38">AuditLog</text>
+<text class="mono" x="825" y="62">id PK · workspace_id</text>
+<text class="mono" x="825" y="78">user_id? FK</text>
+<text class="mono" x="825" y="94">action · details</text>
+<text class="mono" x="825" y="110">ip_address? (unset)</text>
+<!-- left column -->
+<rect class="bxa" x="15" y="200" width="210" height="150" rx="8"/><rect class="hd" x="16" y="201" width="208" height="24" rx="7"/>
+<text class="tt" x="25" y="218">Source</text>
+<text class="mono" x="25" y="242">id PK · workspace_id</text>
+<text class="mono" x="25" y="258">user_id FK</text>
+<text class="mono" x="25" y="274">type  google_drive | notion …</text>
+<text class="mono" x="25" y="290">status idle|syncing|synced|error</text>
+<text class="mono" x="25" y="306">access/refresh_token (AES)</text>
+<text class="mono" x="25" y="322">config Json · items_indexed</text>
+<text class="mono" x="25" y="338">last_synced_at?</text>
+<rect class="bxa" x="15" y="380" width="210" height="130" rx="8"/><rect class="hd" x="16" y="381" width="208" height="24" rx="7"/>
+<text class="tt" x="25" y="398">Document</text>
+<text class="mono" x="25" y="422">id PK · source_id FK</text>
+<text class="mono" x="25" y="438">external_id</text>
+<text class="mono" x="25" y="454">unique(source_id, external_id)</text>
+<text class="mono" x="25" y="470">content_hash (SHA-256)</text>
+<text class="mono" x="25" y="486">raw_content · title · url</text>
+<text class="mono" x="25" y="502">updated_at @updatedAt</text>
+<rect class="bxa" x="15" y="540" width="210" height="130" rx="8"/><rect class="hd" x="16" y="541" width="208" height="24" rx="7"/>
+<text class="tt" x="25" y="558">DocumentChunk</text>
+<text class="mono" x="25" y="582">id PK · document_id FK</text>
+<text class="mono" x="25" y="598">source_id (no relation)</text>
+<text class="mono" x="25" y="614">content · chunk_index</text>
+<text class="mono" x="25" y="630">token_count (= words)</text>
+<text class="mono" x="25" y="646">embedding vector(1536)</text>
+<text class="ms" x="25" y="662">table: document_chunks</text>
+<!-- right column -->
+<rect class="bx" x="775" y="200" width="210" height="100" rx="8"/><rect class="hd" x="776" y="201" width="208" height="24" rx="7"/>
+<text class="tt" x="785" y="218">ChatSession</text>
+<text class="mono" x="785" y="242">id PK · workspace_id</text>
+<text class="mono" x="785" y="258">title</text>
+<text class="mono" x="785" y="274">no user_id (shared</text>
+<text class="mono" x="785" y="290">by whole workspace)</text>
+<rect class="bx" x="775" y="330" width="210" height="120" rx="8"/><rect class="hd" x="776" y="331" width="208" height="24" rx="7"/>
+<text class="tt" x="785" y="348">ChatMessage</text>
+<text class="mono" x="785" y="372">id PK · session_id FK</text>
+<text class="mono" x="785" y="388">sender "user"|"corely"</text>
+<text class="mono" x="785" y="404">text</text>
+<text class="mono" x="785" y="420">sources Json?</text>
+<text class="mono" x="785" y="436">feedback? pos/neg</text>
+<rect class="bx" x="775" y="480" width="210" height="110" rx="8"/><rect class="hd" x="776" y="481" width="208" height="24" rx="7"/>
+<text class="tt" x="785" y="498">ApiKey</text>
+<text class="mono" x="785" y="522">id PK · workspace_id</text>
+<text class="mono" x="785" y="538">name · hint</text>
+<text class="mono" x="785" y="554">key_hash (bcrypt)</text>
+<text class="mono" x="785" y="570">last_used_at? (never set)</text>
+<!-- bottom row -->
+<rect class="bx" x="10" y="710" width="155" height="110" rx="8"/><rect class="hd" x="11" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="20" y="728">DashboardInsight</text>
+<text class="mono" x="20" y="752">priority · title</text>
+<text class="mono" x="20" y="768">description</text>
+<text class="mono" x="20" y="784">category · trend</text>
+<text class="ms" x="20" y="806">unused by code</text>
+<rect class="bx" x="175" y="710" width="155" height="110" rx="8"/><rect class="hd" x="176" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="185" y="728">DashboardAction</text>
+<text class="mono" x="185" y="752">description</text>
+<text class="mono" x="185" y="768">source · iconType</text>
+<text class="ms" x="185" y="806">nothing writes it</text>
+<rect class="bx" x="340" y="710" width="155" height="110" rx="8"/><rect class="hd" x="341" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="350" y="728">OrgMemory</text>
+<text class="mono" x="350" y="752">category</text>
+<text class="mono" x="350" y="768">title · content</text>
+<text class="mono" x="350" y="784">badges Json</text>
+<text class="mono" x="350" y="800">source_name</text>
+<rect class="bx" x="505" y="710" width="155" height="110" rx="8"/><rect class="hd" x="506" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="515" y="728">MemorySnapshot</text>
+<text class="mono" x="515" y="752">id · title</text>
+<text class="mono" x="515" y="768">created_at</text>
+<text class="ms" x="515" y="806">title only, no content</text>
+<rect class="bx" x="670" y="710" width="155" height="110" rx="8"/><rect class="hd" x="671" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="680" y="728">Workflow</text>
+<text class="mono" x="680" y="752">title · desc</text>
+<text class="mono" x="680" y="768">trigger_type</text>
+<text class="mono" x="680" y="784">status · executions</text>
+<text class="mono" x="680" y="800">owner (text)</text>
+<rect class="bx" x="835" y="710" width="155" height="110" rx="8"/><rect class="hd" x="836" y="711" width="153" height="24" rx="7"/>
+<text class="tt" x="845" y="728">WorkflowActivity</text>
+<text class="mono" x="845" y="752">workflow_id FK</text>
+<text class="mono" x="845" y="768">workflow_title</text>
+<text class="mono" x="845" y="784">status · timestamp</text>
+<!-- relations -->
+<line class="lna" x1="215" y1="78" x2="187" y2="78" marker-end="url(#aha)"/>
+<text class="ms" x="188" y="72">N:1</text>
+<line class="lna" x1="385" y1="78" x2="415" y2="78" marker-start="url(#aha)" marker-end="url(#aha)"/>
+<text class="ms" x="388" y="72">M:N</text>
+<path class="lna" d="M700,124 V172 H300 V156" marker-end="url(#aha)"/>
+<path class="lna" d="M900,124 V184 H330 V156" marker-end="url(#aha)"/>
+<line class="lna" x1="200" y1="200" x2="245" y2="156" marker-end="url(#aha)"/>
+<text class="ms" x="226" y="186">owner</text>
+<line class="lna" x1="120" y1="350" x2="120" y2="378" marker-end="url(#aha)"/>
+<text class="ms" x="126" y="368">1:N</text>
+<line class="lna" x1="120" y1="510" x2="120" y2="538" marker-end="url(#aha)"/>
+<text class="ms" x="126" y="528">1:N</text>
+<line class="lna" x1="880" y1="300" x2="880" y2="328" marker-end="url(#aha)"/>
+<text class="ms" x="886" y="318">1:N</text>
+<line class="lna" x1="825" y1="765" x2="833" y2="765" marker-end="url(#aha)"/>
+</svg>
+</div>
+<figcaption>Workspace sits at the centre and owns every other model through a cascading workspace_id (grey spokes), while the blue arrows show the other relations, such as Source to Document to DocumentChunk and ChatSession to ChatMessage.</figcaption>
+</figure>
+
+<h3>Groups of models</h3>
+<ul>
+  <li><strong>Identity:</strong> <code>Workspace</code>, <code>User</code>, <code>WorkspaceRole</code>, <code>Team</code> (many-to-many with users), <code>ApiKey</code>, <code>AuditLog</code>, <code>Notification</code>.</li>
+  <li><strong>Ingestion:</strong> <code>Source</code> → <code>Document</code> → <code>DocumentChunk</code>. Dedupe uses <code>Document.contentHash</code>. <code>@@unique([sourceId, externalId])</code> stops the same upstream item being stored twice.</li>
+  <li><strong>Chat:</strong> <code>ChatSession</code> → <code>ChatMessage</code>. Sessions have no <code>userId</code>, so every chat is visible to the whole workspace.</li>
+  <li><strong>Dashboard surfaces:</strong> <code>OrgMemory</code>, <code>MemorySnapshot</code>, <code>DashboardInsight</code>, <code>DashboardAction</code>, <code>Workflow</code>, <code>WorkflowActivity</code>. Many fields are display styling (<code>iconBg</code>, <code>healthColor</code>, <code>ownerBg</code>), which shows these tables were shaped around mock UI.</li>
+</ul>
+
+<h3>Two clients, one database</h3>
+<p>Two different clients talk to the <strong>same</strong> Postgres tables:</p>
+<ul>
+  <li><strong>Prisma</strong> (<code>lib/db.ts</code>) connects with <code>DATABASE_URL</code> through a <code>pg</code> Pool and <code>PrismaPg</code> adapter. It is a singleton cached on <code>globalThis</code> outside production. It handles all normal rows.</li>
+  <li><strong><code>supabaseAdmin</code></strong> (<code>lib/supabase.ts</code>) uses the Supabase REST API with the service-role key (full access, skips row-level security). It exists because Prisma marks <code>embedding</code> as <code>Unsupported("vector")</code> and cannot write it.</li>
+</ul>
+<p>Rule: anything that writes an embedding goes through <code>supabaseAdmin</code>. Anything that reads embeddings for search uses raw SQL through <code>prisma.$queryRaw</code> (<code>app/api/ask/route.ts</code>, <code>app/api/search/route.ts</code>).</p>
+<div class="callout crit"><p><strong>Bug that breaks two connectors.</strong> <code>slack.ts</code> (lines 243-251) and <code>linear.ts</code> (lines 244-252) first create the chunk with <code>prisma.documentChunk.create()</code>, then <code>supabaseAdmin.insert()</code> a row with the same <code>id</code>. The second insert fails on the primary key and the error is only logged. Those rows keep <code>embedding = NULL</code>, so search never finds Slack or Linear content. Gmail, Drive, GitHub and Notion do one <code>supabaseAdmin</code> insert with the embedding, which works.</p></div>
+
+<h3>The vector column (scripts/init-pgvector.ts)</h3>
+<p><code>prisma db push</code> skips the <code>embedding</code> column. You must run <code>npx tsx scripts/init-pgvector.ts</code> once per database. It does four things:</p>
+<ol>
+  <li><code>CREATE EXTENSION IF NOT EXISTS vector;</code></li>
+  <li>Adds <code>document_chunks.embedding vector(1536)</code> if the column is missing.</li>
+  <li>Creates the HNSW index (a graph index for fast nearest-neighbour search): <code>idx_chunks_embedding ... USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)</code>. If that fails (pgvector older than 0.5.0), it falls back to an ivfflat index (a cluster-based index): <code>idx_chunks_embedding_ivfflat ... WITH (lists = 100)</code>.</li>
+  <li>Defines <code>match_chunks(query_embedding vector(1536), workspace_filter UUID, match_threshold FLOAT DEFAULT 0.6, match_count INT DEFAULT 5)</code>. It returns chunks with <code>1 - (embedding &lt;=&gt; query)</code> as similarity. <strong>Nothing calls it.</strong> It also has no source filter, so it would ignore permissions if used.</li>
+</ol>
+<p>Two watch items: the schema also declares <code>@@index([embedding], map: "idx_chunks_embedding")</code>, the same index name the script uses. And the UUID default <code>uuid_generate_v4()</code> needs the <code>uuid-ossp</code> extension. Supabase turns it on by default; a plain Postgres would need it added by hand.</p>
+
+<!-- ============================================================ -->
+<h2 id="api">6. API surface</h2>
+<p>59 <code>route.ts</code> files under <code>app/api/</code>. <strong>Auth level</strong> means what the handler checks before doing work. Rows in red have <strong>no authentication</strong> and act on a record by its id alone, across workspaces (findings A.2). The five <code>/api/auth/*</code> routes are public by design and are not marked red. The six OAuth callbacks trust only the signed <code>state</code> token.</p>
+<p>Status: <span class="b ok">real</span> works end to end · <span class="b med">partial</span> works but with known gaps or fake parts · <span class="b crit">stub</span> fake or does nothing.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Route</th><th>Methods</th><th>Purpose</th><th>Auth level</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><code>/api/auth/register</code></td><td>POST</td><td>Create workspace (plan "trial"), seed 4 roles, create admin user, set cookie.</td><td class="auth">none (public)</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/auth/login</code></td><td>POST</td><td>Check password, set <code>corely_session</code>. In-memory limit 5 tries / 15 min per email. Sets a password for any user without one (takeover).</td><td class="auth">none (public)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/auth/logout</code></td><td>POST</td><td>Deletes the cookie. No server-side session revocation.</td><td class="auth">none (public)</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/auth/forgot-password</code></td><td>POST</td><td>Stores a plaintext reset token and emails a link. Falls back to <code>https://corely-khaki.vercel.app</code>. Reveals whether an account exists.</td><td class="auth">none (public)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/auth/reset-password</code></td><td>POST</td><td>Set a new password from the reset token.</td><td class="auth">none (public)</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/users/me</code></td><td>GET</td><td>Current user, role name, permissions, workspace.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/ask</code></td><td>POST</td><td>Core RAG endpoint, SSE stream. Does not check that <code>sessionId</code> belongs to the caller's workspace. Ignores Web Search / Knowledge Only toggles.</td><td class="auth">auth() + rate limit 20/60 s</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/search</code></td><td>POST</td><td>Vector search, returns chunks (limit 1-20, default 5).</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/chats</code></td><td>GET, POST</td><td>List and create chat sessions.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr class="open"><td><code>/api/chats/[sessionId]</code></td><td>GET, DELETE</td><td>Read or delete a session and its messages, by id only.</td><td class="auth">NONE</td><td><span class="b ok">real</span></td></tr>
+<tr class="open"><td><code>/api/chats/[sessionId]/messages/[messageId]/feedback</code></td><td>POST</td><td>Thumbs up/down. New answers have a local id, so this 404s.</td><td class="auth">NONE</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/chats/[sessionId]/export</code></td><td>GET</td><td>Export a chat. Checks <code>feedback === "up"</code> but the DB stores "positive".</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/documents</code></td><td>GET, POST</td><td>List documents; add a manual text document (chunk + embed + insert).</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr class="open"><td><code>/api/documents/[documentId]</code></td><td>DELETE</td><td>Delete a document and its chunks, by id only.</td><td class="auth">NONE</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources</code></td><td>GET</td><td>List sources.</td><td class="auth">requirePermission(sources:read)</td><td><span class="b ok">real</span></td></tr>
+<tr class="open"><td><code>/api/sources/[sourceId]</code></td><td>DELETE</td><td>Delete a source and its chunks, by id only. Does not revoke provider tokens.</td><td class="auth">NONE</td><td><span class="b ok">real</span></td></tr>
+<tr class="open"><td><code>/api/sources/[sourceId]/config</code></td><td>POST</td><td>Save folder ids and permissions. Can set <code>permissions: "everyone"</code>. Ignores <code>syncSchedule</code>.</td><td class="auth">NONE</td><td><span class="b med">partial</span></td></tr>
+<tr class="open"><td><code>/api/sources/[sourceId]/folders</code></td><td>GET</td><td>Decrypts the stored Drive token and lists folders. Returns mock folders on error.</td><td class="auth">NONE</td><td><span class="b med">partial</span></td></tr>
+<tr class="open"><td><code>/api/sources/[sourceId]/status</code></td><td>GET</td><td>Sync status. Leaks <code>config</code> and <code>errorMessage</code>.</td><td class="auth">NONE</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/[sourceId]/sync</code></td><td>POST</td><td>Set status "syncing", call the connector fire-and-forget, return. 409 if already syncing.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/sources/[sourceId]/duplicate</code></td><td>POST</td><td>Copy a source without tokens or folders. Copies always get stuck on sync.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/sources/[sourceId]/history</code></td><td>GET</td><td>Sync history. Returns one synthetic entry.</td><td class="auth">auth()</td><td><span class="b crit">stub</span></td></tr>
+<tr><td><code>/api/sources/[sourceId]/github/repos</code></td><td>GET</td><td>List the user's GitHub repos (100, by updated).</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/upload</code></td><td>POST</td><td>Manual file upload: PDF, DOCX, text. No size or type limits server side.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/{notion,gmail,google-drive,github,slack,linear}/connect</code></td><td>GET</td><td>Build signed <code>state</code>, redirect to provider consent. (6 routes)</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/{notion,gmail}/callback</code></td><td>GET</td><td>Exchange code, save encrypted tokens, start sync. (2 routes)</td><td class="auth">state JWT only</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/{google-drive,github}/callback</code></td><td>GET</td><td>Exchange code, save tokens, status "idle" until folders or repos are picked. (2 routes)</td><td class="auth">state JWT only</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/sources/{slack,linear}/callback</code></td><td>GET</td><td>Save tokens, mark "synced" with 0 items, never sync. (2 routes)</td><td class="auth">state JWT only</td><td><span class="b med">partial</span></td></tr>
+<tr class="open"><td><code>/api/webhooks/drive</code></td><td>POST</td><td>Logs the channel id. Does nothing else.</td><td class="auth">NONE</td><td><span class="b crit">stub</span></td></tr>
+<tr class="open"><td><code>/api/webhooks/notion</code></td><td>POST</td><td>Logs and returns "processed". No signature check.</td><td class="auth">NONE</td><td><span class="b crit">stub</span></td></tr>
+<tr><td><code>/api/memory</code></td><td>GET, POST, DELETE</td><td>Org memory. GET also deletes rows titled "Decision Captured" / "Discussion Summary" on every load.</td><td class="auth">requirePermission(memory:read / memory:write)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/memory/snapshots</code></td><td>GET, POST, DELETE</td><td>Snapshots store a title only.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/insights</code></td><td>GET</td><td>Rule-based insights from <code>lib/insights-generator.ts</code> (no LLM) plus an invented timeline.</td><td class="auth">requirePermission(insights:read)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/dashboard</code></td><td>GET</td><td>Dashboard stats. Unused by the UI. Health check compares to 'ERROR' but connectors write 'error'.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/analytics</code></td><td>GET</td><td>Counts plus storage size. Loads every document's <code>rawContent</code> to add up bytes. Unused by the UI.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/context-stats</code></td><td>GET</td><td>Counts of people, sources, sessions, memories (plain JSON, no envelope).</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/usage</code></td><td>GET</td><td>Plan usage. Limits hardcoded (100 docs / 500 queries, or 10000 / 50000 on enterprise), not enforced. "Queries" counts chat sessions.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/notifications</code></td><td>GET, PATCH</td><td>List; mark all read. Marking a broadcast row clears it for everyone.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/notifications/[id]/read</code></td><td>PATCH</td><td>Mark one read.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/audit-logs</code></td><td>GET</td><td>List audit rows. Only password change ever writes one.</td><td class="auth">auth() + <code>role === "admin"</code></td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/settings</code></td><td>GET, PATCH</td><td>Workspace settings. Any member can rename the workspace or change its slug.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/settings/password</code></td><td>POST</td><td>Change password; writes an audit log. Does not end other sessions.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/settings/api-keys</code></td><td>GET, POST, DELETE</td><td>Create and revoke keys (bcrypt). Any member can. Keys are never checked anywhere.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/teams</code></td><td>GET, POST</td><td>List and create teams. Metrics are defaults.</td><td class="auth">requirePermission(teams:read / teams:manage)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/teams/[id]</code></td><td>GET, DELETE</td><td>Team detail; delete.</td><td class="auth">requirePermission(teams:read / teams:manage)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/teams/[id]/members/[memberId]</code></td><td>DELETE</td><td>Remove a user from a team.</td><td class="auth">requirePermission(teams:manage)</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/teams/members</code></td><td>GET, POST</td><td>List members; invite. Emails a plaintext temporary password and returns <code>_devPassword</code> in the response.</td><td class="auth">requirePermission(teams:manage)</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/teams/roles</code></td><td>GET, POST</td><td>List roles; create a role with any permissions. Any member can.</td><td class="auth">auth()</td><td><span class="b med">partial</span></td></tr>
+<tr><td><code>/api/workflows</code></td><td>GET, POST</td><td>Workflow CRUD.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/workflows/[id]</code></td><td>PATCH, DELETE</td><td>Update (mass-assigns <code>{...data}</code>); delete.</td><td class="auth">auth()</td><td><span class="b ok">real</span></td></tr>
+<tr><td><code>/api/workflows/[id]/run</code></td><td>POST</td><td>Simulated run: bumps <code>executions</code>, stamps <code>lastRun</code>, writes a "success" activity. Nothing executes.</td><td class="auth">auth()</td><td><span class="b crit">stub</span></td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="security">7. Auth and security design</h2>
+
+<h3>Login flow</h3>
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 900 470" role="img" aria-label="Login sequence diagram">
+<rect class="bxa" x="30" y="20" width="180" height="40" rx="6"/><text class="tt" x="45" y="45">Browser / AuthProvider</text>
+<rect class="bxa" x="350" y="20" width="200" height="40" rx="6"/><text class="tt" x="372" y="45">POST /api/auth/login</text>
+<rect class="bxa" x="690" y="20" width="180" height="40" rx="6"/><text class="tt" x="705" y="45">Postgres (Prisma)</text>
+<line class="life" x1="120" y1="60" x2="120" y2="455"/>
+<line class="life" x1="450" y1="60" x2="450" y2="455"/>
+<line class="life" x1="780" y1="60" x2="780" y2="455"/>
+<line class="lna" x1="120" y1="88" x2="448" y2="88" marker-end="url(#aha)"/>
+<text class="tx" x="135" y="82">1. POST { email, password }</text>
+<rect class="bxn" x="330" y="100" width="240" height="40" rx="6"/>
+<text class="tm" x="340" y="116">2. zod check · in-memory Map limit:</text>
+<text class="tm" x="340" y="131">5 tries per email per 15 min</text>
+<line class="ln" x1="450" y1="165" x2="778" y2="165" marker-end="url(#ah)"/>
+<text class="tx" x="462" y="159">3. findUnique(email) + workspace, role</text>
+<line class="lnd" x1="780" y1="192" x2="452" y2="192" marker-end="url(#ah)"/>
+<text class="tm" x="600" y="186">user row</text>
+<rect class="bxc" x="300" y="208" width="300" height="52" rx="6"/>
+<text class="tc" x="310" y="226">4a. No password_hash? Hash the typed password,</text>
+<text class="tc" x="310" y="242">save it, and log in (login/route.ts:72-78).</text>
+<text class="tc" x="310" y="256">Account takeover risk.</text>
+<rect class="bxn" x="330" y="272" width="240" height="26" rx="6"/>
+<text class="tm" x="340" y="289">4b. else bcrypt.compare(password, hash)</text>
+<rect class="bxn" x="300" y="310" width="300" height="40" rx="6"/>
+<text class="tm" x="310" y="326">5. encrypt({ userId, email, workspaceId })</text>
+<text class="tm" x="310" y="341">jose HS256, exp 24h, key = JWT_SECRET</text>
+<line class="lna" x1="450" y1="380" x2="122" y2="380" marker-end="url(#aha)"/>
+<text class="tx" x="140" y="374">6. Set-Cookie corely_session</text>
+<text class="tm" x="140" y="396">httpOnly · secure in production · SameSite=Lax · Max-Age 86400 · path /</text>
+<line class="lna" x1="450" y1="430" x2="122" y2="430" marker-end="url(#aha)"/>
+<text class="tx" x="140" y="424">7. { success, data: { user, permissions, workspace } }</text>
+</svg>
+</div>
+<figcaption>The login route checks the request, looks up the user, compares the bcrypt hash (or, dangerously, sets one when none exists), signs a 24-hour HS256 JWT and returns it in an httpOnly cookie.</figcaption>
+</figure>
+
+<h3>OAuth connect and callback flow</h3>
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 550" role="img" aria-label="OAuth connect and callback sequence diagram">
+<rect class="bxa" x="15" y="20" width="130" height="40" rx="6"/><text class="tt" x="50" y="45">Browser</text>
+<rect class="bxa" x="190" y="20" width="140" height="40" rx="6"/><text class="tt" x="205" y="45">…/connect</text>
+<rect class="bxa" x="390" y="20" width="140" height="40" rx="6"/><text class="tt" x="420" y="45">Provider</text>
+<rect class="bxa" x="590" y="20" width="140" height="40" rx="6"/><text class="tt" x="605" y="45">…/callback</text>
+<rect class="bxa" x="810" y="20" width="140" height="40" rx="6"/><text class="tt" x="835" y="45">Postgres</text>
+<line class="life" x1="80" y1="60" x2="80" y2="535"/>
+<line class="life" x1="260" y1="60" x2="260" y2="535"/>
+<line class="life" x1="460" y1="60" x2="460" y2="535"/>
+<line class="life" x1="660" y1="60" x2="660" y2="535"/>
+<line class="life" x1="880" y1="60" x2="880" y2="535"/>
+<line class="lna" x1="80" y1="92" x2="258" y2="92" marker-end="url(#aha)"/>
+<text class="tm" x="88" y="86">1. GET connect (cookie)</text>
+<rect class="bxn" x="170" y="104" width="370" height="40" rx="6"/>
+<text class="tm" x="180" y="120">2. auth(); state = encrypt({ workspaceId, userId, nonce })</text>
+<text class="tm" x="180" y="136">same JWT_SECRET as the session · nonce = Math.random()</text>
+<line class="lnd" x1="260" y1="168" x2="82" y2="168" marker-end="url(#ah)"/>
+<text class="tm" x="92" y="162">3. 302 to consent (state)</text>
+<line class="lna" x1="80" y1="200" x2="458" y2="200" marker-end="url(#aha)"/>
+<text class="tm" x="280" y="194">4. user approves scopes</text>
+<line class="lnd" x1="460" y1="234" x2="82" y2="234" marker-end="url(#ah)"/>
+<text class="tm" x="280" y="228">5. 302 back with ?code&amp;state</text>
+<line class="lna" x1="80" y1="266" x2="658" y2="266" marker-end="url(#aha)"/>
+<text class="tm" x="480" y="260">6. GET callback?code&amp;state</text>
+<rect class="bxc" x="540" y="278" width="250" height="52" rx="6"/>
+<text class="tc" x="550" y="296">7. decrypt(state) with the session key.</text>
+<text class="tc" x="550" y="311">Nonce never checked. No cookie check.</text>
+<text class="tc" x="550" y="325">Trusts userId/workspaceId in state.</text>
+<line class="ln" x1="660" y1="354" x2="462" y2="354" marker-end="url(#ah)"/>
+<text class="tm" x="480" y="348">8. exchange code + client secret</text>
+<line class="lnd" x1="460" y1="382" x2="658" y2="382" marker-end="url(#ah)"/>
+<text class="tm" x="480" y="376">access + refresh tokens</text>
+<line class="ln" x1="660" y1="414" x2="878" y2="414" marker-end="url(#ah)"/>
+<text class="tm" x="672" y="408">9. lib/crypto encrypt → Source row</text>
+<rect class="bxn" x="300" y="430" width="560" height="44" rx="6"/>
+<text class="tm" x="310" y="447">10. Gmail, Notion: start sync now · Drive, GitHub: status "idle" (pick folders / repos next)</text>
+<text class="tm" x="310" y="463">Slack, Linear: set "synced", itemsIndexed 0, no sync runs</text>
+<line class="lnd" x1="660" y1="505" x2="82" y2="505" marker-end="url(#ah)"/>
+<text class="tm" x="100" y="499">11. 302 /dashboard/sources?connected=… | ?success=… | ?error=…</text>
+</svg>
+</div>
+<figcaption>The connect route signs a state JWT with the session key and sends the user to the provider; the callback trusts that state, swaps the code for tokens, encrypts them onto a Source row and redirects back to the Sources page.</figcaption>
+</figure>
+<p>Scopes are read-only where the provider allows it. For example Google Drive asks for <code>drive.readonly</code>, <code>documents.readonly</code>, <code>spreadsheets.readonly</code>, <code>userinfo.profile</code> and <code>userinfo.email</code>, with <code>access_type: "offline"</code> and <code>prompt: "consent"</code> so a refresh token comes back.</p>
+
+<h3>RBAC model</h3>
+<p>RBAC (role-based access control: rights are given to roles, and users get a role). <code>lib/rbac.ts</code> defines 8 permission strings and 4 default roles. <code>createDefaultRolesForWorkspace()</code> and <code>POST /api/auth/register</code> create the roles per workspace. A role's <code>permissions</code> is a JSON array on <code>WorkspaceRole</code>. <code>hasPermission()</code>, <code>hasAllPermissions()</code> and <code>hasAnyPermission()</code> check it. On the client, <code>AuthProvider</code> exposes <code>hasPermission()</code>.</p>
+<div class="tbl"><table>
+<thead><tr><th>Permission</th><th>Admin</th><th>Developer</th><th>Product Manager</th><th>Viewer</th></tr></thead>
+<tbody>
+<tr><td><code>memory:read</code></td><td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>memory:write</code></td><td>yes</td><td>yes</td><td>no</td><td>no</td></tr>
+<tr><td><code>insights:read</code></td><td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>insights:write</code></td><td>yes</td><td>no</td><td>yes</td><td>no</td></tr>
+<tr><td><code>teams:read</code></td><td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td><code>teams:manage</code></td><td>yes</td><td>no</td><td>no</td><td>no</td></tr>
+<tr><td><code>sources:read</code></td><td>yes</td><td>yes</td><td>yes</td><td><strong>yes</strong></td></tr>
+<tr><td><code>sources:write</code></td><td>yes</td><td>yes</td><td>no</td><td>no</td></tr>
+</tbody></table></div>
+<div class="callout warn">
+  <p><strong>Gaps in the model.</strong> There are no permissions for settings, API keys, roles, workflows or upload, so those routes only call <code>auth()</code>. <code>sources:write</code> and <code>insights:write</code> are never checked by any route. And because every role has <code>sources:read</code>, the "permission-aware" source filter in <code>/api/ask</code> (line 146) and <code>/api/search</code> (line 54) lets everyone search every source.</p>
+</div>
+
+<h3>Token encryption</h3>
+<ul>
+  <li><code>lib/crypto.ts</code> calls <code>CryptoJS.AES.encrypt(text, ENCRYPTION_KEY)</code>. Passing a string key puts crypto-js in passphrase mode: it derives the key with <code>EVP_BytesToKey</code> (MD5, 1 round), uses AES-CBC, and adds no MAC (no tamper check).</li>
+  <li><code>decrypt()</code> returns an empty string on a wrong key instead of throwing.</li>
+  <li><code>ENCRYPTION_KEY</code> is the only secret with no fallback: <code>getKey()</code> throws if it is missing.</li>
+  <li>Stored fields: <code>Source.accessToken</code> and <code>Source.refreshToken</code>.</li>
+</ul>
+
+<h3>Cookie flags</h3>
+<p>Set the same way in <code>login/route.ts</code> and <code>register/route.ts</code>: name <code>corely_session</code>, <code>httpOnly: true</code>, <code>secure: process.env.NODE_ENV === "production"</code>, <code>sameSite: "lax"</code>, <code>maxAge: 86400</code> (24 hours), <code>path: "/"</code>. "Remember me" in the UI is never sent, so every session lasts exactly 24 hours. Logout only deletes the cookie; a stolen token stays valid until it expires.</p>
+
+<h3>Threat list</h3>
+<p>From the gap analysis (section A). Severity follows that document.</p>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Threat</th><th>Where</th><th>Severity</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>A real Gmail address and app password are hardcoded as fallbacks and are in git history since commit <code>2cd2cb7</code>. Rotate in Google first.</td><td><code>lib/email.ts:6-7</code></td><td><span class="b crit">critical</span></td></tr>
+<tr><td>2</td><td>Nine route handlers have no auth and look up records by id alone, across workspaces (see red rows above). <code>folders</code> decrypts a stored Drive token; <code>config</code> can make a source visible to everyone.</td><td><code>chats/[sessionId]</code>, <code>feedback</code>, <code>documents/[documentId]</code>, <code>sources/[sourceId]</code>, <code>config</code>, <code>folders</code>, <code>status</code>, <code>webhooks/*</code></td><td><span class="b crit">critical</span></td></tr>
+<tr><td>3</td><td>Account takeover: any user without a <code>passwordHash</code> (for example a row made outside the normal flow) gets whatever password the first person types.</td><td><code>app/api/auth/login/route.ts:72-78</code></td><td><span class="b crit">critical</span></td></tr>
+<tr><td>4</td><td>Invites email a plaintext temporary password and return <code>_devPassword</code> in the API response. Login link hardcoded to <code>https://corely-khaki.vercel.app/login</code>.</td><td><code>app/api/teams/members/route.ts:81, 104-105</code></td><td><span class="b crit">critical</span></td></tr>
+<tr><td>5</td><td>JWT secret falls back to <code>"fallback-secret-for-development-only"</code>. If <code>JWT_SECRET</code> is unset in production, anyone can forge sessions.</td><td><code>lib/auth-server.ts:6</code></td><td><span class="b crit">critical</span></td></tr>
+<tr><td>6</td><td>OAuth <code>state</code> tokens are signed with the session key and carry <code>userId</code> + <code>workspaceId</code>, so they are likely usable as a <code>corely_session</code> cookie for 24 hours (plausible, not proven). The nonce is never checked.</td><td><code>app/api/sources/*/connect</code>, <code>*/callback</code></td><td><span class="b high">high</span></td></tr>
+<tr><td>7</td><td><code>/api/ask</code> writes to and reads from any <code>sessionId</code> without checking its workspace.</td><td><code>app/api/ask/route.ts:103-123</code></td><td><span class="b high">high</span></td></tr>
+<tr><td>8</td><td>Any member can create roles with any permissions, rename the workspace or change its slug, and create or revoke API keys.</td><td><code>teams/roles/route.ts:31-46</code>, <code>settings/route.ts:65-81</code>, <code>settings/api-keys</code></td><td><span class="b high">high</span></td></tr>
+<tr><td>9</td><td>Permission-aware retrieval restricts nothing, because all 4 roles have <code>sources:read</code>.</td><td><code>lib/rbac.ts:26-55</code>, <code>ask/route.ts:146</code>, <code>search/route.ts:54</code></td><td><span class="b high">high</span></td></tr>
+<tr><td>10</td><td>No <code>middleware.ts</code>. <code>/dashboard</code> is protected only by a client redirect; an unauthenticated visit throws into <code>app/dashboard/error.tsx</code>.</td><td><code>app/lib/auth-context.tsx:65-70</code></td><td><span class="b high">high</span></td></tr>
+<tr><td>11</td><td>Password reset tokens stored in plaintext; forgot-password returns 500 only when the user exists, which reveals accounts.</td><td><code>app/api/auth/forgot-password/route.ts:29, 45</code></td><td><span class="b med">medium</span></td></tr>
+<tr><td>12</td><td>No session revocation: logout only deletes the cookie, and a password change does not end other sessions.</td><td><code>auth/logout</code>, <code>settings/password</code></td><td><span class="b med">medium</span></td></tr>
+<tr><td>13</td><td>Login rate limit is an in-memory <code>Map</code> per process, keyed by email. It resets on restart and does not share across instances.</td><td><code>app/api/auth/login/route.ts:14-17</code></td><td><span class="b med">medium</span></td></tr>
+<tr><td>14</td><td>Weak token crypto: crypto-js passphrase mode (MD5 key derivation, AES-CBC, no MAC); the library is discontinued.</td><td><code>lib/crypto.ts</code></td><td><span class="b med">medium</span></td></tr>
+<tr><td>15</td><td>Invite <code>teamIds</code> are connected without checking they belong to the workspace.</td><td><code>app/api/teams/members/route.ts:65</code></td><td><span class="b med">medium</span></td></tr>
+<tr><td>16</td><td>No security headers (CSP, HSTS and so on): <code>next.config.ts</code> is empty. No rate limits on register, forgot-password, search or upload.</td><td><code>next.config.ts</code></td><td><span class="b med">medium</span></td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="ingestion">8. Ingestion and retrieval</h2>
+<p>This is a short summary. For the full detail, including per-connector limits and prompt design, read <a href="corely-ai-pipelines.html">AI Pipelines</a>.</p>
+
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 310" role="img" aria-label="Ingestion and retrieval summary">
+<text class="ta" x="20" y="28">INGESTION</text>
+<rect class="bx" x="20" y="40" width="140" height="74" rx="8"/><text class="tt" x="30" y="60">Trigger</text><text class="tm" x="30" y="78">sync route, Gmail /</text><text class="tm" x="30" y="93">Notion callback,</text><text class="tm" x="30" y="108">upload, documents</text>
+<rect class="bx" x="180" y="40" width="140" height="74" rx="8"/><text class="tt" x="190" y="60">Fetch</text><text class="tm" x="190" y="78">decrypt token,</text><text class="tm" x="190" y="93">page provider API</text><text class="tm" x="190" y="108">(withRetry: Notion only)</text>
+<rect class="bx" x="340" y="40" width="140" height="74" rx="8"/><text class="tt" x="350" y="60">Dedupe</text><text class="tm" x="350" y="78">SHA-256 contentHash</text><text class="tm" x="350" y="93">on Document; skip</text><text class="tm" x="350" y="108">if unchanged</text>
+<rect class="bx" x="500" y="40" width="140" height="74" rx="8"/><text class="tt" x="510" y="60">Chunk</text><text class="tm" x="510" y="78">400 words,</text><text class="tm" x="510" y="93">50-word overlap</text><text class="mono" x="510" y="108">modules/ai/chunker.ts</text>
+<rect class="bx" x="660" y="40" width="140" height="74" rx="8"/><text class="tt" x="670" y="60">Embed</text><text class="tm" x="670" y="78">one OpenAI call per</text><text class="tm" x="670" y="93">chunk, in series</text><text class="tm" x="670" y="108">1536 dimensions</text>
+<rect class="bx" x="820" y="40" width="140" height="74" rx="8"/><text class="tt" x="830" y="60">Insert</text><text class="tm" x="830" y="78">supabaseAdmin →</text><text class="tm" x="830" y="93">document_chunks</text><text class="tc" x="830" y="108">Slack/Linear broken</text>
+<line class="ln" x1="160" y1="77" x2="178" y2="77" marker-end="url(#ah)"/>
+<line class="ln" x1="320" y1="77" x2="338" y2="77" marker-end="url(#ah)"/>
+<line class="ln" x1="480" y1="77" x2="498" y2="77" marker-end="url(#ah)"/>
+<line class="ln" x1="640" y1="77" x2="658" y2="77" marker-end="url(#ah)"/>
+<line class="ln" x1="800" y1="77" x2="818" y2="77" marker-end="url(#ah)"/>
+<rect class="bxa" x="500" y="136" width="460" height="38" rx="8"/>
+<text class="tt" x="515" y="160">Postgres document_chunks · vector(1536) · HNSW cosine</text>
+<line class="ln" x1="890" y1="114" x2="890" y2="134" marker-end="url(#ah)"/>
+<text class="ta" x="20" y="196">RETRIEVAL · POST /api/ask</text>
+<rect class="bx" x="20" y="210" width="140" height="80" rx="8"/><text class="tt" x="30" y="230">Rate limit</text><text class="tm" x="30" y="248">20 requests / 60 s</text><text class="tm" x="30" y="263">per user (Redis or</text><text class="tm" x="30" y="278">in-memory)</text>
+<rect class="bx" x="180" y="210" width="140" height="80" rx="8"/><text class="tt" x="190" y="230">History + scope</text><text class="tm" x="190" y="248">last 6 messages;</text><text class="tm" x="190" y="263">allowed source ids</text><text class="tm" x="190" y="278">(sentinel if empty)</text>
+<rect class="bx" x="340" y="210" width="140" height="80" rx="8"/><text class="tt" x="350" y="230">Embed question</text><text class="tm" x="350" y="248">latest question only</text><text class="tm" x="350" y="263">(no follow-up</text><text class="tm" x="350" y="278">rewriting)</text>
+<rect class="bx" x="500" y="210" width="140" height="80" rx="8"/><text class="tt" x="510" y="230">Vector search</text><text class="tm" x="510" y="248">$queryRaw cosine</text><text class="tm" x="510" y="263">similarity &gt; 0.55</text><text class="tm" x="510" y="278">LIMIT 8</text>
+<rect class="bx" x="660" y="210" width="140" height="80" rx="8"/><text class="tt" x="670" y="230">Freshness</text><text class="tm" x="670" y="248">decay per day by type:</text><text class="tm" x="670" y="263">Slack 2.0 … Notion 0.2</text><text class="tm" x="670" y="278">0 hits → no_knowledge</text>
+<rect class="bxa" x="820" y="210" width="140" height="80" rx="8"/><text class="tt" x="830" y="230">Answer</text><text class="tm" x="830" y="248">gpt-4o stream as SSE</text><text class="tm" x="830" y="263">save ChatMessage</text><text class="tm" x="830" y="278">with sources</text>
+<line class="ln" x1="160" y1="250" x2="178" y2="250" marker-end="url(#ah)"/>
+<line class="ln" x1="320" y1="250" x2="338" y2="250" marker-end="url(#ah)"/>
+<line class="ln" x1="480" y1="250" x2="498" y2="250" marker-end="url(#ah)"/>
+<line class="ln" x1="640" y1="250" x2="658" y2="250" marker-end="url(#ah)"/>
+<line class="ln" x1="800" y1="250" x2="818" y2="250" marker-end="url(#ah)"/>
+<line class="ln" x1="570" y1="176" x2="570" y2="208" marker-start="url(#ah)"/>
+</svg>
+</div>
+<figcaption>Connectors fetch, dedupe, chunk, embed and insert into document_chunks, and /api/ask embeds the question, pulls the top 8 chunks above 0.55 similarity, scores freshness and streams a gpt-4o answer.</figcaption>
+</figure>
+
+<ul>
+  <li><strong>Ingestion triggers.</strong> <code>POST /api/sources/[sourceId]/sync</code> (fire-and-forget dynamic <code>import()</code>), the Gmail and Notion OAuth callbacks, <code>POST /api/sources/upload</code>, and <code>POST /api/documents</code>. No schedule, no working webhooks, and the BullMQ queue is never used.</li>
+  <li><strong>Known breaks.</strong> Slack and Linear chunks never get embeddings. Only Notion purges deleted items. Gmail takes only the newest 100 threads from the last 180 days and never runs its incremental path. Freshness uses <code>Document.updatedAt</code>, which is <code>@updatedAt</code> (index time), so most sources look fresh after every sync.</li>
+  <li><strong>Embedding model fallback.</strong> <code>lib/openai.ts</code> silently falls back from <code>text-embedding-3-small</code> to <code>text-embedding-ada-002</code>. Both return 1536 numbers, but they are different vector spaces. Mixing them ruins similarity scores.</li>
+  <li><strong>Hallucination guard.</strong> When no chunk clears 0.55, the route sends a fixed "no knowledge" answer and never calls the model. Keep this.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="deployment">9. Deployment</h2>
+<p>The repo ships a <code>Dockerfile</code> and a <code>docker-compose.yml</code> (added in commit <code>14a5dc5</code>). The database is external (Supabase). Code hints suggest the app has also run on Vercel.</p>
+
+<h3>Docker image build</h3>
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 300" role="img" aria-label="Docker build stages">
+<rect class="bxa" x="20" y="20" width="290" height="180" rx="10"/>
+<text class="tt" x="35" y="44">Stage 1 · deps</text>
+<text class="mono" x="35" y="66">FROM node:22-bookworm-slim</text>
+<text class="tm" x="35" y="86">apt: openssl, ca-certificates</text>
+<text class="mono" x="35" y="106">COPY package.json package-lock.json</text>
+<text class="mono" x="35" y="126">RUN npm ci</text>
+<text class="tm" x="35" y="146">keeps dev deps on purpose: the app</text>
+<text class="tm" x="35" y="162">needs @prisma/adapter-pg, pg and tsx,</text>
+<text class="tm" x="35" y="178">which sit in devDependencies</text>
+<rect class="bxa" x="345" y="20" width="290" height="180" rx="10"/>
+<text class="tt" x="360" y="44">Stage 2 · builder</text>
+<text class="mono" x="360" y="66">COPY --from=deps node_modules</text>
+<text class="mono" x="360" y="84">COPY . .</text>
+<text class="mono" x="360" y="102">NEXT_TELEMETRY_DISABLED=1</text>
+<text class="mono" x="360" y="120">NODE_OPTIONS=--max-old-space-size=4096</text>
+<text class="mono" x="360" y="138">RUN npm run build</text>
+<text class="tm" x="360" y="156">(prisma generate &amp;&amp; next build, no DB needed)</text>
+<text class="mono" x="360" y="176">rm -rf .next/cache .next/trace</text>
+<text class="mono" x="360" y="192">       .next/types   (≈964 MB cache)</text>
+<rect class="bxa" x="670" y="20" width="290" height="180" rx="10"/>
+<text class="tt" x="685" y="44">Stage 3 · runner</text>
+<text class="mono" x="685" y="66">COPY --from=builder --chown=node:node</text>
+<text class="mono" x="685" y="84">     /app ./   (whole folder)</text>
+<text class="mono" x="685" y="104">USER node · EXPOSE 3000</text>
+<text class="mono" x="685" y="122">PORT=3000 HOSTNAME=0.0.0.0</text>
+<text class="mono" x="685" y="142">CMD ["npm", "run", "start"]</text>
+<text class="tm" x="685" y="162">image ≈ 2.6 GB, node_modules ≈ 1.7 GB</text>
+<text class="tm" x="685" y="178">worker: override CMD with npm run worker</text>
+<line class="lna" x1="310" y1="110" x2="343" y2="110" marker-end="url(#aha)"/>
+<line class="lna" x1="635" y1="110" x2="668" y2="110" marker-end="url(#aha)"/>
+<rect class="bx" x="20" y="222" width="940" height="60" rx="10" style="fill:var(--bg)"/>
+<text class="tt" x="35" y="245">.dockerignore keeps out</text>
+<text class="mono" x="35" y="266">node_modules · .next · .git · .env · .env.* · *.pem · *.md · fix_*.js · replace_css.js · scripts/fix-*.js · .vercel · Dockerfile</text>
+</svg>
+</div>
+<figcaption>The image builds in three node:22-bookworm-slim stages (install, build, run) and ships the whole built folder as a non-root user, because pdf-parse and the tsx worker load files at run time.</figcaption>
+</figure>
+
+<h3>docker-compose topology</h3>
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 330" role="img" aria-label="docker-compose topology">
+<rect class="bxd" x="20" y="20" width="620" height="295" rx="12"/>
+<text class="tm" x="35" y="40">Docker host · compose project "corely"</text>
+<rect class="bxa" x="45" y="65" width="270" height="170" rx="10"/>
+<text class="tt" x="60" y="88">app (container "corely")</text>
+<text class="mono" x="60" y="108">image corely:latest (build .)</text>
+<text class="mono" x="60" y="126">ports 3000:3000</text>
+<text class="mono" x="60" y="144">env_file .env (+ .env.local)</text>
+<text class="mono" x="60" y="162">REDIS_URL=redis://redis:6379</text>
+<text class="mono" x="60" y="180">restart: unless-stopped</text>
+<text class="mono" x="60" y="198">healthcheck: fetch("/")</text>
+<text class="mono" x="60" y="214">  every 30s, start 20s</text>
+<rect class="bx" x="375" y="65" width="240" height="170" rx="10"/>
+<text class="tt" x="390" y="88">redis ("corely-redis")</text>
+<text class="mono" x="390" y="108">image redis:7-alpine</text>
+<text class="mono" x="390" y="126">no published port</text>
+<text class="mono" x="390" y="144">volume redis-data:/data</text>
+<text class="mono" x="390" y="162">healthcheck redis-cli ping</text>
+<text class="mono" x="390" y="180">  every 10s, 5 retries</text>
+<text class="tm" x="390" y="204">rate-limit counters only</text>
+<line class="ln" x1="315" y1="150" x2="373" y2="150" marker-end="url(#ah)"/>
+<text class="ms" x="318" y="142">depends_on:</text>
+<text class="ms" x="318" y="166">healthy</text>
+<rect class="bxn" x="45" y="255" width="270" height="44" rx="8"/>
+<text class="tx" x="60" y="282">Browser → http://localhost:3000</text>
+<line class="ln" x1="180" y1="255" x2="180" y2="237" marker-end="url(#ah)"/>
+<rect class="bxn" x="375" y="255" width="240" height="44" rx="8"/>
+<text class="tm" x="390" y="274">no worker service (sync runs in app)</text>
+<text class="tm" x="390" y="290">no database container</text>
+<path class="ln" d="M180,65 V52 H670 V270"/>
+<rect class="bxa" x="700" y="30" width="260" height="80" rx="10"/>
+<text class="tt" x="715" y="54">Supabase Postgres (cloud)</text>
+<text class="tm" x="715" y="74">DATABASE_URL + SUPABASE_* keys</text>
+<text class="tm" x="715" y="92">pgvector, reached over the internet</text>
+<rect class="bx" x="700" y="130" width="260" height="56" rx="10"/>
+<text class="tt" x="715" y="154">OpenAI API</text>
+<text class="tm" x="715" y="173">OPENAI_API_KEY</text>
+<rect class="bx" x="700" y="206" width="260" height="90" rx="10"/>
+<text class="tt" x="715" y="230">OAuth providers + Gmail SMTP</text>
+<text class="tm" x="715" y="250">redirect URIs must use port 3000</text>
+<text class="tm" x="715" y="266">(NEXT_PUBLIC_APP_URL =</text>
+<text class="tm" x="715" y="282">http://localhost:3000)</text>
+<line class="ln" x1="670" y1="70" x2="698" y2="70" marker-end="url(#ah)"/>
+<line class="ln" x1="670" y1="158" x2="698" y2="158" marker-end="url(#ah)"/>
+<line class="ln" x1="670" y1="250" x2="698" y2="250" marker-end="url(#ah)"/>
+</svg>
+</div>
+<figcaption>Compose runs two containers, the app on port 3000 and a private redis:7-alpine with a volume, while the database, OpenAI, the OAuth providers and SMTP stay outside on the internet.</figcaption>
+</figure>
+
+<h3>One-time database setup</h3>
+<p>Run both, in this order, once per new database. The second is required: <code>prisma db push</code> cannot create the <code>vector</code> column.</p>
+<pre><code># on your machine
+npx prisma db push
+npx tsx scripts/init-pgvector.ts
+
+# with docker compose
+docker compose run --rm app npx prisma db push
+docker compose run --rm app npx tsx scripts/init-pgvector.ts
+
+# with plain docker
+docker run --rm --env-file .env corely npx prisma db push
+docker run --rm --env-file .env corely npx tsx scripts/init-pgvector.ts</code></pre>
+<p>There are no migration files. <code>db push</code> changes the live schema directly, so there is no history and no safe rollback.</p>
+
+<h3>Environment variables</h3>
+<p>No <code>.env.example</code> exists. Most clients fall back to a dummy value so <code>next build</code> works with no secrets. That also means a missing secret in production fails late and quietly instead of at start-up.</p>
+<div class="tbl"><table>
+<thead><tr><th>Variable</th><th>What it is for</th><th>Read in</th><th>Fallback</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE_URL</code></td><td>Postgres connection for Prisma.</td><td><code>lib/db.ts</code>, <code>prisma.config.ts</code></td><td><span class="b med">yes</span> dummy <code>localhost:5432</code></td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>Signs session and OAuth state JWTs.</td><td><code>lib/auth-server.ts</code></td><td><span class="b crit">yes, unsafe</span> <code>"fallback-secret-for-development-only"</code></td></tr>
+<tr><td><code>ENCRYPTION_KEY</code></td><td>AES passphrase for stored OAuth tokens.</td><td><code>lib/crypto.ts</code></td><td><span class="b ok">no</span> throws if missing</td></tr>
+<tr><td><code>OPENAI_API_KEY</code></td><td>Embeddings and chat.</td><td><code>lib/openai.ts</code></td><td><span class="b med">yes</span> <code>"dummy-key-for-build"</code></td></tr>
+<tr><td><code>REDIS_URL</code></td><td>Rate limiting; BullMQ queue and worker.</td><td><code>lib/rate-limit.ts</code>, <code>lib/redis.ts</code>, <code>workers/index.ts</code></td><td><span class="b med">yes</span> rate-limit: in-memory; queue/worker: <code>redis://127.0.0.1:6379</code>. Compose sets <code>redis://redis:6379</code>.</td></tr>
+<tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Supabase project URL.</td><td><code>lib/supabase.ts</code></td><td><span class="b med">yes</span> dummy URL</td></tr>
+<tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Full-access key for <code>supabaseAdmin</code>.</td><td><code>lib/supabase.ts</code></td><td><span class="b med">yes</span> dummy</td></tr>
+<tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Anon client (never imported).</td><td><code>lib/supabase.ts</code></td><td><span class="b med">yes</span> dummy</td></tr>
+<tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td>Base URL for OAuth redirect URIs and email links (14 uses).</td><td>all connect/callback routes, <code>gmail.ts</code>, <code>forgot-password</code></td><td><span class="b med">yes</span> request origin; <code>https://corely-khaki.vercel.app</code> in forgot-password</td></tr>
+<tr><td><code>EMAIL_USER</code> / <code>EMAIL_PASS</code></td><td>Gmail SMTP login for nodemailer.</td><td><code>lib/email.ts</code></td><td><span class="b crit">yes, leaked</span> a real personal address and app password</td></tr>
+<tr><td><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></td><td>Google Drive OAuth (also Gmail's fallback).</td><td>google-drive routes, <code>google-drive.ts</code>, <code>folders</code></td><td><span class="b ok">no</span></td></tr>
+<tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>Drive redirect URI used during token refresh.</td><td><code>google-drive.ts:91</code>, <code>folders/route.ts:57</code></td><td><span class="b ok">no</span></td></tr>
+<tr><td><code>GMAIL_CLIENT_ID</code> / <code>GMAIL_CLIENT_SECRET</code></td><td>Gmail OAuth.</td><td>gmail routes, <code>gmail.ts</code></td><td><span class="b med">yes</span> falls back to <code>GOOGLE_*</code></td></tr>
+<tr><td><code>GMAIL_REDIRECT_URI</code></td><td>Gmail redirect for token refresh.</td><td><code>gmail.ts:22</code></td><td><span class="b med">yes</span> <code>${NEXT_PUBLIC_APP_URL}/api/sources/gmail/callback</code></td></tr>
+<tr><td><code>GITHUB_CLIENT_ID</code> / <code>_SECRET</code></td><td>GitHub OAuth.</td><td>github routes</td><td><span class="b ok">no</span> (callback errors <code>github_not_configured</code>)</td></tr>
+<tr><td><code>NOTION_CLIENT_ID</code> / <code>_SECRET</code></td><td>Notion OAuth.</td><td>notion routes</td><td><span class="b ok">no</span></td></tr>
+<tr><td><code>SLACK_CLIENT_ID</code> / <code>_SECRET</code></td><td>Slack OAuth.</td><td>slack routes</td><td><span class="b ok">no</span> (<code>server_configuration</code> error)</td></tr>
+<tr><td><code>LINEAR_CLIENT_ID</code> / <code>_SECRET</code></td><td>Linear OAuth.</td><td>linear routes</td><td><span class="b ok">no</span> (<code>server_configuration</code> error)</td></tr>
+<tr><td><code>NODE_ENV</code></td><td>Cookie <code>secure</code> flag, Prisma query logging, client singletons.</td><td><code>lib/db.ts</code>, <code>lib/openai.ts</code>, login, register</td><td>set by Next.js</td></tr>
+</tbody></table></div>
+<p>CLAUDE.md mentions redirect-URI variables for every provider. The code only reads two: <code>GOOGLE_REDIRECT_URI</code> and <code>GMAIL_REDIRECT_URI</code>. The others build their redirect from <code>NEXT_PUBLIC_APP_URL</code>.</p>
+
+<h3>Vercel hints</h3>
+<ul>
+  <li><code>https://corely-khaki.vercel.app</code> is hardcoded twice: the reset-link fallback (<code>app/api/auth/forgot-password/route.ts:38</code>) and the invite email login button (<code>app/api/teams/members/route.ts:81</code>). Invites from any other deployment point people to that URL.</li>
+  <li><code>.dockerignore</code> lists <code>.vercel</code>, the folder the Vercel CLI creates.</li>
+  <li>There is no <code>vercel.json</code>, no cron config and no function duration setting.</li>
+  <li>On Vercel, each API route runs as a serverless function. The fire-and-forget sync in <code>POST /api/sources/[sourceId]/sync</code> keeps running only until the platform freezes the function after the response. Long syncs will likely die halfway and leave the source stuck on "syncing". Docker does not have this problem because the Node process stays up.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="nfr">10. Non-functional review</h2>
+<p>Honest notes on the current state, with fixes taken from the implementation plan in the gap analysis.</p>
+<div class="cards">
+<div class="card">
+<h3>Scalability</h3>
+<h4>Now</h4>
+<ul>
+<li>Embeddings are made one chunk at a time, in series, with one OpenAI call each. A 4,000-word document is about 11 chunks, so 11 round trips.</li>
+<li>Syncs run inside the web process. Heavy syncs compete with user requests.</li>
+<li>Login and fallback rate limits are per process, so they do not hold across instances.</li>
+<li>Gmail caps at 100 threads; Slack at 500 messages per channel and 200 channels; GitHub at README + 100 issues + 50 PRs.</li>
+<li>Each process has its own <code>pg</code> Pool. Many serverless instances can exhaust Postgres connections.</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Batch embeddings (the API takes an array of inputs).</li>
+<li>Enqueue to <code>sourceQueue</code> and run the worker as a second compose service.</li>
+<li>Use a pooled connection string (Supabase pooler) for serverless.</li>
+<li>Move all rate limits to Redis.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Performance</h3>
+<h4>Now</h4>
+<ul>
+<li>Retrieval is one indexed vector query (<code>LIMIT 8</code>) plus three source-list queries per question.</li>
+<li><code>/api/analytics</code> loads every document's <code>rawContent</code> into memory to count bytes.</li>
+<li>A changed document has all its chunks deleted and embedded again.</li>
+<li>The Docker image is about 2.6 GB because it keeps dev dependencies and source files.</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Compute storage with <code>SUM(octet_length(raw_content))</code> in SQL.</li>
+<li>Move <code>@prisma/adapter-pg</code>, <code>pg</code> and <code>tsx</code> to <code>dependencies</code>, then <code>npm ci --omit=dev</code> in the runner stage.</li>
+<li>Remove unused packages (<code>ai</code>, <code>docx</code>, <code>gsap</code>, 4 Radix packages, <code>class-variance-authority</code>, <code>cross-env</code>).</li>
+</ul>
+</div>
+<div class="card">
+<h3>Reliability</h3>
+<h4>Now</h4>
+<ul>
+<li>Fire-and-forget sync: on serverless it can be cut off after the response.</li>
+<li>Connectors throw early errors (no token, refresh failure, "Gmail OAuth is not configured") before their <code>try</code> block, so status stays "syncing" forever and retries get 409.</li>
+<li>Only Notion has <code>withRetry</code> (401 → reconnect, 429 → backoff). BullMQ's 3 attempts with backoff are unused.</li>
+<li>Slack and Linear chunks fail to insert, and the error is only logged.</li>
+<li>No root <code>error.tsx</code>, <code>global-error.tsx</code> or <code>not-found.tsx</code>; only <code>app/dashboard/error.tsx</code>.</li>
+<li>No migrations: <code>db push</code> only, no history, no rollback.</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Wrap each connector body in <code>try/catch</code> that sets status "error"; recover stale "syncing" rows.</li>
+<li>Shared <code>withRetry</code> for all connectors.</li>
+<li>Switch to <code>prisma migrate</code> and add zod env validation that fails fast.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Observability</h3>
+<h4>Now</h4>
+<ul>
+<li>Only <code>console.log</code> / <code>console.error</code>, often with emoji. No logger, no request ids, no Sentry.</li>
+<li>Audit log is written only on password change; <code>ipAddress</code> is never set.</li>
+<li>Sync history is one synthetic entry; there is no record of real runs.</li>
+<li>The compose healthcheck only fetches <code>/</code>; it does not check the database.</li>
+<li>No tests and no CI.</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Add Sentry and a structured logger to the app and worker.</li>
+<li>Write a sync-history row per run; notify on sync failure.</li>
+<li>Audit logins, invites, role changes, source connect/sync and key creation.</li>
+<li>Vitest plus a GitHub Actions workflow for lint, type check and tests.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Security</h3>
+<h4>Now</h4>
+<ul>
+<li>Leaked SMTP password in git; 9 unauthenticated route handlers; login takeover; unsafe JWT fallback; state token reuse risk; weak token crypto. Full list in the <a href="#security">threat list</a>.</li>
+<li>No middleware, no security headers, no rate limits on register, forgot-password, search or upload.</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Phase 0 first: rotate the Gmail password, remove fallback secrets, add auth and workspace checks to the open routes, add <code>middleware.ts</code>, remove the no-password login path and <code>_devPassword</code>, use a separate key for OAuth state and check the nonce.</li>
+<li>Replace crypto-js with Node <code>crypto</code> AES-256-GCM and re-encrypt tokens.</li>
+<li>Add permissions for settings, API keys, roles and workflows; narrow Viewer.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Cost</h3>
+<h4>Now</h4>
+<ul>
+<li>Every answered question is a <code>gpt-4o</code> call with up to 8 chunks of about 400 words, 6 history messages, and up to 1,500 output tokens.</li>
+<li>Questions with no match cost only one embedding call (the no-knowledge guard).</li>
+<li>Re-embedding whole documents on any change multiplies embedding spend.</li>
+<li>Plan limits (100 docs / 500 queries) are shown but not enforced, and the plan never changes from "trial".</li>
+</ul>
+<h4>Recommend</h4>
+<ul>
+<li>Honour the saved <code>defaultLlm</code> so cheaper models can be used.</li>
+<li>Enforce limits per plan; add Stripe to tie usage to billing.</li>
+<li>Incremental sync (Gmail <code>history.list</code>, Drive <code>changes.list</code>, Slack <code>oldest</code>, Linear <code>updatedAt</code>) to avoid re-reading everything.</li>
+</ul>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="target">11. Target architecture (proposed)</h2>
+<div class="callout"><p><strong>Proposed, not built.</strong> This picture shows where the implementation plan (Phases 0-7 in the gap analysis) leads. None of it exists in the code today.</p></div>
+
+<figure class="diagram">
+<div class="svgwrap">
+<svg viewBox="0 0 980 530" role="img" aria-label="Proposed target architecture">
+<rect class="bxd" x="5" y="5" width="970" height="520" rx="14"/>
+<text class="ta" x="830" y="28">PROPOSED</text>
+<!-- left clients -->
+<rect class="bx" x="20" y="50" width="180" height="70" rx="8"/>
+<text class="tt" x="32" y="72">Browser</text>
+<text class="tm" x="32" y="90">marketing + dashboard</text>
+<text class="tm" x="32" y="106">session cookie</text>
+<rect class="bx" x="20" y="140" width="180" height="80" rx="8"/>
+<text class="tt" x="32" y="162">API clients</text>
+<text class="tm" x="32" y="180">Bearer API key</text>
+<text class="mono" x="32" y="198">/api/v1/ask</text>
+<text class="mono" x="32" y="212">/api/v1/search</text>
+<rect class="bx" x="20" y="240" width="180" height="90" rx="8"/>
+<text class="tt" x="32" y="262">Provider webhooks</text>
+<text class="tm" x="32" y="280">Drive changes.watch</text>
+<text class="tm" x="32" y="296">(+ channel renewal)</text>
+<text class="tm" x="32" y="312">Notion (signature check)</text>
+<rect class="bx" x="20" y="350" width="180" height="70" rx="8"/>
+<text class="tt" x="32" y="372">Stripe</text>
+<text class="tm" x="32" y="390">plans, checkout,</text>
+<text class="tm" x="32" y="406">billing webhooks</text>
+<!-- next app -->
+<rect class="bx" x="250" y="40" width="390" height="470" rx="10"/>
+<text class="tt" x="265" y="62">Next.js app</text>
+<rect class="bxa" x="265" y="75" width="360" height="50" rx="8"/>
+<text class="tx" x="277" y="95">middleware.ts</text>
+<text class="tm" x="277" y="113">session check · redirect /dashboard → /login</text>
+<rect class="bxa" x="265" y="137" width="360" height="62" rx="8"/>
+<text class="tx" x="277" y="157">Pages + /api/*</text>
+<text class="tm" x="277" y="175">auth() + workspace check on every route</text>
+<text class="tm" x="277" y="190">new permissions: settings, apikeys, workflows</text>
+<rect class="bxa" x="265" y="211" width="360" height="62" rx="8"/>
+<text class="tx" x="277" y="231">/api/v1/* public API</text>
+<text class="tm" x="277" y="249">API key: lookup prefix + hash, lastUsedAt</text>
+<text class="tm" x="277" y="264">per-key rate limits in Redis</text>
+<rect class="bxa" x="265" y="285" width="360" height="50" rx="8"/>
+<text class="tx" x="277" y="305">/api/webhooks/* (Drive, Notion, Stripe)</text>
+<text class="tm" x="277" y="323">verify signature → enqueue job, return fast</text>
+<rect class="bxa" x="265" y="347" width="360" height="72" rx="8"/>
+<text class="tx" x="277" y="367">Retrieval</text>
+<text class="tm" x="277" y="385">rewrite follow-ups → hybrid search</text>
+<text class="tm" x="277" y="400">(tsvector keyword + pgvector) → dedupe per doc</text>
+<text class="tm" x="277" y="414">pinned OrgMemory as context · honour defaultLlm</text>
+<rect class="bxa" x="265" y="431" width="360" height="66" rx="8"/>
+<text class="tx" x="277" y="451">Plans and limits</text>
+<text class="tm" x="277" y="469">Stripe plan on Workspace, limits enforced</text>
+<text class="tm" x="277" y="484">Sentry SDK + structured logger</text>
+<!-- right -->
+<rect class="bx" x="690" y="50" width="270" height="88" rx="8"/>
+<text class="tt" x="702" y="72">Redis + BullMQ</text>
+<text class="tm" x="702" y="90">queue corely-sources</text>
+<text class="tm" x="702" y="106">repeatable jobs from syncSchedule</text>
+<text class="tm" x="702" y="122">(hourly / daily / weekly)</text>
+<rect class="bxa" x="690" y="155" width="270" height="120" rx="8"/>
+<text class="tt" x="702" y="177">Worker service</text>
+<text class="tm" x="702" y="195">second compose service</text>
+<text class="tm" x="702" y="211">sync-* jobs, shared withRetry</text>
+<text class="tm" x="702" y="227">purge deleted, incremental sync</text>
+<text class="tm" x="702" y="243">batched embeddings</text>
+<text class="tm" x="702" y="259">status "error" on any failure</text>
+<rect class="bx" x="690" y="292" width="270" height="88" rx="8"/>
+<text class="tt" x="702" y="314">Postgres (Supabase)</text>
+<text class="tm" x="702" y="332">Prisma migrations</text>
+<text class="tm" x="702" y="348">pgvector HNSW + tsvector GIN</text>
+<text class="tm" x="702" y="364">hashed reset tokens, GCM tokens</text>
+<rect class="bx" x="690" y="395" width="270" height="48" rx="8"/>
+<text class="tt" x="702" y="417">OpenAI</text>
+<text class="tm" x="702" y="434">batched embeddings, chosen chat model</text>
+<rect class="bx" x="690" y="458" width="270" height="48" rx="8"/>
+<text class="tt" x="702" y="480">Sentry</text>
+<text class="tm" x="702" y="497">errors from app and worker</text>
+<!-- arrows -->
+<line class="ln" x1="200" y1="90" x2="263" y2="100" marker-end="url(#ah)"/>
+<line class="ln" x1="200" y1="180" x2="263" y2="240" marker-end="url(#ah)"/>
+<line class="ln" x1="200" y1="285" x2="263" y2="305" marker-end="url(#ah)"/>
+<line class="ln" x1="200" y1="385" x2="263" y2="320" marker-end="url(#ah)"/>
+<line class="lna" x1="625" y1="310" x2="688" y2="100" marker-end="url(#aha)"/>
+<text class="ms" x="636" y="216">enqueue</text>
+<line class="lna" x1="825" y1="138" x2="825" y2="153" marker-end="url(#aha)"/>
+<line class="ln" x1="825" y1="275" x2="825" y2="290" marker-end="url(#ah)"/>
+<line class="ln" x1="625" y1="383" x2="688" y2="340" marker-end="url(#ah)"/>
+<line class="ln" x1="625" y1="400" x2="688" y2="419" marker-end="url(#ah)"/>
+<line class="ln" x1="625" y1="470" x2="688" y2="482" marker-end="url(#ah)"/>
+<path class="lnd" d="M960,250 H970 V482 H962" marker-end="url(#ah)"/>
+</svg>
+</div>
+<figcaption>Proposed future state: middleware guards the dashboard, webhooks and schedules feed a BullMQ worker that does all syncing, retrieval becomes hybrid keyword plus vector search, and an API-key public API, Stripe billing and Sentry are added.</figcaption>
+</figure>
+
+<h3>What changes, by plan phase</h3>
+<div class="tbl"><table>
+<thead><tr><th>Area</th><th>Today</th><th>Proposed</th><th>Plan phase</th></tr></thead>
+<tbody>
+<tr><td>Dashboard guard</td><td>Client redirect only</td><td><code>middleware.ts</code> session check and redirect</td><td>0</td></tr>
+<tr><td>Sync engine</td><td>Fire-and-forget inside the web request</td><td>Enqueue to <code>sourceQueue</code>; worker as a compose service; direct call only when no Redis</td><td>2</td></tr>
+<tr><td>Scheduling</td><td><code>syncSchedule</code> sent by UI, ignored</td><td>Saved, turned into BullMQ repeatable jobs</td><td>2</td></tr>
+<tr><td>Webhooks</td><td>Stubs that log</td><td>Drive <code>changes.watch</code> + renewal, Notion signature check, both enqueue</td><td>2</td></tr>
+<tr><td>Retrieval</td><td>Vector only, latest question only</td><td>Follow-up rewriting, hybrid tsvector + pgvector, dedupe per document</td><td>4</td></tr>
+<tr><td>Public API</td><td>Keys created, never checked</td><td><code>/api/v1/ask</code>, <code>/api/v1/search</code> with key lookup prefix</td><td>6</td></tr>
+<tr><td>Billing</td><td>Plan stuck on "trial", limits not enforced</td><td>Stripe plans and enforced limits</td><td>6</td></tr>
+<tr><td>Observability</td><td><code>console.*</code></td><td>Sentry, logger, root error pages</td><td>7</td></tr>
+<tr><td>Quality gates</td><td>No tests, no CI, <code>db push</code></td><td>Vitest + GitHub Actions, Prisma migrations, zod env validation</td><td>7</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="glossary">12. Glossary</h2>
+<dl class="gloss">
+<dt>App Router</dt><dd>The Next.js way of building pages and APIs from folders under <code>app/</code>. A <code>page.tsx</code> is a page; a <code>route.ts</code> is an API endpoint.</dd>
+<dt>Route handler</dt><dd>A <code>route.ts</code> file that exports functions named after HTTP methods (<code>GET</code>, <code>POST</code> and so on).</dd>
+<dt>Server component / client component</dt><dd>A server component runs only on the server and can read the database directly. A client component (<code>"use client"</code>) runs in the browser and must call APIs.</dd>
+<dt><code>force-dynamic</code></dt><dd>A route setting that makes Next.js run the code on every request instead of caching a pre-built result.</dd>
+<dt>Middleware</dt><dd>A <code>middleware.ts</code> file that runs before matching requests, often used to redirect people who are not logged in. Corely has none.</dd>
+<dt>RAG (retrieval-augmented generation)</dt><dd>Find relevant text first, then give it to a language model so the answer is based on that text.</dd>
+<dt>Embedding</dt><dd>A list of numbers (1536 here) that stands for the meaning of a piece of text. Similar meanings give nearby lists.</dd>
+<dt>Chunk</dt><dd>A slice of a document (400 words with 50 words of overlap in Corely) that gets its own embedding.</dd>
+<dt>pgvector</dt><dd>A Postgres extension that adds a <code>vector</code> column type and distance operators such as <code>&lt;=&gt;</code> (cosine distance).</dd>
+<dt>Cosine similarity</dt><dd>A score from -1 to 1 of how closely two vectors point the same way. Corely uses <code>1 - cosine distance</code> and keeps chunks above 0.55.</dd>
+<dt>HNSW / ivfflat</dt><dd>Two index types for fast "find the nearest vectors" search. HNSW builds a layered graph; ivfflat groups vectors into clusters (lists).</dd>
+<dt>SSE (server-sent events)</dt><dd>A simple one-way stream from server to browser over HTTP, sent as <code>data: ...</code> lines. <code>/api/ask</code> uses it to stream the answer.</dd>
+<dt>JWT (JSON Web Token)</dt><dd>A signed, base64-encoded JSON object. Anyone with the key can check it was not changed.</dd>
+<dt>HS256</dt><dd>A JWT signing method that uses one shared secret (HMAC with SHA-256).</dd>
+<dt>OAuth</dt><dd>A standard that lets a user give Corely limited access to another service without sharing their password.</dd>
+<dt>OAuth <code>state</code></dt><dd>A value sent to the provider and returned in the callback, used to tie the callback to the user who started it and stop forged callbacks.</dd>
+<dt>Nonce</dt><dd>A random one-time value. It only protects anything if the server saves it and checks it later.</dd>
+<dt>RBAC (role-based access control)</dt><dd>Rights are given to roles, and each user gets a role.</dd>
+<dt>Envelope</dt><dd>The fixed JSON wrapper every API answer uses: <code>{ success, data | error, version }</code>.</dd>
+<dt>Prisma</dt><dd>A TypeScript database toolkit: schema file, generated client, and schema push or migrations.</dd>
+<dt><code>db push</code> vs migrations</dt><dd><code>db push</code> changes the live database to match the schema with no history. Migrations are saved SQL steps you can review, replay and roll back.</dd>
+<dt>Service-role key</dt><dd>A Supabase key with full database access that skips row-level security. Server only.</dd>
+<dt>BullMQ</dt><dd>A job queue for Node that stores jobs in Redis and runs them in worker processes, with retries and schedules.</dd>
+<dt>Redis</dt><dd>A fast in-memory data store. Corely uses it for rate-limit counters and (unused) the job queue.</dd>
+<dt>Fire-and-forget</dt><dd>Starting work and returning without waiting for it or tracking its result.</dd>
+<dt>Serverless function</dt><dd>Code that a platform such as Vercel starts per request and may freeze or stop soon after the response is sent.</dd>
+<dt>Hybrid search</dt><dd>Combining keyword search (Postgres <code>tsvector</code>) with vector search, so exact names and codes are found as well as similar meanings.</dd>
+<dt>AES-CBC / AES-GCM</dt><dd>Two ways to use AES encryption. CBC alone does not detect tampering; GCM does, because it adds an authentication tag.</dd>
+<dt><code>EVP_BytesToKey</code></dt><dd>An old OpenSSL method to turn a passphrase into a key. With MD5 and one round, it is fast to brute-force.</dd>
+<dt>bcrypt</dt><dd>A slow password-hashing function. Corely uses cost 10.</dd>
+<dt>Multi-stage Docker build</dt><dd>A Dockerfile with several <code>FROM</code> steps, where later steps copy only what they need from earlier ones.</dd>
+<dt>Healthcheck</dt><dd>A command Docker runs on a timer to decide if a container is healthy.</dd>
+</dl>
+
+</main>
+</div>
+
+<footer>Generated 2026-10-04 from a read-only audit of the Corely repository (branch master).</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var btn = document.getElementById('themeBtn');
+  try { var saved = localStorage.getItem('corely-docs-theme'); if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved); } catch (e) {}
+  function current(){
+    var t = root.getAttribute('data-theme');
+    if (t === 'light' || t === 'dark') return t;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function label(){ btn.textContent = current() === 'dark' ? 'Light mode' : 'Dark mode'; }
+  btn.addEventListener('click', function(){
+    var next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('corely-docs-theme', next); } catch (e) {}
+    label();
+  });
+  label();
+})();
+</script>
+</body>
+</html>

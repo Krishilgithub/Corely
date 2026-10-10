@@ -1,0 +1,20 @@
+USER REQUEST: make a one min intro video of this product with voice (if possible) explaining the system design of the project.
+
+PRODUCT: Corely — an "institutional memory" / RAG engine (retrieval-augmented generation: find the relevant text first, then ask a language model to answer using only that text).
+
+FACTS FROM THE CODE:
+- One Next.js 15 (App Router) app. The same Node process serves the marketing site, the dashboard, all 59 API routes, and runs source syncs in the background.
+- Connects to 6 sources via OAuth: Notion, Gmail, Google Drive, GitHub, Slack, Linear. Plus manual upload of PDF, DOCX and text files.
+- OAuth tokens are stored AES-encrypted on the Source row and decrypted for each sync.
+- Sync pipeline per connector: fetch from the provider API -> dedupe with a SHA-256 content hash -> chunk (400-word chunks, 50-word overlap) -> embed with OpenAI text-embedding-3-small (1536 numbers per chunk, fallback ada-002) -> insert into document_chunks.
+- One database: Postgres on Supabase with the pgvector extension, HNSW cosine index. 18 Prisma models, all scoped under a Workspace. Prisma writes normal rows; supabaseAdmin writes the embedding column (Prisma cannot write vector columns). Same tables, two clients.
+- Auth: JWT session cookie (jose, HS256, 24h). Role-based permissions: 4 default roles — Admin, Developer, Product Manager, Viewer.
+- Ask Corely (/api/ask):
+  1. Rate limit: 20 requests per 60 seconds per user (Redis, in-memory fallback).
+  2. Stateful chat: loads the last 6 messages of the session as history.
+  3. Permission filter: only searches sources the user is allowed to see.
+  4. pgvector cosine search, similarity above 0.55, top 8 chunks.
+  5. Temporal freshness: confidence decays per day since the doc was updated. Slack decays fastest (2.0 points/day), Notion and Google Docs slowest (0.2).
+  6. Streams a gpt-4o answer (temperature 0.2) back over server-sent events, with inline citations. Saves the answer as a ChatMessage.
+- Hallucination guard: if no chunk clears 0.55 similarity, Corely returns a fixed "no knowledge" answer and never calls the model.
+- Optional Redis 7 for rate limits; a BullMQ worker exists but is idle today. Deployed with Docker (node:22-bookworm-slim) plus docker-compose with Redis.

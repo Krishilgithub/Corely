@@ -1,0 +1,639 @@
+<template>
+  <div data-hf-id="hf-gbxe" id="root" data-composition-id="04-embed" data-start="0" data-duration="9.673" data-width="1920" data-height="1080">
+    <style>
+      @font-face {
+        font-family: "Space Grotesk";
+        font-style: normal;
+        font-weight: 500;
+        font-display: block;
+        src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-style: normal;
+        font-weight: 600;
+        font-display: block;
+        src: url("assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Space Grotesk";
+        font-style: normal;
+        font-weight: 700;
+        font-display: block;
+        src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        container-type: size;
+        font-family: "Inter", sans-serif;
+        color: #111111;
+      }
+
+      /* full-bleed cream ground */
+      .\30 4-embed-bg {
+        position: absolute;
+        inset: 0;
+        background: #fdfae7;
+      }
+
+      /* ---------- pipeline rail (shared geometry, frames 03-07) ---------- */
+      .\30 4-embed-rail {
+        position: absolute;
+        inset: 0;
+      }
+      .\30 4-embed-hairline {
+        position: absolute;
+        left: 360px;
+        top: 119px;
+        width: 1200px;
+        height: 1.5px;
+        background: rgba(30, 43, 250, 0.2);
+      }
+      .\30 4-embed-step {
+        position: absolute;
+        top: 92px;
+        width: 240px;
+        height: 110px;
+      }
+      .\30 4-embed-circle {
+        position: absolute;
+        left: 92px;
+        top: 0;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 2px solid #1e2bfa;
+        background: #fdfae7;
+        overflow: hidden;
+      }
+      .\30 4-embed-circle-fill {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: #1e2bfa;
+      }
+      .\30 4-embed-circle-num {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 20px;
+        color: #1e2bfa;
+      }
+      .\30 4-embed-step-label {
+        position: absolute;
+        left: 0;
+        top: 70px;
+        width: 240px;
+        text-align: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 17px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b6b6b;
+      }
+
+      /* ---------- camera layer ---------- */
+      .\30 4-embed-camera {
+        position: absolute;
+        inset: 0;
+      }
+      .\30 4-embed-eyebrow {
+        position: absolute;
+        left: 140px;
+        top: 228px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #1e2bfa;
+      }
+      .\30 4-embed-accent {
+        position: absolute;
+        left: 140px;
+        top: 214px;
+        width: 60px;
+        height: 4px;
+        border-radius: 2px;
+        background: #1e2bfa;
+      }
+
+      /* ---------- document + chunks ---------- */
+      .\30 4-embed-docframe {
+        position: absolute;
+        left: 140px;
+        top: 340px;
+        width: 340px;
+        height: 440px;
+        border-radius: 14px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+      }
+      .\30 4-embed-ghost-chunk {
+        position: absolute;
+        left: 140px;
+        width: 340px;
+        height: 110px;
+        border-radius: 12px;
+        border: 1.5px dashed rgba(30, 43, 250, 0.2);
+      }
+      .\30 4-embed-chunk {
+        position: absolute;
+        left: 140px;
+        width: 340px;
+        height: 110px;
+        border-radius: 0px;
+        border: 1.5px solid rgba(30, 43, 250, 0);
+        background: rgba(30, 43, 250, 0);
+        overflow: hidden;
+      }
+      .\30 4-embed-line {
+        position: absolute;
+        left: 24px;
+        height: 10px;
+        border-radius: 5px;
+        background: rgba(17, 17, 17, 0.13);
+      }
+      .\30 4-embed-line.\30 4-embed-title {
+        height: 14px;
+        background: rgba(17, 17, 17, 0.72);
+      }
+      .\30 4-embed-overlap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 14px;
+        background: rgba(30, 43, 250, 0.15);
+      }
+      .\30 4-embed-pill {
+        position: absolute;
+        right: 16px;
+        bottom: 14px;
+        padding: 3px 12px;
+        border-radius: 100px;
+        background: rgba(30, 43, 250, 0.08);
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 15px;
+        color: #1e2bfa;
+      }
+      .\30 4-embed-cut {
+        position: absolute;
+        left: 132px;
+        width: 356px;
+        height: 3px;
+        border-radius: 2px;
+        background: #1e2bfa;
+        transform-origin: left center;
+      }
+      .\30 4-embed-chunk-label {
+        position: absolute;
+        left: 140px;
+        top: 840px;
+        width: 340px;
+        text-align: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 26px;
+        color: #111111;
+        letter-spacing: -0.01em;
+      }
+      .\30 4-embed-chunk-label span {
+        color: #1e2bfa;
+      }
+
+      /* ---------- vector columns ---------- */
+      .\30 4-embed-col {
+        position: absolute;
+        top: 330px;
+        width: 132px;
+        height: 410px;
+        border-radius: 12px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+        padding: 18px 16px 0 16px;
+      }
+      .\30 4-embed-col-head {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        color: #6b6b6b;
+        text-align: center;
+        height: 34px;
+      }
+      .\30 4-embed-row {
+        height: 56px;
+        text-align: right;
+        perspective: 600px;
+      }
+      .\30 4-embed-hwrap {
+        position: relative;
+        display: inline-block;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 27px;
+        line-height: 56px;
+        font-variant-numeric: tabular-nums;
+        color: #111111;
+      }
+      .\30 4-embed-hwrap.\30 4-embed-dots {
+        color: #9a9a9a;
+      }
+      .\30 4-embed-hchar {
+        display: inline-block;
+        transform-origin: bottom;
+        transform-style: preserve-3d;
+      }
+      .\30 4-embed-hghost {
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+        inset: 0 auto auto 0;
+      }
+
+      .\30 4-embed-dims {
+        position: absolute;
+        left: 640px;
+        top: 768px;
+        width: 612px;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 16px;
+      }
+      .\30 4-embed-dims-num {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 72px;
+        line-height: 1;
+        color: #1e2bfa;
+      }
+      .\30 4-embed-dims-text {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 500;
+        font-size: 30px;
+        letter-spacing: -0.02em;
+        color: #111111;
+      }
+      .\30 4-embed-model {
+        position: absolute;
+        left: 640px;
+        top: 850px;
+        width: 612px;
+        text-align: center;
+        font-family: "Inter", sans-serif;
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 1.3;
+        color: #6b6b6b;
+      }
+
+      /* ---------- database card ---------- */
+      .\30 4-embed-db {
+        position: absolute;
+        left: 1400px;
+        top: 300px;
+        width: 400px;
+        height: 520px;
+        border-radius: 14px;
+        background: rgba(30, 43, 250, 0.04);
+        border: 1.5px solid rgba(30, 43, 250, 0.2);
+      }
+      .\30 4-embed-db svg {
+        position: absolute;
+        inset: 0;
+        width: 400px;
+        height: 520px;
+      }
+      .\30 4-embed-db path {
+        fill: none;
+        stroke: #1e2bfa;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .\30 4-embed-db-title {
+        position: absolute;
+        left: 0;
+        top: 404px;
+        width: 400px;
+        text-align: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+        color: #111111;
+      }
+      .\30 4-embed-db-sub {
+        position: absolute;
+        left: 0;
+        top: 456px;
+        width: 400px;
+        text-align: center;
+        font-family: "Inter", sans-serif;
+        font-weight: 400;
+        font-size: 23px;
+        color: #6b6b6b;
+      }
+    </style>
+
+    <!-- ground -->
+    <div data-hf-id="hf-35f9" class="clip 04-embed-bg" data-start="0" data-duration="9.673" data-track-index="0"></div>
+
+    <!-- content -->
+    <div data-hf-id="hf-g8dr" class="clip 04-embed-stage" id="04-embed-stage" data-start="0" data-duration="9.673" data-track-index="1" style="position:absolute;inset:0;">
+      <!-- pipeline rail -->
+      <div data-hf-id="hf-8sg9" class="04-embed-rail">
+        <div data-hf-id="hf-0ef7" class="04-embed-hairline"></div>
+        <div data-hf-id="hf-i2u0" class="04-embed-step" id="04-embed-step-1" style="left:240px;">
+          <div data-hf-id="hf-ybux" class="04-embed-circle"><div data-hf-id="hf-56hh" class="04-embed-circle-fill"></div><div data-hf-id="hf-tak9" class="04-embed-circle-num" style="color:#fdfae7;">01</div></div>
+          <div data-hf-id="hf-l47g" class="04-embed-step-label">Connect</div>
+        </div>
+        <div data-hf-id="hf-q83u" class="04-embed-step" id="04-embed-step-2" style="left:540px;">
+          <div data-hf-id="hf-0o71" class="04-embed-circle"><div data-hf-id="hf-dgpm" class="04-embed-circle-fill" id="04-embed-fill-2"></div><div data-hf-id="hf-fcbo" class="04-embed-circle-num" id="04-embed-num-2">02</div></div>
+          <div data-hf-id="hf-jh9i" class="04-embed-step-label" id="04-embed-label-2">Chunk &amp; Embed</div>
+        </div>
+        <div data-hf-id="hf-5ccj" class="04-embed-step" style="left:840px;">
+          <div data-hf-id="hf-1v44" class="04-embed-circle"><div data-hf-id="hf-vu43" class="04-embed-circle-num">03</div></div>
+          <div data-hf-id="hf-oqe6" class="04-embed-step-label">Retrieve</div>
+        </div>
+        <div data-hf-id="hf-qy4t" class="04-embed-step" style="left:1140px;">
+          <div data-hf-id="hf-1gt3" class="04-embed-circle"><div data-hf-id="hf-tuky" class="04-embed-circle-num">04</div></div>
+          <div data-hf-id="hf-bext" class="04-embed-step-label">Freshness</div>
+        </div>
+        <div data-hf-id="hf-c2im" class="04-embed-step" style="left:1440px;">
+          <div data-hf-id="hf-2nq6" class="04-embed-circle"><div data-hf-id="hf-tg9x" class="04-embed-circle-num">05</div></div>
+          <div data-hf-id="hf-7r9k" class="04-embed-step-label">Answer</div>
+        </div>
+      </div>
+
+      <!-- camera (slow push underneath the whole shot) -->
+      <div data-hf-id="hf-veqm" class="04-embed-camera" id="04-embed-camera">
+        <div data-hf-id="hf-ih80" class="04-embed-accent" id="04-embed-accent"></div>
+        <div data-hf-id="hf-i5et" class="04-embed-eyebrow" id="04-embed-eyebrow">Step 2 · Chunk &amp; Embed</div>
+
+        <!-- ghost outlines left behind when the chunks fly to the middle -->
+        <div data-hf-id="hf-oanc" class="04-embed-ghost-chunk" id="04-embed-ghost-0" style="top:304px;"></div>
+        <div data-hf-id="hf-ile9" class="04-embed-ghost-chunk" id="04-embed-ghost-1" style="top:438px;"></div>
+        <div data-hf-id="hf-3fnt" class="04-embed-ghost-chunk" id="04-embed-ghost-2" style="top:572px;"></div>
+        <div data-hf-id="hf-u81b" class="04-embed-ghost-chunk" id="04-embed-ghost-3" style="top:706px;"></div>
+
+        <!-- the document: an outer card holding four stacked slices -->
+        <div data-hf-id="hf-43pi" class="04-embed-docframe" id="04-embed-docframe"></div>
+        <div data-hf-id="hf-x5oc" class="04-embed-chunk" id="04-embed-chunk-0" style="top:340px;">
+          <div data-hf-id="hf-epix" class="04-embed-line 04-embed-title" style="top:26px;width:58%;"></div>
+          <div data-hf-id="hf-xccq" class="04-embed-line" style="top:56px;width:80%;"></div>
+          <div data-hf-id="hf-iral" class="04-embed-line" style="top:80px;width:66%;"></div>
+          <div data-hf-id="hf-gqbn" class="04-embed-pill">01</div>
+        </div>
+        <div data-hf-id="hf-82c3" class="04-embed-chunk" id="04-embed-chunk-1" style="top:450px;">
+          <div data-hf-id="hf-xgd6" class="04-embed-overlap"></div>
+          <div data-hf-id="hf-kwh8" class="04-embed-line" style="top:30px;width:82%;"></div>
+          <div data-hf-id="hf-8yhj" class="04-embed-line" style="top:54px;width:72%;"></div>
+          <div data-hf-id="hf-ea2b" class="04-embed-line" style="top:78px;width:52%;"></div>
+          <div data-hf-id="hf-gc0m" class="04-embed-pill">02</div>
+        </div>
+        <div data-hf-id="hf-poz6" class="04-embed-chunk" id="04-embed-chunk-2" style="top:560px;">
+          <div data-hf-id="hf-44la" class="04-embed-overlap"></div>
+          <div data-hf-id="hf-3hql" class="04-embed-line" style="top:30px;width:76%;"></div>
+          <div data-hf-id="hf-0xfw" class="04-embed-line" style="top:54px;width:84%;"></div>
+          <div data-hf-id="hf-1f7c" class="04-embed-line" style="top:78px;width:60%;"></div>
+          <div data-hf-id="hf-fxpl" class="04-embed-pill">03</div>
+        </div>
+        <div data-hf-id="hf-0xq9" class="04-embed-chunk" id="04-embed-chunk-3" style="top:670px;">
+          <div data-hf-id="hf-4iwb" class="04-embed-overlap"></div>
+          <div data-hf-id="hf-sphr" class="04-embed-line" style="top:30px;width:70%;"></div>
+          <div data-hf-id="hf-6wht" class="04-embed-line" style="top:54px;width:78%;"></div>
+          <div data-hf-id="hf-nto6" class="04-embed-line" style="top:78px;width:44%;"></div>
+          <div data-hf-id="hf-fjek" class="04-embed-pill">04</div>
+        </div>
+
+        <!-- slice lines -->
+        <div data-hf-id="hf-rmmu" class="04-embed-cut" id="04-embed-cut-0" style="top:449px;"></div>
+        <div data-hf-id="hf-dpez" class="04-embed-cut" id="04-embed-cut-1" style="top:559px;"></div>
+        <div data-hf-id="hf-u8mg" class="04-embed-cut" id="04-embed-cut-2" style="top:669px;"></div>
+
+        <div data-hf-id="hf-09ll" class="04-embed-chunk-label" id="04-embed-chunk-label">400 words <span data-hf-id="hf-1bmq">·</span> 50 overlap</div>
+
+        <!-- database card -->
+        <div data-hf-id="hf-wxoo" class="04-embed-db" id="04-embed-db">
+          <svg data-hf-id="hf-2a3m" viewBox="0 0 400 520" xmlns="http://www.w3.org/2000/svg">
+            <path data-hf-id="hf-u1ik" id="04-embed-cyl-top" d="M 70 80 A 130 34 0 0 1 330 80 A 130 34 0 0 1 70 80 Z" />
+            <path data-hf-id="hf-sezn" id="04-embed-cyl-left" d="M 70 80 L 70 340" />
+            <path data-hf-id="hf-rs52" id="04-embed-cyl-right" d="M 330 80 L 330 340" />
+            <path data-hf-id="hf-nd5l" id="04-embed-cyl-mid" d="M 70 210 A 130 34 0 0 0 330 210" style="stroke-opacity:0.4;" />
+            <path data-hf-id="hf-h63x" id="04-embed-cyl-bottom" d="M 70 340 A 130 34 0 0 0 330 340" />
+          </svg>
+          <div data-hf-id="hf-rk4m" class="04-embed-db-title" id="04-embed-db-title">Postgres + pgvector</div>
+          <div data-hf-id="hf-g83x" class="04-embed-db-sub" id="04-embed-db-sub">HNSW cosine index</div>
+        </div>
+
+        <!-- vector columns (one per chunk) -->
+        <div data-hf-id="hf-2473" class="04-embed-col" id="04-embed-col-0" style="left:640px;"></div>
+        <div data-hf-id="hf-sl88" class="04-embed-col" id="04-embed-col-1" style="left:800px;"></div>
+        <div data-hf-id="hf-1db2" class="04-embed-col" id="04-embed-col-2" style="left:960px;"></div>
+        <div data-hf-id="hf-93z0" class="04-embed-col" id="04-embed-col-3" style="left:1120px;"></div>
+
+        <div data-hf-id="hf-b6iy" class="04-embed-dims" id="04-embed-dims">
+          <div data-hf-id="hf-lplo" class="04-embed-dims-num">1536</div>
+          <div data-hf-id="hf-r060" class="04-embed-dims-text">numbers per chunk</div>
+        </div>
+        <div data-hf-id="hf-o17n" class="04-embed-model" id="04-embed-model">text-embedding-3-small</div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        var FRAME = "04-embed";
+        var DUR = 9.173;
+        var $ = function (id) { return document.getElementById(FRAME + "-" + id); };
+        var tl = gsap.timeline({ paused: true });
+
+        // ---------- Scene 1 (0.0-1.2s): rail advances, eyebrow, document ----------
+        tl.fromTo($("step-1"), { opacity: 1 }, { opacity: 0.55, duration: 0.5, ease: "power1.out" }, 0.05);
+        tl.fromTo($("fill-2"), { scale: 0 }, { scale: 1, duration: 0.45, ease: "power2.out" }, 0.2);
+        tl.fromTo($("num-2"), { color: "#1e2bfa" }, { color: "#fdfae7", duration: 0.25, ease: "power1.out" }, 0.3);
+        tl.fromTo($("label-2"), { color: "#6b6b6b" }, { color: "#1e2bfa", duration: 0.3, ease: "power1.out" }, 0.3);
+
+        tl.fromTo($("accent"), { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.4, ease: "power2.out" }, 0.15);
+        tl.fromTo($("eyebrow"), { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 0.25);
+
+        var docParts = [$("docframe"), $("chunk-0"), $("chunk-1"), $("chunk-2"), $("chunk-3")];
+        tl.fromTo(docParts, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+
+        // slow camera push under the whole shot
+        tl.fromTo($("camera"), { scale: 1, transformOrigin: "50% 52%" }, { scale: 1.025, duration: DUR, ease: "none" }, 0);
+
+        // ---------- Scene 2 (1.2-3.5s): the document slices into four chunks ----------
+        [0, 1, 2].forEach(function (i) {
+          tl.fromTo($("cut-" + i), { scaleX: 0, opacity: 1 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 1.25 + i * 0.12);
+          tl.to($("cut-" + i), { opacity: 0, duration: 0.2, ease: "power1.out" }, 1.85);
+        });
+        tl.to($("docframe"), { opacity: 0, duration: 0.3, ease: "power1.out" }, 1.85);
+
+        var spreadTops = [304, 438, 572, 706];
+        [0, 1, 2, 3].forEach(function (i) {
+          var c = $("chunk-" + i);
+          var dy = spreadTops[i] - (340 + 110 * i);
+          tl.fromTo(c,
+            { borderRadius: 0, backgroundColor: "rgba(30,43,250,0)", borderColor: "rgba(30,43,250,0)" },
+            { borderRadius: 12, backgroundColor: "rgba(30,43,250,0.04)", borderColor: "rgba(30,43,250,0.2)", duration: 0.35, ease: "power1.out" },
+            1.85);
+          tl.to(c, { y: dy, duration: 0.6, ease: "power3.out" }, 1.9 + Math.abs(i - 1.5) * 0.04);
+        });
+        // overlap bands + chunk numbers (staggered)
+        var overlaps = document.querySelectorAll("#" + CSS.escape(FRAME + "-camera") + " ." + CSS.escape(FRAME + "-overlap"));
+        tl.fromTo(overlaps, { opacity: 0 }, { opacity: 1, duration: 0.35, stagger: 0.1, ease: "power1.out" }, 2.5);
+        var pills = document.querySelectorAll("#" + CSS.escape(FRAME + "-camera") + " ." + CSS.escape(FRAME + "-pill"));
+        tl.fromTo(pills, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.08, ease: "power3.out" }, 2.45);
+        tl.fromTo($("chunk-label"), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 2.7);
+
+        // ---------- Scene 3 (3.5-6.1s): each chunk flips into a column of numbers ----------
+        var VALUES = [
+          ["0.021", "−0.113", "0.087", "0.342", "−0.056"],
+          ["−0.204", "0.015", "0.731", "−0.098", "0.264"],
+          ["0.118", "−0.067", "−0.301", "0.045", "0.192"],
+          ["0.009", "0.276", "−0.142", "−0.083", "0.317"]
+        ];
+        var GLYPHS = "0123456789";
+        var REVEAL_THRESHOLD = 0.6;
+        var FLIP_DURATION = 0.45;
+        var CHAR_STAGGER = 0.035;
+        function pseudoGlyph(seed) {
+          var h = ((seed * 9301 + 49297) % 233280) / 233280;
+          return GLYPHS[Math.floor(h * GLYPHS.length)];
+        }
+        function buildRow(parent, text, dots) {
+          var row = document.createElement("div");
+          row.className = FRAME + "-row";
+          var wrap = document.createElement("div");
+          wrap.className = FRAME + "-hwrap" + (dots ? " " + FRAME + "-dots" : "");
+          var ghost = document.createElement("div");
+          ghost.className = FRAME + "-hghost";
+          ghost.textContent = text;
+          wrap.appendChild(ghost);
+          var chars = [];
+          Array.prototype.forEach.call(text, function (ch) {
+            var s = document.createElement("span");
+            s.className = FRAME + "-hchar";
+            s.textContent = ch;
+            s.dataset.target = ch;
+            if (!dots) {
+              s.style.opacity = "0";
+              s.style.transform = "rotateX(90deg)";
+            }
+            wrap.appendChild(s);
+            chars.push(s);
+          });
+          row.appendChild(wrap);
+          parent.appendChild(row);
+          return chars;
+        }
+
+        var colCenters = [706, 866, 1026, 1186];
+        [0, 1, 2, 3].forEach(function (i) {
+          var col = $("col-" + i);
+          var head = document.createElement("div");
+          head.className = FRAME + "-col-head";
+          head.textContent = "0" + (i + 1);
+          col.appendChild(head);
+
+          var t0 = 3.5 + i * 0.25;
+          var chunk = $("chunk-" + i);
+          var dx = colCenters[i] - 310;
+          var dy = 535 - (340 + 110 * i + 55);
+
+          // ghost outline appears where the chunk was
+          tl.fromTo($("ghost-" + i), { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0);
+          // chunk travels to its slot and turns edge-on
+          tl.to(chunk, { x: dx, y: dy, scale: 0.85, duration: 0.45, ease: "power2.inOut" }, t0);
+          tl.fromTo(chunk, { rotationY: 0, transformPerspective: 1200 }, { rotationY: 90, duration: 0.25, ease: "power2.in" }, t0 + 0.2);
+          tl.set(chunk, { autoAlpha: 0 }, t0 + 0.45);
+          // column turns face-on in the same slot
+          tl.fromTo(col, { autoAlpha: 0, rotationY: -90, transformPerspective: 1200 },
+            { autoAlpha: 1, rotationY: 0, duration: 0.35, ease: "power2.out" }, t0 + 0.45);
+
+          // per-character 3D flip-decode of the numbers
+          VALUES[i].forEach(function (val, r) {
+            var chars = buildRow(col, val, false);
+            var rowStart = t0 + 0.6 + r * 0.12;
+            chars.forEach(function (el, k) {
+              var target = el.dataset.target;
+              var isDigit = GLYPHS.indexOf(target) !== -1;
+              var seedBase = i * 100000 + r * 1000 + k * 37;
+              var state = { p: 0 };
+              tl.fromTo(state, { p: 0 }, {
+                p: 1,
+                duration: FLIP_DURATION,
+                ease: "power3.out",
+                immediateRender: false,
+                onUpdate: function () {
+                  if (isDigit && state.p < REVEAL_THRESHOLD) {
+                    el.textContent = pseudoGlyph(seedBase + Math.floor(state.p * 12));
+                  } else {
+                    el.textContent = target;
+                  }
+                  el.style.transform = "rotateX(" + (90 - state.p * 90) + "deg)";
+                  el.style.opacity = String(Math.min(1, state.p * 2));
+                }
+              }, rowStart + k * CHAR_STAGGER);
+            });
+          });
+          var dotsChars = buildRow(col, "…", true);
+          tl.fromTo(dotsChars, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, t0 + 1.25);
+        });
+
+        tl.fromTo($("dims"), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.2);
+        tl.fromTo($("model"), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 5.1);
+
+        // ---------- Scene 4 (6.1-9.2s): columns slide into Postgres + pgvector ----------
+        tl.fromTo($("db"), { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 6.1);
+
+        var paths = ["cyl-top", "cyl-left", "cyl-right", "cyl-bottom", "cyl-mid"].map($);
+        paths.forEach(function (p) {
+          var len = p.getTotalLength() * 1.02;
+          p.style.strokeDasharray = String(len);
+          p.style.strokeDashoffset = String(len);
+        });
+        tl.to(paths[0], { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, 6.2);
+        tl.to(paths[1], { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 6.6);
+        tl.to(paths[2], { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 6.65);
+        tl.to(paths[3], { strokeDashoffset: 0, duration: 0.35, ease: "power2.out" }, 6.92);
+        tl.to(paths[4], { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 7.12);
+
+        [0, 1, 2, 3].forEach(function (i) {
+          var targetX = 1516 + 56 * i;
+          tl.to($("col-" + i), { x: targetX - colCenters[i], scale: 0.32, duration: 0.65, ease: "power3.inOut" }, 6.7 + i * 0.12);
+        });
+
+        tl.fromTo($("db-title"), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 7.45);
+        tl.fromTo($("db-sub"), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: "power1.out" }, 7.7);
+
+        // hold to the end of the frame
+        tl.to({}, { duration: DUR }, 0);
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines[FRAME] = tl;
+      })();
+    </script>
+  </div>
+</template>

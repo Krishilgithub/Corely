@@ -1,0 +1,428 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/space-grotesk-latin-400-normal.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Inter";
+      src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      color: #111111;
+    }
+
+    .fr06-bg {
+      position: absolute;
+      inset: 0;
+      background: #fdfae7;
+    }
+
+    /* ---------- shared pipeline rail (frames 03-07) ---------- */
+    .fr06-rail {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 220px;
+    }
+    .fr06-hairline {
+      position: absolute;
+      left: 360px;
+      top: 119px;
+      width: 1200px;
+      height: 1.5px;
+      background: rgba(30, 43, 250, 0.2);
+    }
+    .fr06-step {
+      position: absolute;
+      top: 92px;
+      width: 240px;
+      margin-left: -120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .fr06-circle {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fdfae7;
+      border: 2px solid #1e2bfa;
+      overflow: hidden;
+    }
+    .fr06-circle-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #1e2bfa;
+    }
+    .fr06-circle-num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 22px;
+      color: #fdfae7;
+    }
+    .fr06-step-label {
+      margin-top: 14px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #1e2bfa;
+    }
+    .fr06-done {
+      opacity: 0.55;
+    }
+    .fr06-future .fr06-circle-num {
+      color: #1e2bfa;
+    }
+    .fr06-future .fr06-step-label {
+      color: #9a9a9a;
+    }
+
+    /* ---------- content stage ---------- */
+    .fr06-stage {
+      position: absolute;
+      left: 0;
+      top: 220px;
+      width: 100%;
+      height: 640px;
+      transform-origin: 50% 50%;
+    }
+    .fr06-accent-line {
+      position: absolute;
+      left: 240px;
+      top: 24px;
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1e2bfa;
+    }
+    .fr06-eyebrow {
+      position: absolute;
+      left: 240px;
+      top: 44px;
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1e2bfa;
+      white-space: nowrap;
+    }
+    .fr06-formula {
+      position: absolute;
+      left: 240px;
+      top: 90px;
+      font-weight: 400;
+      font-size: 36px;
+      color: #6b6b6b;
+      white-space: nowrap;
+    }
+
+    .fr06-counter-wrap {
+      position: absolute;
+      right: 240px;
+      top: 6px;
+      width: 420px;
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 16px;
+    }
+    .fr06-counter {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 140px;
+      line-height: 1;
+      color: #1e2bfa;
+      font-variant-numeric: tabular-nums;
+      transform-origin: right bottom;
+    }
+    .fr06-counter-unit {
+      font-weight: 700;
+      font-size: 30px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6b6b6b;
+    }
+
+    .fr06-row {
+      position: absolute;
+      left: 240px;
+      width: 1440px;
+      height: 130px;
+    }
+    .fr06-row-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      white-space: nowrap;
+    }
+    .fr06-src {
+      font-weight: 700;
+      font-size: 42px;
+      letter-spacing: -0.02em;
+      color: #111111;
+    }
+    .fr06-rate {
+      font-weight: 400;
+      font-size: 32px;
+      color: #6b6b6b;
+    }
+    .fr06-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 14px;
+      padding: 6px 18px;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 26px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .fr06-chip-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .fr06-chip-stale {
+      color: #dc2626;
+      border: 1.5px solid rgba(220, 38, 38, 0.4);
+    }
+    .fr06-chip-fresh {
+      color: #059669;
+      border: 1.5px solid rgba(5, 150, 105, 0.4);
+    }
+    .fr06-track {
+      position: absolute;
+      left: 0;
+      top: 74px;
+      width: 1150px;
+      height: 40px;
+      border-radius: 6px;
+      background: rgba(30, 43, 250, 0.08);
+      overflow: hidden;
+    }
+    .fr06-fill {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      background: #1e2bfa;
+      transform-origin: left center;
+    }
+    .fr06-score {
+      position: absolute;
+      left: 1196px;
+      top: 40px;
+      width: 244px;
+      font-weight: 700;
+      font-size: 96px;
+      line-height: 1;
+      color: #1e2bfa;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .fr06-score-max {
+      font-weight: 400;
+      font-size: 30px;
+      color: #9a9a9a;
+      margin-left: 6px;
+    }
+
+    .fr06-mark {
+      position: absolute;
+      width: 2px;
+      height: 60px;
+      margin-left: -1px;
+      background: rgba(17, 17, 17, 0.18);
+    }
+    .fr06-mark-label {
+      position: absolute;
+      top: 560px;
+      width: 240px;
+      margin-left: -120px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9a9a9a;
+      white-space: nowrap;
+    }
+  </style>
+
+  <div data-hf-id="hf-ywf0" id="root" data-composition-id="06-freshness" data-width="1920" data-height="1080" data-duration="7.433">
+    <div data-hf-id="hf-mkn3" id="06-freshness-bg" class="fr06-bg clip" data-start="0" data-duration="7.433" data-track-index="0"></div>
+
+    <!-- shared pipeline rail -->
+    <div data-hf-id="hf-elnf" class="fr06-rail">
+      <div data-hf-id="hf-w189" class="fr06-hairline"></div>
+
+      <div data-hf-id="hf-4iyc" class="fr06-step fr06-done" style="left: 360px">
+        <div data-hf-id="hf-mopv" class="fr06-circle"><div data-hf-id="hf-kch3" class="fr06-circle-fill"></div><div data-hf-id="hf-bcin" class="fr06-circle-num">1</div></div>
+        <div data-hf-id="hf-rz6y" class="fr06-step-label">Connect</div>
+      </div>
+      <div data-hf-id="hf-6ofx" class="fr06-step fr06-done" style="left: 660px">
+        <div data-hf-id="hf-ue1v" class="fr06-circle"><div data-hf-id="hf-x8zr" class="fr06-circle-fill"></div><div data-hf-id="hf-ay7m" class="fr06-circle-num">2</div></div>
+        <div data-hf-id="hf-le4u" class="fr06-step-label">Chunk &amp; Embed</div>
+      </div>
+      <div data-hf-id="hf-sw8x" id="06-freshness-step3" class="fr06-step" style="left: 960px">
+        <div data-hf-id="hf-tzqu" class="fr06-circle"><div data-hf-id="hf-wuoq" class="fr06-circle-fill"></div><div data-hf-id="hf-ajwl" class="fr06-circle-num">3</div></div>
+        <div data-hf-id="hf-mq68" class="fr06-step-label">Retrieve</div>
+      </div>
+      <div data-hf-id="hf-4vk2" id="06-freshness-step4" class="fr06-step fr06-future" style="left: 1260px">
+        <div data-hf-id="hf-tlft" class="fr06-circle">
+          <div data-hf-id="hf-3uqq" id="06-freshness-step4-fill" class="fr06-circle-fill"></div>
+          <div data-hf-id="hf-zes8" id="06-freshness-step4-num" class="fr06-circle-num">4</div>
+        </div>
+        <div data-hf-id="hf-var5" id="06-freshness-step4-label" class="fr06-step-label">Freshness</div>
+      </div>
+      <div data-hf-id="hf-96pg" class="fr06-step fr06-future" style="left: 1560px">
+        <div data-hf-id="hf-t74s" class="fr06-circle"><div data-hf-id="hf-cxqr" class="fr06-circle-num">5</div></div>
+        <div data-hf-id="hf-n4sm" class="fr06-step-label">Answer</div>
+      </div>
+    </div>
+
+    <!-- content stage -->
+    <div data-hf-id="hf-xvig" id="06-freshness-stage" class="fr06-stage">
+      <div data-hf-id="hf-52g5" id="06-freshness-accent" class="fr06-accent-line"></div>
+      <div data-hf-id="hf-rau6" id="06-freshness-eyebrow" class="fr06-eyebrow">Step 4 · Freshness score</div>
+      <div data-hf-id="hf-4e9w" id="06-freshness-formula" class="fr06-formula">score = 100 − days × rate</div>
+
+      <div data-hf-id="hf-ehy0" id="06-freshness-counter-wrap" class="fr06-counter-wrap">
+        <span data-hf-id="hf-o3mz" id="06-freshness-counter" class="fr06-counter">0</span>
+        <span data-hf-id="hf-bah0" class="fr06-counter-unit">days</span>
+      </div>
+
+      <!-- threshold markers -->
+      <div data-hf-id="hf-cyoi" id="06-freshness-mark50a" class="fr06-mark" style="left: 815px; top: 278px"></div>
+      <div data-hf-id="hf-4s3d" id="06-freshness-mark80a" class="fr06-mark" style="left: 1160px; top: 278px"></div>
+      <div data-hf-id="hf-7hwg" id="06-freshness-mark50b" class="fr06-mark" style="left: 815px; top: 468px"></div>
+      <div data-hf-id="hf-pvoh" id="06-freshness-mark80b" class="fr06-mark" style="left: 1160px; top: 468px"></div>
+      <div data-hf-id="hf-8xzk" id="06-freshness-mark50-label" class="fr06-mark-label" style="left: 815px">&lt; 50 stale</div>
+      <div data-hf-id="hf-798i" id="06-freshness-mark80-label" class="fr06-mark-label" style="left: 1160px">≥ 80 fresh</div>
+
+      <!-- Slack row -->
+      <div data-hf-id="hf-7z27" id="06-freshness-row1" class="fr06-row" style="top: 214px">
+        <div data-hf-id="hf-ibg8" class="fr06-row-label">
+          <span data-hf-id="hf-3dmq" class="fr06-src">Slack</span>
+          <span data-hf-id="hf-o0ew" class="fr06-rate">· −2.0 / day</span>
+          <span data-hf-id="hf-yf5u" id="06-freshness-chip1" class="fr06-chip fr06-chip-stale"><span data-hf-id="hf-6xe0" class="fr06-chip-dot"></span>Stale</span>
+        </div>
+        <div data-hf-id="hf-0idw" class="fr06-track"><div data-hf-id="hf-bhzp" id="06-freshness-fill1" class="fr06-fill"></div></div>
+        <div data-hf-id="hf-8no7" class="fr06-score"><span data-hf-id="hf-s24j" id="06-freshness-score1">100</span></div>
+      </div>
+
+      <!-- Notion row -->
+      <div data-hf-id="hf-77mv" id="06-freshness-row2" class="fr06-row" style="top: 404px">
+        <div data-hf-id="hf-zuj4" class="fr06-row-label">
+          <span data-hf-id="hf-h1vn" class="fr06-src">Notion</span>
+          <span data-hf-id="hf-zvjc" class="fr06-rate">· −0.2 / day</span>
+          <span data-hf-id="hf-ewf7" id="06-freshness-chip2" class="fr06-chip fr06-chip-fresh"><span data-hf-id="hf-4cu8" class="fr06-chip-dot"></span>Fresh</span>
+        </div>
+        <div data-hf-id="hf-avqk" class="fr06-track"><div data-hf-id="hf-fg3q" id="06-freshness-fill2" class="fr06-fill"></div></div>
+        <div data-hf-id="hf-y1g7" class="fr06-score"><span data-hf-id="hf-lbqe" id="06-freshness-score2">100</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var $ = function (n) {
+        return document.getElementById("06-freshness-" + n);
+      };
+      var tl = gsap.timeline({ paused: true });
+
+      var counterEl = $("counter");
+      var score1El = $("score1");
+      var score2El = $("score2");
+
+      // separate proxies per count pass so seeking in either direction stays correct
+      var daysA = { v: 0 };
+      var daysB = { v: 0 };
+      var s1 = { v: 100 };
+      var s2 = { v: 100 };
+      var REPLAY_AT = 3.8;
+
+      function render() {
+        var d = tl.time() >= REPLAY_AT ? daysB.v : daysA.v;
+        counterEl.textContent = String(Math.round(d));
+        score1El.textContent = String(Math.round(s1.v));
+        score2El.textContent = String(Math.round(s2.v));
+      }
+      tl.eventCallback("onUpdate", render);
+
+      // slow camera push on the content stage, settles before the hold
+      tl.fromTo($("stage"), { scale: 1 }, { scale: 1.025, duration: 5.3, ease: "sine.inOut" }, 0);
+
+      // ---- Scene 1 (0.0-1.2): step 3 -> done, step 4 lights; eyebrow + formula ----
+      tl.fromTo($("step3"), { opacity: 1 }, { opacity: 0.55, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo($("step4-fill"), { scale: 0 }, { scale: 1, duration: 0.5, ease: "power3.out" }, 0.2);
+      tl.fromTo($("step4-num"), { color: "#1e2bfa" }, { color: "#fdfae7", duration: 0.3, ease: "power2.out" }, 0.3);
+      tl.fromTo($("step4-label"), { color: "#9a9a9a" }, { color: "#1e2bfa", duration: 0.4, ease: "power2.out" }, 0.3);
+
+      tl.fromTo($("accent"), { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, transformOrigin: "left center", duration: 0.4, ease: "power3.out" }, 0.15);
+      tl.fromTo($("eyebrow"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.2);
+      tl.fromTo($("formula"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.55);
+
+      // ---- Scene 2 (1.2-3.6): Slack bar drains 100 -> 40 while days count 0 -> 30 ----
+      tl.fromTo($("row1"), { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 1.2);
+      tl.fromTo($("counter-wrap"), { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.25);
+      tl.fromTo([$("mark50a"), $("mark80a"), $("mark50b"), $("mark80b")], { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, transformOrigin: "top center", duration: 0.5, ease: "power2.out" }, 1.35);
+      tl.fromTo([$("mark50-label"), $("mark80-label")], { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.08 }, 1.5);
+
+      var C1_AT = 1.55, C1_DUR = 1.75, C1_EASE = "power2.inOut";
+      tl.fromTo(daysA, { v: 0 }, { v: 30, duration: C1_DUR, ease: C1_EASE }, C1_AT);
+      tl.fromTo(counterEl, { scale: 0.55 }, { scale: 1, duration: C1_DUR, ease: C1_EASE }, C1_AT);
+      tl.fromTo($("fill1"), { scaleX: 1 }, { scaleX: 0.4, duration: C1_DUR, ease: C1_EASE }, C1_AT);
+      tl.fromTo(s1, { v: 100 }, { v: 40, duration: C1_DUR, ease: C1_EASE }, C1_AT);
+      tl.fromTo($("chip1"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, C1_AT + C1_DUR);
+
+      // ---- Scene 3 (3.6-5.3): Notion bar, same 30 days replayed fast, drains only to 94 ----
+      tl.fromTo($("row2"), { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 3.6);
+
+      var C2_DUR = 1.0, C2_EASE = "power2.inOut";
+      tl.fromTo(daysB, { v: 0 }, { v: 30, duration: C2_DUR, ease: C2_EASE, immediateRender: false }, REPLAY_AT);
+      tl.fromTo($("fill2"), { scaleX: 1 }, { scaleX: 0.94, duration: C2_DUR, ease: C2_EASE }, REPLAY_AT);
+      tl.fromTo(s2, { v: 100 }, { v: 94, duration: C2_DUR, ease: C2_EASE }, REPLAY_AT);
+      tl.fromTo($("chip2"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, REPLAY_AT + C2_DUR);
+
+      // ---- Scene 4 (5.3-6.933): hold — the 40 vs 94 contrast reads ----
+      tl.set({}, {}, 6.933);
+
+      render();
+      window.__timelines["06-freshness"] = tl;
+    })();
+  </script>
+</template>

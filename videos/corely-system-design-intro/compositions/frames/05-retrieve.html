@@ -1,0 +1,552 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/space-grotesk-latin-400-normal.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Inter";
+      src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Space Grotesk", sans-serif;
+      color: #111111;
+    }
+
+    .fr05-bg {
+      position: absolute;
+      inset: 0;
+      background: #fdfae7;
+    }
+
+    /* ---------- shared pipeline rail (frames 03-07) ---------- */
+    .fr05-rail {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 220px;
+    }
+    .fr05-hairline {
+      position: absolute;
+      left: 360px;
+      top: 119px;
+      width: 1200px;
+      height: 1.5px;
+      background: rgba(30, 43, 250, 0.2);
+    }
+    .fr05-step {
+      position: absolute;
+      top: 92px;
+      width: 240px;
+      margin-left: -120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .fr05-circle {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fdfae7;
+      border: 2px solid #1e2bfa;
+      overflow: hidden;
+    }
+    .fr05-circle-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #1e2bfa;
+    }
+    .fr05-circle-num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 22px;
+      color: #fdfae7;
+    }
+    .fr05-step-label {
+      margin-top: 14px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #1e2bfa;
+    }
+    .fr05-done {
+      opacity: 0.55;
+    }
+    .fr05-future .fr05-circle-num {
+      color: #1e2bfa;
+    }
+    .fr05-future .fr05-step-label {
+      color: #9a9a9a;
+    }
+
+    /* ---------- content stage ---------- */
+    .fr05-stage {
+      position: absolute;
+      left: 0;
+      top: 220px;
+      width: 100%;
+      height: 660px;
+    }
+    .fr05-accent-line {
+      position: absolute;
+      left: 240px;
+      top: 24px;
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1e2bfa;
+    }
+    .fr05-eyebrow {
+      position: absolute;
+      left: 240px;
+      top: 44px;
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1e2bfa;
+      white-space: nowrap;
+    }
+
+    /* ask bar (pill input) */
+    .fr05-ask {
+      position: absolute;
+      left: 240px;
+      top: 100px;
+      width: 760px;
+      height: 84px;
+      border-radius: 100px;
+      background: rgba(30, 43, 250, 0.04);
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      transform-origin: 0% 50%;
+    }
+    .fr05-ask-icon {
+      position: absolute;
+      left: 30px;
+      top: 27px;
+      width: 28px;
+      height: 28px;
+    }
+    .fr05-ask-text-wrap {
+      position: absolute;
+      left: 76px;
+      top: 0;
+      height: 84px;
+      min-width: 560px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      font-family: "Inter", sans-serif;
+      font-weight: 400;
+      font-size: 31px;
+      color: #111111;
+    }
+    .fr05-ask-placeholder {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      color: #9a9a9a;
+    }
+    .fr05-ask-caret {
+      display: inline-block;
+      width: 3px;
+      height: 36px;
+      margin-left: 3px;
+      border-radius: 2px;
+      background: #1e2bfa;
+    }
+    .fr05-ask-btn-burst {
+      position: absolute;
+      right: 11px;
+      top: 9px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(20, 30, 200, 0.55) 0%, rgba(30, 43, 250, 0) 70%);
+      filter: blur(8px);
+      opacity: 0;
+      z-index: 1;
+    }
+    .fr05-ask-btn {
+      position: absolute;
+      right: 11px;
+      top: 9px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #1e2bfa;
+      transform-origin: 50% 50%;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* permission shield badge */
+    .fr05-shield {
+      position: absolute;
+      left: 1040px;
+      top: 108px;
+      height: 68px;
+      padding: 0 30px 0 22px;
+      border-radius: 100px;
+      background: rgba(30, 43, 250, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      white-space: nowrap;
+      transform-origin: 0% 50%;
+    }
+    .fr05-shield-label {
+      font-weight: 700;
+      font-size: 28px;
+      color: #1e2bfa;
+    }
+
+    /* vector field */
+    .fr05-field-cam {
+      position: absolute;
+      left: 500px;
+      top: 214px;
+      width: 920px;
+      height: 440px;
+      transform-origin: 50% 50%;
+    }
+    .fr05-field-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 920px;
+      height: 440px;
+      overflow: visible;
+    }
+    .fr05-dot {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(30, 43, 250, 0.22);
+      transform-origin: 50% 50%;
+    }
+    .fr05-query-ring {
+      position: absolute;
+      left: 443px;
+      top: 203px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #1e2bfa;
+      transform-origin: 50% 50%;
+    }
+    .fr05-query {
+      position: absolute;
+      left: 443px;
+      top: 203px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #1e2bfa;
+      border: 5px solid #fdfae7;
+      box-sizing: border-box;
+      outline: 2px solid #1e2bfa;
+      transform-origin: 50% 50%;
+    }
+
+    /* result tag pill */
+    .fr05-tag {
+      position: absolute;
+      left: 1452px;
+      top: 404px;
+      height: 64px;
+      padding: 0 28px;
+      border-radius: 100px;
+      background: rgba(30, 43, 250, 0.08);
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      font-weight: 700;
+      font-size: 26px;
+      color: #1e2bfa;
+      transform-origin: 0% 50%;
+    }
+  </style>
+
+  <div data-hf-id="hf-sta0" id="root" data-composition-id="05-retrieve" data-width="1920" data-height="1080" data-duration="5.897">
+    <div data-hf-id="hf-zjkc" id="05-retrieve-bg" class="fr05-bg clip" data-start="0" data-duration="5.897" data-track-index="0"></div>
+
+    <!-- shared pipeline rail -->
+    <div data-hf-id="hf-d1xq" class="fr05-rail">
+      <div data-hf-id="hf-6hoc" class="fr05-hairline"></div>
+
+      <div data-hf-id="hf-4934" class="fr05-step fr05-done" style="left: 360px">
+        <div data-hf-id="hf-n78i" class="fr05-circle"><div data-hf-id="hf-0s2k" class="fr05-circle-fill"></div><div data-hf-id="hf-ym2s" class="fr05-circle-num">1</div></div>
+        <div data-hf-id="hf-zn7x" class="fr05-step-label">Connect</div>
+      </div>
+      <div data-hf-id="hf-nqbk" id="05-retrieve-step2" class="fr05-step" style="left: 660px">
+        <div data-hf-id="hf-4ls6" class="fr05-circle"><div data-hf-id="hf-ci6s" class="fr05-circle-fill"></div><div data-hf-id="hf-xf5p" class="fr05-circle-num">2</div></div>
+        <div data-hf-id="hf-2oep" class="fr05-step-label">Chunk &amp; Embed</div>
+      </div>
+      <div data-hf-id="hf-9rfr" id="05-retrieve-step3" class="fr05-step fr05-future" style="left: 960px">
+        <div data-hf-id="hf-5037" class="fr05-circle">
+          <div data-hf-id="hf-z2p8" id="05-retrieve-step3-fill" class="fr05-circle-fill"></div>
+          <div data-hf-id="hf-clu7" id="05-retrieve-step3-num" class="fr05-circle-num">3</div>
+        </div>
+        <div data-hf-id="hf-sh5k" id="05-retrieve-step3-label" class="fr05-step-label">Retrieve</div>
+      </div>
+      <div data-hf-id="hf-hz8r" class="fr05-step fr05-future" style="left: 1260px">
+        <div data-hf-id="hf-5ee8" class="fr05-circle"><div data-hf-id="hf-zszv" class="fr05-circle-num">4</div></div>
+        <div data-hf-id="hf-4zt8" class="fr05-step-label">Freshness</div>
+      </div>
+      <div data-hf-id="hf-9kbc" class="fr05-step fr05-future" style="left: 1560px">
+        <div data-hf-id="hf-2m91" class="fr05-circle"><div data-hf-id="hf-07aw" class="fr05-circle-num">5</div></div>
+        <div data-hf-id="hf-4bqz" class="fr05-step-label">Answer</div>
+      </div>
+    </div>
+
+    <!-- content stage -->
+    <div data-hf-id="hf-96up" id="05-retrieve-stage" class="fr05-stage">
+      <div data-hf-id="hf-7ztg" id="05-retrieve-accent" class="fr05-accent-line"></div>
+      <div data-hf-id="hf-sxav" id="05-retrieve-eyebrow" class="fr05-eyebrow">Step 3 · Retrieve</div>
+
+      <!-- ask bar -->
+      <div data-hf-id="hf-tn4f" id="05-retrieve-ask" class="fr05-ask">
+        <svg data-hf-id="hf-wtpn" class="fr05-ask-icon" viewBox="0 0 28 28" fill="none">
+          <circle data-hf-id="hf-2elg" cx="12" cy="12" r="8" stroke="#1e2bfa" stroke-width="2.5" />
+          <line data-hf-id="hf-umne" x1="18" y1="18" x2="25" y2="25" stroke="#1e2bfa" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+        <div data-hf-id="hf-hvlc" class="fr05-ask-text-wrap">
+          <span data-hf-id="hf-pjk3" id="05-retrieve-placeholder" class="fr05-ask-placeholder">Ask Corely</span>
+          <span data-hf-id="hf-w85c" id="05-retrieve-ask-text"></span><span data-hf-id="hf-37lk" id="05-retrieve-caret" class="fr05-ask-caret"></span>
+        </div>
+        <div data-hf-id="hf-89zk" id="05-retrieve-burst" class="fr05-ask-btn-burst"></div>
+        <div data-hf-id="hf-w86p" id="05-retrieve-btn" class="fr05-ask-btn">
+          <svg data-hf-id="hf-vlku" width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path data-hf-id="hf-fimt" d="M14 22 V7 M7 13 L14 6 L21 13" stroke="#fdfae7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- permission shield badge -->
+      <div data-hf-id="hf-upg7" id="05-retrieve-shield" class="fr05-shield">
+        <svg data-hf-id="hf-k78i" width="32" height="36" viewBox="0 0 32 36" fill="none">
+          <path data-hf-id="hf-12y2" d="M16 2 L29 7 V17 C29 25 23 31 16 34 C9 31 3 25 3 17 V7 Z" fill="#1e2bfa" />
+          <path data-hf-id="hf-ankq" d="M10 18 L14.5 22.5 L22.5 13.5" stroke="#fdfae7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span data-hf-id="hf-xju2" class="fr05-shield-label">Permission filter</span>
+      </div>
+
+      <!-- vector field: dots + links + query point -->
+      <div data-hf-id="hf-r113" id="05-retrieve-field" class="fr05-field-cam">
+        <svg data-hf-id="hf-5jy5" id="05-retrieve-svg" class="fr05-field-svg" viewBox="0 0 920 440" />
+        <div data-hf-id="hf-uwjq" id="05-retrieve-dots"></div>
+        <div data-hf-id="hf-6y4z" id="05-retrieve-qring" class="fr05-query-ring"></div>
+        <div data-hf-id="hf-fl7d" id="05-retrieve-query" class="fr05-query"></div>
+      </div>
+
+      <!-- result tag -->
+      <div data-hf-id="hf-3m8u" id="05-retrieve-tag" class="fr05-tag">top 8 · similarity &gt; 0.55</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var $ = function (n) {
+        return document.getElementById("05-retrieve-" + n);
+      };
+      var SVGNS = "http://www.w3.org/2000/svg";
+      var tl = gsap.timeline({ paused: true });
+
+      // ---------- build the dot field (seeded, fixed positions) ----------
+      var seed = 5051;
+      function rand() {
+        seed |= 0;
+        seed = (seed + 0x6d2b79f5) | 0;
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+      var W = 920, H = 440, COLS = 8, ROWS = 5;
+      var QX = 460, QY = 220;
+      var cw = W / COLS, ch = H / ROWS;
+      var pts = [];
+      for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+          var x = (c + 0.5) * cw + (rand() - 0.5) * 56;
+          var y = (r + 0.5) * ch + (rand() - 0.5) * 40;
+          var dx = x - QX, dy = y - QY, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 48) {
+            // keep a clear ring around the query point
+            var k = 48 / Math.max(d, 1);
+            x = QX + dx * k;
+            y = QY + dy * k;
+            d = 48;
+          }
+          pts.push({ x: x, y: y, d: d, key: rand(), blocked: false });
+        }
+      }
+      // about a third (13 of 40) are sources this user cannot read
+      var byKey = pts.slice().sort(function (a, b) { return a.key - b.key; });
+      for (var i = 0; i < 13; i++) byKey[i].blocked = true;
+      // make sure the filter matters: the nearest two dots overall are blocked
+      var byDist = pts.slice().sort(function (a, b) { return a.d - b.d; });
+      if (!byDist[0].blocked || !byDist[2].blocked) {
+        var unblock = byKey.slice(0, 13).filter(function (p) { return p !== byDist[0] && p !== byDist[2]; })
+          .sort(function (a, b) { return b.d - a.d; });
+        var ui = 0;
+        [byDist[0], byDist[2]].forEach(function (p) {
+          if (!p.blocked) { p.blocked = true; unblock[ui++].blocked = false; }
+        });
+      }
+      var visible = byDist.filter(function (p) { return !p.blocked; });
+      var top8 = visible.slice(0, 8);
+
+      var dotsWrap = $("dots");
+      var svg = $("svg");
+      pts.forEach(function (p, idx) {
+        var el = document.createElement("div");
+        el.className = "fr05-dot";
+        el.style.left = (p.x - 9).toFixed(1) + "px";
+        el.style.top = (p.y - 9).toFixed(1) + "px";
+        dotsWrap.appendChild(el);
+        p.el = el;
+        p.idx = idx;
+      });
+      // threshold ring around the eight nearest
+      var ringR = Math.min(top8[7].d + 24, 214);
+      var ring = document.createElementNS(SVGNS, "circle");
+      ring.setAttribute("cx", QX);
+      ring.setAttribute("cy", QY);
+      ring.setAttribute("r", ringR.toFixed(1));
+      ring.setAttribute("fill", "rgba(30,43,250,0.04)");
+      ring.setAttribute("stroke", "rgba(30,43,250,0.35)");
+      ring.setAttribute("stroke-width", "1.5");
+      ring.setAttribute("stroke-dasharray", "6 8");
+      svg.appendChild(ring);
+      // hairline links query -> each of the eight
+      top8.forEach(function (p) {
+        var ln = document.createElementNS(SVGNS, "line");
+        ln.setAttribute("x1", QX);
+        ln.setAttribute("y1", QY);
+        ln.setAttribute("x2", p.x.toFixed(1));
+        ln.setAttribute("y2", p.y.toFixed(1));
+        ln.setAttribute("stroke", "#1e2bfa");
+        ln.setAttribute("stroke-width", "2");
+        ln.setAttribute("stroke-linecap", "round");
+        var len = (p.d - 17).toFixed(1);
+        ln.setAttribute("stroke-dasharray", len + " " + len);
+        ln.setAttribute("stroke-dashoffset", len);
+        svg.appendChild(ln);
+        p.line = ln;
+        p.len = len;
+      });
+
+      // ---------- Scene 1 (0.0-0.7): step 2 -> done, step 3 lights; eyebrow ----------
+      tl.fromTo($("step2"), { opacity: 1 }, { opacity: 0.55, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo($("step3-fill"), { scale: 0 }, { scale: 1, duration: 0.5, ease: "power3.out" }, 0.2);
+      tl.fromTo($("step3-num"), { color: "#1e2bfa" }, { color: "#fdfae7", duration: 0.3, ease: "power2.out" }, 0.3);
+      tl.fromTo($("step3-label"), { color: "#9a9a9a" }, { color: "#1e2bfa", duration: 0.4, ease: "power2.out" }, 0.3);
+      tl.fromTo($("accent"), { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, transformOrigin: "left center", duration: 0.4, ease: "power3.out" }, 0.15);
+      tl.fromTo($("eyebrow"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.2);
+
+      // ---------- Scene 2 (0.7-2.0): ask bar expands, question types, submit press ----------
+      tl.fromTo($("ask"), { opacity: 0, scaleX: 0.25 }, { opacity: 1, scaleX: 1, duration: 0.5, ease: "power3.out" }, 0.3);
+
+      var askText = $("ask-text");
+      var placeholder = $("placeholder");
+      var caret = $("caret");
+      var QUESTION = "What did we decide about pricing?";
+      var typed = { v: 0 };
+      tl.fromTo(typed, { v: 0 }, {
+        v: QUESTION.length,
+        duration: 1.0,
+        ease: "none",
+        onUpdate: function () {
+          var n = Math.floor(typed.v);
+          askText.textContent = QUESTION.substring(0, n);
+          placeholder.style.opacity = n > 0 ? "0" : "1";
+        }
+      }, 0.72);
+
+      // caret blink: deterministic sin square wave, off after submit
+      var blink = { p: 0 };
+      tl.fromTo(blink, { p: 0 }, {
+        p: Math.PI * 2 * 2.5,
+        duration: 1.5,
+        ease: "none",
+        onUpdate: function () {
+          caret.style.opacity = Math.sin(blink.p + Math.PI / 2) > 0 ? "1" : "0";
+        }
+      }, 0.35);
+      tl.set(caret, { opacity: 0 }, 1.86);
+
+      // submit press: linear dip, spring release, burst behind
+      tl.to($("btn"), { scale: 0.88, duration: 0.12, ease: "power1.in" }, 1.76);
+      tl.to($("btn"), { scale: 1, duration: 0.5, ease: "power3.out" }, 1.88);
+      tl.fromTo($("burst"), { scale: 1, opacity: 0 }, { scale: 2.6, opacity: 0.8, duration: 0.4, ease: "power2.out" }, 1.88);
+      tl.to($("burst"), { opacity: 0, duration: 0.45, ease: "power2.in" }, 2.28);
+      tl.to($("ask"), { borderColor: "rgba(30,43,250,0.45)", duration: 0.3, ease: "power2.out" }, 1.88);
+
+      // ---------- Scene 3 (2.0-3.1): dot field fills; permission filter dims a third ----------
+      pts.forEach(function (p) {
+        var delay = 2.0 + (p.x / W) * 0.35 + (p.idx % 3) * 0.03;
+        tl.fromTo(p.el, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power3.out" }, delay);
+      });
+      tl.fromTo($("shield"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 2.3);
+      pts.forEach(function (p, i) {
+        if (!p.blocked) return;
+        tl.to(p.el, { opacity: 0.15, scale: 0.8, duration: 0.3, ease: "power2.out" }, 2.75 + (i % 7) * 0.03);
+      });
+
+      // ---------- Scene 4 (3.1-5.4): query point lands; eight nearest light up ----------
+      tl.fromTo($("field"), { scale: 1 }, { scale: 1.04, duration: 2.3, ease: "sine.out" }, 3.1);
+      tl.fromTo($("query"), { opacity: 0, scale: 2.2, y: -40 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "power3.out" }, 3.12);
+      tl.fromTo($("qring"), { scale: 1 }, { scale: 3.4, duration: 0.7, ease: "power2.out" }, 3.4);
+      tl.fromTo($("qring"), { opacity: 0 }, { opacity: 0.7, duration: 0.05, ease: "none" }, 3.4);
+      tl.to($("qring"), { opacity: 0, duration: 0.65, ease: "power2.out" }, 3.45);
+
+      top8.forEach(function (p, i) {
+        var t = 3.5 + i * 0.16;
+        tl.fromTo(p.line, { attr: { "stroke-dashoffset": p.len } }, { attr: { "stroke-dashoffset": 0 }, duration: 0.24, ease: "power2.out" }, t);
+        tl.to(p.el, { backgroundColor: "#1e2bfa", scale: 1.45, duration: 0.28, ease: "power3.out" }, t + 0.14);
+      });
+
+      tl.fromTo(ring, { opacity: 0, scale: 0.85, svgOrigin: QX + " " + QY }, { opacity: 1, scale: 1, svgOrigin: QX + " " + QY, duration: 0.5, ease: "power2.out" }, 4.72);
+      tl.fromTo($("tag"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 4.8);
+
+      // hold to the frame end
+      tl.set({}, {}, 5.397);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["05-retrieve"] = tl;
+    })();
+  </script>
+</template>

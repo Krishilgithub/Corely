@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corely Gap Analysis</title>
+<meta name="description" content="What is insecure, broken, fake and missing in the Corely codebase, and a phased plan to fix it. Audit date 2026-10-04.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f9; --border:#e3e6eb; --text:#1a1d23; --muted:#5b6472;
+  --accent:#4f46e5; --critical:#dc2626; --high:#ea580c; --medium:#ca8a04; --ok:#16a34a;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
+    --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
+  --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;overflow-x:hidden}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.05em .35em;overflow-wrap:anywhere;word-break:break-word}
+h1,h2,h3,h4{line-height:1.25}
+h2{margin-top:2.6rem;padding-top:.6rem;border-top:1px solid var(--border);scroll-margin-top:70px}
+h3{margin-top:1.8rem;scroll-margin-top:70px}
+.muted{color:var(--muted)}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;padding:.5rem 16px;flex-wrap:wrap}
+.topbar .brand{font-weight:700;margin-right:.5rem}
+.topbar nav{display:flex;gap:.25rem;flex-wrap:wrap;flex:1}
+.topbar nav a{text-decoration:none;color:var(--muted);padding:.3rem .6rem;border-radius:6px;font-size:.9rem}
+.topbar nav a:hover{background:var(--surface);color:var(--text)}
+.topbar nav a.current{background:var(--accent);color:#fff}
+.theme-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;padding:.3rem .6rem;cursor:pointer;font:inherit;font-size:.85rem}
+
+/* layout */
+.layout{display:block;max-width:1240px;margin:0 auto;padding:0 16px}
+.toc{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem}
+.toc strong{display:block;margin-bottom:.3rem}
+.toc ol{margin:0;padding-left:1.2rem}
+.toc a{text-decoration:none;color:var(--text)}
+.toc a:hover{color:var(--accent)}
+main{max-width:900px;min-width:0}
+@media (min-width:1000px){
+  .layout{display:grid;grid-template-columns:230px minmax(0,900px);gap:2.5rem;justify-content:center}
+  .toc{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto;margin-top:2rem}
+}
+
+/* header */
+header.hero h1{font-size:2.1rem;margin:1.6rem 0 .2rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1.2rem 0}
+.tile{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:.8rem 1rem;border-top:4px solid var(--c)}
+.tile .n{font-size:2rem;font-weight:700;line-height:1.1}
+.tile .l{color:var(--muted);font-size:.9rem}
+
+/* filter */
+.filter{position:sticky;top:52px;z-index:10;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.6rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+.filter button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:.3rem .8rem;cursor:pointer;font:inherit;font-size:.88rem}
+.filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter input{flex:1;min-width:160px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:.4rem .6rem;font:inherit;font-size:.9rem}
+.filter .count{color:var(--muted);font-size:.85rem;width:100%}
+
+/* items */
+.item{border:1px solid var(--border);border-left:4px solid var(--c);border-radius:8px;padding:.75rem 1rem;margin:.7rem 0;background:var(--bg)}
+.item[data-sev="Critical"]{--c:var(--critical)}
+.item[data-sev="High"]{--c:var(--high)}
+.item[data-sev="Medium"]{--c:var(--medium)}
+.item .claim{font-weight:700}
+.item p{margin:.35rem 0}
+.item ul{margin:.3rem 0;padding-left:1.2rem}
+.item .refs{font-size:.88rem;color:var(--muted)}
+.badge{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:4px;padding:.1rem .45rem;margin-right:.4rem;color:#fff;background:var(--c);vertical-align:2px}
+.badge.Critical{--c:var(--critical)} .badge.High{--c:var(--high)} .badge.Medium{--c:var(--medium)}
+:root[data-theme="dark"] .badge{color:#111}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge{color:#111}}
+.hidden{display:none!important}
+.tag{font-size:.75rem;border:1px solid var(--border);border-radius:4px;padding:0 .35rem;color:var(--muted);margin-left:.3rem}
+
+/* facts */
+.facts{list-style:none;padding:0}
+.facts li{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:.6rem .9rem;margin:.5rem 0;border-left:4px solid var(--ok)}
+
+/* plan */
+.phase{border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;margin:1rem 0;background:var(--surface)}
+.phase h3{margin:0 0 .2rem;font-size:1.1rem}
+.phase .est{color:var(--muted);font-size:.9rem;margin-bottom:.5rem}
+.phase ol{margin:.3rem 0;padding-left:1.4rem}
+.phase li{margin:.3rem 0}
+.chip{display:inline-block;font-family:var(--mono);font-size:.72rem;font-weight:600;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:0 .35rem;margin-left:.35rem;white-space:nowrap}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+
+figure{margin:1.2rem 0;border:1px solid var(--border);border-radius:10px;padding:.8rem;background:var(--surface);overflow-x:auto}
+figure svg{display:block;width:100%;min-width:560px;height:auto}
+figcaption{color:var(--muted);font-size:.88rem;margin-top:.4rem}
+
+.callout{border:1px solid var(--border);border-left:4px solid var(--accent);background:var(--surface);border-radius:8px;padding:.8rem 1rem;margin:1rem 0}
+.callout.warn{border-left-color:var(--high)}
+footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.2rem 16px;color:var(--muted);font-size:.88rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Corely docs</span>
+  <nav aria-label="Corely documents">
+    <a href="corely-findings.html" class="current" aria-current="page">Gap Analysis</a>
+    <a href="corely-adr.html">Architecture Decisions</a>
+    <a href="corely-ai-pipelines.html">AI Pipelines</a>
+    <a href="corely-system-design.html">System Design</a>
+  </nav>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
+</div>
+
+<div class="layout">
+<aside class="toc" aria-label="Table of contents">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#method">How this was checked</a></li>
+    <li><a href="#findings">Findings</a>
+      <ol>
+        <li><a href="#sec-a">A. Security holes</a></li>
+        <li><a href="#sec-b">B. Broken</a></li>
+        <li><a href="#sec-c">C. Fake</a></li>
+        <li><a href="#sec-d">D. Missing</a></li>
+      </ol>
+    </li>
+    <li><a href="#plan">Implementation plan</a></li>
+    <li><a href="#order">Suggested order</a></li>
+    <li><a href="#claude-md">Wrong claims in CLAUDE.md</a></li>
+  </ol>
+</aside>
+
+<main>
+<header class="hero" id="summary">
+  <h1>Corely Gap Analysis</h1>
+  <div class="muted">Audit date: 2026-10-04 · Product owner: Krishil Agrawal · Branch: <code>master</code></div>
+  <p>We read through the whole Corely codebase to find out what really works. The short answer: a lot of the app looks finished, but much of it is not. Some API routes let anyone read or delete another company's data. A real email password is written in the code. Slack and Linear content never becomes searchable, and syncs can get stuck forever. Many dashboard numbers are made up, and many buttons do nothing. Large parts, like automatic syncing, team invites and billing, were never built. This page lists every problem with the exact file and line, and ends with a phased plan to fix them, starting with the security holes.</p>
+  <div class="tiles">
+    <div class="tile" style="--c:var(--critical)"><div class="n" id="t-a">11</div><div class="l">Security holes</div></div>
+    <div class="tile" style="--c:var(--high)"><div class="n" id="t-b">41</div><div class="l">Broken</div></div>
+    <div class="tile" style="--c:var(--medium)"><div class="n" id="t-c">12</div><div class="l">Fake (pages / areas)</div></div>
+    <div class="tile" style="--c:var(--accent)"><div class="n" id="t-d">16</div><div class="l">Missing</div></div>
+  </div>
+</header>
+
+<section id="method">
+<h2>How this was checked</h2>
+<p>We ran 4 separate read-only audits. "Read-only" means we only read code; we changed nothing. Each audit covered one area:</p>
+<ol>
+  <li>The frontend (the pages and components people see).</li>
+  <li>The API routes and the shared <code>lib/</code> code.</li>
+  <li>The connectors (the code that pulls data from Notion, Gmail and so on) and retrieval (how Ask Corely finds answers).</li>
+  <li>The data model, the old planning notes, the landing pages and production readiness.</li>
+</ol>
+<p>Where the audits disagreed, we went back and checked the code by hand. These 5 facts were confirmed by hand:</p>
+<ul class="facts">
+  <li><strong>The background worker is never given work.</strong> <code>workers/index.ts</code> handles all 6 jobs (<code>sync-google-drive</code>, <code>sync-notion</code>, <code>sync-gmail</code>, <code>sync-github</code>, <code>sync-slack</code>, <code>sync-linear</code>, lines 76-111). But nothing adds jobs to the queue <code>sourceQueue</code> (<code>lib/redis.ts:27</code>).</li>
+  <li><strong>Gmail incremental sync never runs.</strong> "Incremental" means fetching only what changed since last time. <code>buildQuery</code> (<code>modules/sources/connectors/gmail.ts:136-150</code>) returns <code>config.query</code> first. The Gmail callback always stores the query <code>"newer_than:180d -category:promotions -category:social"</code> (<code>app/api/sources/gmail/callback/route.ts:95</code>). So the incremental path is never reached. There is also a hard cap of 100 threads per sync.</li>
+  <li><strong>Only Notion retries and cleans up.</strong> <code>withRetry</code> exists only in <code>notion.ts</code> (line 375). Only Notion removes documents that were deleted upstream (<code>notion.ts:129-147</code>). CLAUDE.md wrongly says all connectors do both.</li>
+  <li><strong>A real password is in the code.</strong> <code>lib/email.ts:6-7</code> has a real Gmail address and app password as a fallback. It was committed in <code>2cd2cb7</code>.</li>
+  <li><strong>Anyone can claim a password-less account.</strong> <code>app/api/auth/login/route.ts:72-78</code> sets the password for any user who has no <code>passwordHash</code>.</li>
+</ul>
+</section>
+
+<section id="findings">
+<h2>Findings</h2>
+<p>Each item has a short claim, a plain explanation and the files involved. Badges show how serious it is: <span class="badge Critical">Critical</span> for security holes, <span class="badge High">High</span> for broken things that lose data or block users, <span class="badge Medium">Medium</span> for everything else.</p>
+
+<div class="filter" role="search">
+  <button type="button" data-f="All" aria-pressed="true">All</button>
+  <button type="button" data-f="Critical" aria-pressed="false">Critical</button>
+  <button type="button" data-f="High" aria-pressed="false">High</button>
+  <button type="button" data-f="Medium" aria-pressed="false">Medium</button>
+  <input type="search" id="q" placeholder="Search findings, e.g. slack, login.ts, gmail" aria-label="Search findings">
+  <div class="count" id="fcount"></div>
+</div>
+
+<!-- ============ A ============ -->
+<section id="sec-a" class="fsec">
+<h2>A. Security holes <span class="badge Critical">Critical</span></h2>
+<p>These let an outsider or a normal member see, change or delete data they should not. Fix these first.</p>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A1. A real Gmail app password is leaked in the code.</span></p>
+  <p>The email helper uses a real Gmail address and app password as a fallback when the env variables are missing. It has been in git history since commit <code>2cd2cb7</code>, so deleting the line is not enough. Rotate (replace) the password in Google first.</p>
+  <p class="refs"><code>lib/email.ts:6-7</code> · commit <code>2cd2cb7</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A2. Several API routes have no login check at all.</span></p>
+  <p>These routes look up a record by its id alone. They never call <code>auth()</code> and never check the workspace. Anyone who knows or guesses an id can act on another company's data:</p>
+  <ul>
+    <li><code>app/api/chats/[sessionId]/route.ts</code> GET/DELETE (lines 11-56)</li>
+    <li><code>app/api/chats/[sessionId]/messages/[messageId]/feedback/route.ts</code> POST</li>
+    <li><code>app/api/documents/[documentId]/route.ts</code> DELETE (lines 7-56)</li>
+    <li><code>app/api/sources/[sourceId]/route.ts</code> DELETE (lines 7-27)</li>
+    <li><code>app/api/sources/[sourceId]/config/route.ts</code> POST (12-28) — can set <code>permissions:"everyone"</code></li>
+    <li><code>app/api/sources/[sourceId]/folders/route.ts</code> GET — decrypts the stored Drive token</li>
+    <li><code>app/api/sources/[sourceId]/status/route.ts</code> GET — leaks <code>config</code> and <code>errorMessage</code></li>
+    <li><code>app/api/webhooks/drive</code> and <code>/notion</code> POST (stubs)</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A3. Login lets anyone take over an account that has no password.</span></p>
+  <p>The code block labelled "MVP Legacy Migration Logic" sets whatever password you type for any user without a <code>passwordHash</code>. That means the first person to log in with that email owns the account.</p>
+  <p class="refs"><code>app/api/auth/login/route.ts:72-78</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A4. Invites send the temporary password in plain text and return it in the API response.</span></p>
+  <p>The invite email contains the temporary password in plain text. The API response also returns it as <code>_devPassword</code>. The login link in the email is hardcoded to <code>https://corely-khaki.vercel.app/login</code>.</p>
+  <p class="refs"><code>app/api/teams/members/route.ts:104-105</code> (password), line 81 (hardcoded link)</p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A5. Login tokens fall back to a public, known secret.</span></p>
+  <p>If <code>JWT_SECRET</code> is not set, session tokens (JWTs, signed login tokens) are signed with <code>"fallback-secret-for-development-only"</code>. Anyone who reads the code can then forge a login for any user.</p>
+  <p class="refs"><code>lib/auth-server.ts:6</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A6. OAuth state tokens may double as login cookies. <span class="tag">plausible, not proven</span></span></p>
+  <p>OAuth "state" is a value sent to Google, Notion and others and checked when they send the user back. Corely signs it with the same session key (<code>encrypt</code> from <code>lib/auth-server.ts</code>) and puts <code>userId</code> and <code>workspaceId</code> inside. So it is likely usable as a <code>corely_session</code> cookie for 24 hours. This is plausible but not proven. The nonce (a one-time random value) comes from <code>Math.random</code> and is never checked in the callbacks.</p>
+  <p class="refs"><code>lib/auth-server.ts</code> (<code>encrypt</code>) · OAuth <code>connect</code>/<code>callback</code> routes</p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A7. Ask Corely does not check that a chat belongs to you.</span></p>
+  <p><code>/api/ask</code> takes a <code>sessionId</code> but never checks that the session belongs to the caller's workspace. Someone could read history from, or write into, another workspace's chat.</p>
+  <p class="refs"><code>app/api/ask/route.ts:103-123</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A8. Any member can do admin-only actions.</span></p>
+  <p>There is no permission check on these actions. Any member can:</p>
+  <ul>
+    <li>create roles with any permissions (<code>teams/roles/route.ts:31-46</code>) — including giving themselves full admin;</li>
+    <li>rename the workspace or change its slug (<code>settings/route.ts:65-81</code>);</li>
+    <li>create and revoke API keys (<code>settings/api-keys</code>).</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A9. "Permission-aware" search restricts nothing.</span></p>
+  <p>All 4 default roles include <code>sources:read</code>. That permission gives access to every source in the workspace. So every user sees everything, even private sources.</p>
+  <p class="refs"><code>lib/rbac.ts:26-55</code> · <code>ask/route.ts:146</code> · <code>search/route.ts:54</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A10. The dashboard is only protected in the browser.</span></p>
+  <p>There is no <code>middleware.ts</code> (server code that runs before a page loads). The dashboard is only protected by a redirect in the browser. An unauthenticated visit to <code>/dashboard</code> throws an error into <code>error.tsx</code>.</p>
+  <p class="refs"><code>app/lib/auth-context.tsx:65-70</code></p>
+</div>
+
+<div class="item" data-sev="Critical">
+  <p><span class="badge Critical">Critical</span><span class="claim">A11. Other account and crypto weaknesses.</span></p>
+  <ul>
+    <li>Password-reset tokens are stored in plain text (<code>forgot-password:29</code>).</li>
+    <li>Forgot-password reveals whether an account exists: it returns a 500 error only when the user exists (line 45).</li>
+    <li>Logout only deletes the cookie. There is no session revocation (no way to kill a token on the server).</li>
+    <li>Changing your password does not end your other sessions.</li>
+    <li>The login rate limiter is an in-memory Map, per process, keyed by email (<code>login/route.ts:14-17</code>). It resets on restart and is not shared across servers.</li>
+    <li>Invite <code>teamIds</code> connect is not scoped to the workspace (<code>teams/members:65</code>), so you can add someone to another workspace's team.</li>
+    <li><code>lib/crypto.ts</code> uses crypto-js AES in passphrase mode: key made with EVP_BytesToKey MD5, 1 iteration, AES-CBC, no MAC (no tamper check). <code>decrypt</code> returns <code>""</code> on a wrong key instead of failing. crypto-js is discontinued.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ============ B ============ -->
+<section id="sec-b" class="fsec">
+<h2>B. Broken (built, but does not work)</h2>
+<p>The code for these exists, but it fails, gives wrong results, or silently does nothing.</p>
+
+<h3 id="sec-b1">Connectors and syncing</h3>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B1. Slack and Linear content can never be found by Ask Corely.</span></p>
+  <p>Both connectors first create a chunk row with <code>prisma.documentChunk.create</code>. Then they insert the same id again with <code>supabaseAdmin</code> into the same table (<code>document_chunks</code>). That fails with a duplicate key error. The insert is also missing the NOT NULL columns <code>source_id</code> and <code>chunk_index</code>. The error is only logged. The rows keep <code>embedding=NULL</code>, and the similarity filter skips them. Result: Slack and Linear content can never be retrieved.</p>
+  <p class="refs"><code>slack.ts:243-251</code> · <code>linear.ts:244-252</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B2. Sources get stuck on "syncing" forever.</span></p>
+  <p>The sync route sets the status to <code>syncing</code> and then starts the connector without waiting ("fire-and-forget"). Connectors throw early errors (no token, refresh failure, <code>"Gmail OAuth is not configured"</code>) before their <code>try</code> block. So the status never becomes <code>error</code>. Every retry then gets a 409 ("already syncing"). The Duplicate action creates copies without a token, and those always get stuck.</p>
+  <p class="refs"><code>app/api/sources/[sourceId]/sync/route.ts:30-33</code> (starts sync) · <code>route.ts:25-27</code> (409)</p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B3. Slack and Linear say "synced" without syncing anything.</span></p>
+  <p>After connecting, the callbacks set status <code>"synced"</code>, <code>lastSyncedAt</code> to now and <code>itemsIndexed</code> 0, but no sync runs. Reconnecting Slack also overwrites the source config with just <code>{teamId}</code>.</p>
+  <p class="refs"><code>slack/callback:76-93</code> · <code>linear/callback:92-106</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B4. There is no way to add GitHub from the UI.</span></p>
+  <p>The Add Source modal has cards only for Drive, Notion, Gmail, Slack and Linear (links at lines 262, 342, 421, 500, 578). "Configure Scope" shows only for <code>google_drive</code>.</p>
+  <p class="refs"><code>SourcesMain.tsx:262,342,421,500,578</code> · <code>SourcesMain.tsx:1328</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B5. The Sources page ignores most connect results and all errors.</span></p>
+  <p>It does not react to <code>?connected=github</code>, <code>?success=slack_connected</code>, <code>?success=linear_connected</code> or any <code>?error=</code>. Users get no message when a connect fails.</p>
+  <p class="refs"><code>SourcesMain.tsx:773-791</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B6. Drive folder picker shows fake folders.</span></p>
+  <p>When the token is missing, the list is empty, or there is an error, the route returns <code>MOCK_FOLDERS</code> ("Wednesday", "SAPUTARA", "Classroom"). If a user picks one, the sync finds 0 files and says nothing.</p>
+  <p class="refs"><code>folders/route.ts:36-90</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B7. Gmail only ever indexes the newest 100 threads.</span></p>
+  <p>Each sync fetches only the newest 100 threads from the last 180 days. Incremental sync never runs (see the hand-verified facts above). <code>historyId</code> is stored but never used.</p>
+  <p class="refs"><code>modules/sources/connectors/gmail.ts:136-150</code> · <code>app/api/sources/gmail/callback/route.ts:95</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B8. The sync schedule setting is thrown away.</span></p>
+  <p>The UI sends hourly / daily / weekly, but the config route ignores <code>syncSchedule</code>.</p>
+  <p class="refs"><code>SourcesMain.tsx:1849</code> · <code>config/route.ts:20</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B9. Saving source config can wipe chosen folders.</span></p>
+  <p>The config route deletes <code>folderIds</code> when they are not sent. It also does not check the source type.</p>
+  <p class="refs"><code>app/api/sources/[sourceId]/config/route.ts</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B10. "Freshness" measures when we indexed, not when the content changed.</span></p>
+  <p><code>Document.updatedAt</code> is <code>@updatedAt</code>, so it is set to the time of indexing. Only Linear and Slack pass the date from the source. So freshness scores are wrong for the other connectors.</p>
+  <p class="refs"><code>prisma/schema.prisma</code> (<code>Document.updatedAt</code>)</p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B11. The "items indexed" count only goes up.</span></p>
+  <p><code>itemsIndexed</code> only ever increments. It also counts changed documents again each time they are re-indexed.</p>
+</div>
+
+<h3 id="sec-b2">Ask Corely</h3>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B12. The answer spinner never stops when there is no answer or an error.</span></p>
+  <p>The page handles only the <code>sources</code> and <code>text</code> SSE events (SSE: the stream of messages the server sends). The route also sends <code>no_knowledge</code> (line 191) and <code>error</code> (lines 82, 336). The page ignores them, so the user sees an endless spinner.</p>
+  <p class="refs"><code>AskMain.tsx:525-544</code> · <code>app/api/ask/route.ts:82,191,336</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B13. Thumbs up/down on a new answer always fails.</span></p>
+  <p>A new answer gets a local id <code>corely-${Date.now()}</code>. The server never returns the real database id, so feedback always 404s. Also, export checks <code>feedback === "up"</code>, but the database stores <code>"positive"</code>/<code>"negative"</code>.</p>
+  <p class="refs"><code>AskMain.tsx:452/401</code> · export line 60</p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B14. Links that pre-fill a question do nothing.</span></p>
+  <p><code>?q=</code> is never read. No page under <code>app/dashboard</code> uses <code>useSearchParams</code>.</p>
+  <p class="refs">Links at <code>Topbar.tsx:214,595,694</code> · <code>insights/page.tsx:329</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B15. The Web Search and Knowledge Only toggles are ignored.</span></p>
+  <p>The page sends them, but the route reads only <code>question</code> and <code>sessionId</code>.</p>
+  <p class="refs"><code>app/api/ask/route.ts:99</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B16. Share copies a link without the chat in it.</span></p>
+  <p>Share copies <code>window.location.href</code>, which has no session id. The person you share with cannot open the chat.</p>
+  <p class="refs"><code>AskMain.tsx:306-311</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B17. PDF and DOCX attachments are read as garbage text.</span></p>
+  <p>Attachments are read with <code>readAsText</code>, which turns binary files like PDF and DOCX into unreadable text.</p>
+  <p class="refs"><code>AskMain.tsx:285-290, 585</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B18. Follow-up questions lose their context in search.</span></p>
+  <p>Follow-ups like "what about last week?" are not rewritten into a full question. Only the latest question is embedded (turned into a vector for search), so search misses the topic.</p>
+  <p class="refs"><code>ask/route.ts:158</code></p>
+</div>
+
+<h3 id="sec-b3">Elsewhere</h3>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B19. Dashboard health always says "Operational".</span></p>
+  <p>The check looks for <code>'ERROR'</code>, but connectors write <code>'error'</code> (lower case). It never matches.</p>
+  <p class="refs"><code>app/dashboard/page.tsx:36</code> · <code>app/api/dashboard/route.ts:36</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B20. Insight priority colours never show.</span></p>
+  <p>The UI expects <code>HIGH</code>/<code>MEDIUM</code>. The generator emits <code>High</code>/<code>Medium</code>/<code>Critical</code>.</p>
+  <p class="refs"><code>InsightsPanel.tsx:106</code> · <code>lib/insights-generator.ts:30</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B21. Loading the Memory page deletes real memories.</span></p>
+  <p>Every GET deletes rows titled "Decision Captured" or "Discussion Summary" (leftover mock cleanup). But the Add form placeholder suggests the title "Decision Captured", so users' own entries get deleted.</p>
+  <p class="refs"><code>app/api/memory/route.ts:23-32</code> · <code>AddMemoryModal.tsx:72</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B22. Deleted synced documents come back on the Memory page.</span></p>
+  <p>GET merges in Documents, but DELETE only removes <code>orgMemory</code>. So a deleted document row reappears on reload.</p>
+  <p class="refs"><code>memory/page.tsx:450-457</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B23. Login errors are hidden and a fallback password exists.</span></p>
+  <p>Login errors are shown with <code>alert()</code>, so the error banner can never show. There is a fallback password <code>"password123"</code>. "Remember me" is never sent; the cookie is fixed at 24 hours.</p>
+  <p class="refs"><code>app/lib/auth-context.tsx:78, 91-94</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B24. Marking a broadcast notification as read clears it for everyone.</span></p>
+  <p>Broadcast rows have <code>userId</code> null. Marking one as read changes the shared row, so it is read for all users.</p>
+  <p class="refs">notifications route 35-45 · <code>[id]/read</code> 18-21</p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B25. The Autonomous Actions panel is always empty.</span></p>
+  <p>It reads <code>DashboardAction</code>, but nothing ever writes to that table.</p>
+  <p class="refs"><code>page.tsx:44</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B26. Manual upload has no limits or checks.</span></p>
+  <p>No file type check on the server. <code>.doc</code> files are sent to mammoth, which only reads <code>.docx</code>. No size limit. No <code>contentHash</code> dedupe, so the same file is stored twice. Each chunk is embedded one by one while the request waits.</p>
+  <p class="refs"><code>app/api/sources/upload/route.ts</code></p>
+</div>
+
+<div class="item" data-sev="High">
+  <p><span class="badge High">High</span><span class="claim">B27. The embedding fallback silently ruins search.</span></p>
+  <p>If <code>text-embedding-3-small</code> fails, the code falls back to <code>ada-002</code>. Both make 1536-number vectors, but they live in different "vector spaces", so comparing them gives nonsense. This happens silently. Embeddings are also not batched.</p>
+  <p class="refs"><code>lib/openai.ts:16-51</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B28. The <code>match_chunks()</code> database function is unused.</span></p>
+  <p>It is defined but nothing calls it. It also has no source filter, so it would ignore permissions if used.</p>
+  <p class="refs"><code>scripts/init-pgvector.ts:60-91</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B29. The chunker is simpler than its comment says.</span></p>
+  <p>It splits on whitespace only, despite the comment. <code>tokenCount</code> is really a word count. A 400-word document gets a duplicate 50-word chunk.</p>
+  <p class="refs"><code>modules/ai/chunker.ts</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B30. Notion database sync is probably broken on the new client. <span class="tag">unverified</span></span></p>
+  <p>On <code>@notionhq/client</code> v5, <code>databases.query</code> moved to <code>data_sources</code>. The database step is probably broken. This was not verified.</p>
+  <p class="refs"><code>modules/sources/connectors/notion.ts</code></p>
+</div>
+
+<h3 id="sec-b4">Found while writing the companion docs</h3>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B31. <code>/api/ask</code> returns 500 when you are logged out.</span></p>
+  <p>The catch block sends every error back as HTTP 500, including <code>"Unauthorized"</code>. Other routes return 401. It also sends the raw error message to the browser.</p>
+  <p class="refs"><code>app/api/ask/route.ts:351-358</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B32. Chat history drops earlier messages that repeat the question.</span></p>
+  <p>The history filter removes any earlier message whose text equals the new question. So if a user asks the same thing twice, the earlier turn vanishes from the context.</p>
+  <p class="refs"><code>app/api/ask/route.ts:118</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B33. Gmail and manual uploads get the wrong freshness rate.</span></p>
+  <p>The ask route reads the source type from <code>meta.file_type ?? meta.source_type</code>. Connectors that write another string, such as <code>gmail</code> or <code>manual_upload</code>, fall back to the default decay of 0.5 points per day.</p>
+  <p class="refs"><code>app/api/ask/route.ts:221</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B34. GitHub never checks if a chunk insert failed.</span></p>
+  <p>The result of the Supabase insert is ignored. A failed insert leaves a document with missing chunks and no error.</p>
+  <p class="refs"><code>modules/sources/connectors/github.ts:300-315</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B35. Linear retries rate limits forever.</span></p>
+  <p>On HTTP 429 (too many requests) the Linear fetch calls itself again with no upper limit. A long rate limit can keep a sync running without end.</p>
+  <p class="refs"><code>modules/sources/connectors/linear.ts:34-40</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B36. Slack and Linear use a different hash.</span></p>
+  <p>They hash content with MD5. The other connectors use SHA-256. It still works for spotting changes, but it is inconsistent.</p>
+  <p class="refs"><code>modules/sources/connectors/slack.ts:189</code> · <code>modules/sources/connectors/linear.ts:196</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B37. <code>POST /api/documents</code> computes a hash but never uses it.</span></p>
+  <p>It creates a <code>contentHash</code> but never compares it, so duplicates are not caught. It also never updates <code>itemsIndexed</code>.</p>
+  <p class="refs"><code>app/api/documents/route.ts</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B38. Insight IDs can mix between requests.</span></p>
+  <p>Insight IDs come from one counter at module level (<code>dyn-insight-N</code>). Two requests running at once share it, so IDs are not stable.</p>
+  <p class="refs"><code>lib/insights-generator.ts:23, 40, 63</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B39. The pgvector setup script says "completed" even when a step fails.</span></p>
+  <p>Each failed step is only logged. A database can look ready when the vector column or index is missing.</p>
+  <p class="refs"><code>scripts/init-pgvector.ts</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B40. Package list problems.</span></p>
+  <p>Installed but not imported anywhere: <code>ai</code>, <code>docx</code>, <code>gsap</code>, the 4 <code>@radix-ui/*</code> packages, <code>class-variance-authority</code>, <code>cross-env</code>. <code>dotenv</code> is used in <code>workers/index.ts</code> but not declared in <code>package.json</code>.</p>
+  <p class="refs"><code>package.json</code> · <code>workers/index.ts</code></p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">B41. A second PostCSS config names a plugin that is not installed.</span></p>
+  <p><code>postcss.config.mjs</code> uses <code>@tailwindcss/postcss</code>, which is not in <code>package.json</code>. It sits next to the working <code>postcss.config.js</code>. Delete one of them.</p>
+  <p class="refs"><code>postcss.config.mjs</code> · <code>postcss.config.js</code></p>
+</div>
+</section>
+
+<!-- ============ C ============ -->
+<section id="sec-c" class="fsec">
+<h2>C. Fake (made-up data or dead buttons)</h2>
+<p>These look real to a user, but show invented numbers or do nothing when clicked. Grouped by page.</p>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C1. Home dashboard.</span></p>
+  <ul>
+    <li>The activity feed is fully mock ("Sarah Jenkins joined", "@johndoe") — <code>ActivityFeedPanel.tsx:6-57</code>.</li>
+    <li>Trend labels are fixed text — <code>StatsCards.tsx:47-50</code>.</li>
+    <li>The Knowledge Coverage formula is invented — <code>page.tsx:32</code>.</li>
+    <li>Onboarding steps 2 and 3 are hardcoded <code>done:false</code> — <code>DashboardClient.tsx:36,45</code>.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C2. Insights page.</span></p>
+  <ul>
+    <li>Fixed trends — <code>insights/page.tsx:364,380,396,412</code>.</li>
+    <li>"Actioned Rate" is invented — <code>:124</code>.</li>
+    <li>Timeline value is docs + chats + 10 — <code>api/insights/route.ts:41</code>.</li>
+    <li>The Source filter lists Salesforce, which has no connector — <code>:446-453</code>.</li>
+    <li>Buttons and links that do nothing — <code>:288</code>, <code>:456-462</code>, <code>:701</code>, and <code>href="#"</code> at <code>:552</code>, <code>:610</code>, <code>:658</code>.</li>
+    <li>Insights are rule-based, with no LLM. The <code>DashboardInsight</code> model is unused. Insight IDs come from a module-level counter.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C3. Teams page.</span></p>
+  <ul>
+    <li>health / know / collab / actions are default numbers — <code>api/teams/route.ts:42-54</code>.</li>
+    <li>The member count is typed in by hand: <code>Math.max(users.length, members)</code>.</li>
+    <li>The detail page says "Dynamic tracking will be fully enabled in the next platform update".</li>
+    <li>Trends are hardcoded.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C4. Workflows page.</span></p>
+  <ul>
+    <li>Run is simulated and always succeeds — <code>api/workflows/[id]/run/route.ts:21</code> ("Simulate execution updates").</li>
+    <li>Banner says "execution engine coming soon" — <code>WorkflowsMain.tsx:329-331</code>.</li>
+    <li>KPIs are fake (1842 executions, 128 hours saved) — <code>:120-129</code>.</li>
+    <li>Fake owners: Jane Doe, Alex Morgan, "Krishil Shah (You)".</li>
+    <li>Import creates a hardcoded "Imported Analytics Sync" — <code>WorkflowsLayout.tsx:192-207</code>.</li>
+    <li>PATCH mass-assigns <code>{...data}</code>, so a caller can overwrite any field.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C5. Memory page.</span></p>
+  <ul>
+    <li>Fake trends — <code>memory/page.tsx:323-325</code>, <code>MemoryStatsGrid.tsx</code>.</li>
+    <li>Snapshots store only a title (schema <code>MemorySnapshot</code> has just id / workspaceId / title / createdAt).</li>
+    <li>The Snapshots tab just filters category <code>"insight"</code>.</li>
+    <li>Retention always shows "90 Days".</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C6. Sources sidebar.</span></p>
+  <ul>
+    <li>The ingestion sparkline is drawn from <code>Math.sin</code> — <code>SourcesRightSidebar.tsx:104-134</code>.</li>
+    <li>Sync history is one synthetic entry — <code>history/route.ts:38-87</code>.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C7. Profile page.</span></p>
+  <p>Save is just a <code>setTimeout</code> (nothing is saved) — <code>profile/page.tsx:16-23</code>. Nothing links to the page.</p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C8. Settings page (<code>SettingsMain.tsx</code>).</span></p>
+  <ul>
+    <li>Invite Member (<code>:346</code>) and Remove (<code>:368</code>) have no <code>onClick</code>.</li>
+    <li><code>defaultLlm</code> is saved, but ask hardcodes <code>gpt-4o</code> (<code>ask/route.ts:276</code>).</li>
+    <li>The retention select has no <code>onChange</code> (<code>:421</code>).</li>
+    <li>Auto Re-sync is static (<code>:439</code>).</li>
+    <li>The 2FA toggle saves but nothing uses it (<code>:577</code>).</li>
+    <li>Configure SSO has no handler (<code>:589</code>).</li>
+    <li>The API key docs snippet is for an API that does not exist (<code>:557</code>).</li>
+    <li>Notification toggles are static (<code>:649</code>, <code>:661</code>).</li>
+    <li>Export CSV has no handler (<code>:676</code>).</li>
+    <li>Audit status is forced to "success" (<code>:158</code>).</li>
+    <li>Billing always says "Enterprise Plan" (<code>:706</code>).</li>
+    <li>Delete Workspace says to contact support (<code>:731-737</code>).</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C9. Top bar and sidebar.</span></p>
+  <ul>
+    <li>The workspace switcher has no <code>onClick</code> (<code>Topbar.tsx:324</code>).</li>
+    <li>The notification link is ignored.</li>
+    <li>The Sidebar shows "Free Plan" for a trial workspace.</li>
+    <li>The Settings highlight has an exact-match bug.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C10. Usage limits.</span></p>
+  <p>Limits are hardcoded in <code>api/usage</code> and disagree (100 docs / 500 queries vs 10000 / 50000). They are not enforced. "queries" actually counts chat sessions.</p>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C11. Marketing site.</span></p>
+  <ul>
+    <li>The <code>/#features</code>, <code>/#how-it-works</code> and <code>/#security</code> anchors go nowhere.</li>
+    <li>The "Start Free Trial" CTA has no handler — <code>CTASection.tsx:50-53</code>.</li>
+    <li>The contact form is a <code>setTimeout</code> — <code>contact/page.tsx:12-20</code>.</li>
+    <li>It claims things that are not true: SOC 2 Type II, SSO/SAML, Claude 3.5, Jira, custom LLM fine-tuning, sub-50ms search, autonomous agents, action engine.</li>
+    <li>The changelog is made up.</li>
+    <li>18 footer links are <code>href="#"</code>.</li>
+  </ul>
+</div>
+
+<div class="item" data-sev="Medium">
+  <p><span class="badge Medium">Medium</span><span class="claim">C12. Unused code.</span></p>
+  <p>Nothing uses these: <code>AskCorelyPanel.tsx</code>, <code>SettingsRightSidebar.tsx</code>, <code>app/components/{Navbar,Footer,HeroSection,...}</code>, <code>/api/analytics</code>, <code>/api/dashboard</code>, and the Supabase anon client.</p>
+</div>
+</section>
+
+<!-- ============ D ============ -->
+<section id="sec-d" class="fsec">
+<h2>D. Missing (never built)</h2>
+<p>These features are implied by the UI, the marketing or the plans, but there is no code for them.</p>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D1. Automatic sync.</span></p>
+  <p>No cron or repeatable jobs. BullMQ (the job queue library) is unused. The Drive and Notion webhooks are stubs. There are no Slack, GitHub, Linear or Gmail webhooks, and no watch channel registration (asking Google to notify us of changes).</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D2. Removing items deleted upstream.</span></p>
+  <p>5 of 6 connectors never purge items that were deleted in the source app. Only Notion does.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D3. Incremental sync.</span></p>
+  <p>No connector fetches only what changed. Every sync starts over.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D4. Token revocation on disconnect.</span></p>
+  <p>Disconnecting a source does not revoke the OAuth token with the provider.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D5. Content that connectors skip.</span></p>
+  <ul>
+    <li><strong>Slack:</strong> thread replies, private channels, anything past 200 channels, a 500 messages per channel cap, and one doc per channel.</li>
+    <li><strong>Drive:</strong> shared drives, Slides, xlsx, sheets after the first, subfolder paging.</li>
+    <li><strong>GitHub:</strong> code, docs, wikis, issue/PR comments. It fetches only the README, 100 issues and 50 PRs.</li>
+    <li><strong>Gmail:</strong> attachments.</li>
+    <li><strong>Notion:</strong> database properties, many block types.</li>
+    <li><strong>Linear:</strong> comments past the first page, projects, docs, anything past 1000 issues.</li>
+  </ul></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D6. Better retrieval.</span></p>
+  <p>No follow-up rewriting, no hybrid keyword + vector search, no reranking, no dedupe, no OrgMemory as context, and no citations with chunk ids.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D7. Team management.</span></p>
+  <p>No invite token + accept flow, no change role, no remove member from workspace, no edit/delete roles, no edit teams. No per-user chats: <code>ChatSession</code> has no <code>userId</code>.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D8. Account features.</span></p>
+  <p>No email verification, profile update, session revocation, Google sign-in, real 2FA or SSO.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D9. API keys that work.</span></p>
+  <p>Keys are never checked. They are stored as bcrypt hashes with no lookup prefix, so they cannot be found quickly. <code>lastUsedAt</code> is never written. There is no public API.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D10. Audit log.</span></p>
+  <p>Only password change writes an entry (<code>settings/password/route.ts:51</code>). <code>ipAddress</code> is never set.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D11. Notifications.</span></p>
+  <p>Only a member invite creates one.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D12. Billing and plans.</span></p>
+  <p>No Stripe. The plan <code>"trial"</code> never changes. Limits are not enforced.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D13. Workflow engine.</span></p>
+  <p>No triggers, conditions or actions.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D14. Memory features.</span></p>
+  <p>No automatic extraction of memories. No real snapshots with restore.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D15. More connectors.</span></p>
+  <p>HubSpot, Microsoft 365, Jira and Confluence do not exist.</p></div>
+
+<div class="item" data-sev="Medium"><p><span class="badge Medium">Medium</span><span class="claim">D16. Production basics.</span></p>
+  <ul>
+    <li>No tests or CI.</li>
+    <li>No env validation: all clients fall back to dummy values, except <code>ENCRYPTION_KEY</code>.</li>
+    <li>No Prisma migrations (only <code>db push</code>).</li>
+    <li>No logger or Sentry (error tracking).</li>
+    <li>No root <code>error.tsx</code> / <code>global-error.tsx</code> / <code>not-found.tsx</code>.</li>
+    <li>No rate limits beyond <code>/api/ask</code>.</li>
+    <li>No security headers (<code>next.config.ts</code> is empty).</li>
+    <li>No stronger crypto.</li>
+  </ul></div>
+</section>
+<p id="noresults" class="muted hidden">No findings match this filter.</p>
+</section>
+
+<!-- ============ PLAN ============ -->
+<section id="plan">
+<h2>Implementation plan</h2>
+<p>Estimates assume one developer. Size chips: <span class="chip">S</span> under 1 day, <span class="chip">M</span> 1–3 days, <span class="chip">L</span> 1 week or more.</p>
+
+<figure>
+<svg viewBox="0 0 860 300" role="img" aria-labelledby="tl-title">
+  <title id="tl-title">Phase order timeline</title>
+  <style>
+    .tl-box{fill:var(--bg);stroke:var(--accent);stroke-width:1.5}
+    .tl-box0{fill:var(--bg);stroke:var(--critical);stroke-width:1.5}
+    .tl-t{fill:var(--text);font:600 13px var(--font)}
+    .tl-s{fill:var(--muted);font:11px var(--font)}
+    .tl-line{stroke:var(--muted);stroke-width:1.5;fill:none}
+    .tl-arrow{fill:var(--muted)}
+    .tl-bar{fill:var(--surface);stroke:var(--ok);stroke-width:1.5;stroke-dasharray:5 4}
+    .tl-axis{stroke:var(--border);stroke-width:1}
+  </style>
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="tl-arrow"/></marker></defs>
+  <line x1="20" y1="30" x2="840" y2="30" class="tl-axis"/>
+  <text x="20" y="22" class="tl-s">Start</text>
+  <text x="840" y="22" class="tl-s" text-anchor="end">Later, by business goals</text>
+
+  <rect x="20" y="95" width="110" height="56" rx="8" class="tl-box0"/>
+  <text x="75" y="118" class="tl-t" text-anchor="middle">0 Lock it down</text>
+  <text x="75" y="136" class="tl-s" text-anchor="middle">~2–3 days</text>
+
+  <rect x="160" y="95" width="120" height="56" rx="8" class="tl-box"/>
+  <text x="220" y="118" class="tl-t" text-anchor="middle">1 Make it work</text>
+  <text x="220" y="136" class="tl-s" text-anchor="middle">~1 week</text>
+
+  <rect x="310" y="95" width="130" height="56" rx="8" class="tl-box"/>
+  <text x="375" y="118" class="tl-t" text-anchor="middle">2 Real sync engine</text>
+  <text x="375" y="136" class="tl-s" text-anchor="middle">~1–2 weeks</text>
+
+  <rect x="480" y="55" width="150" height="50" rx="8" class="tl-box"/>
+  <text x="555" y="76" class="tl-t" text-anchor="middle">3 Team &amp; accounts</text>
+  <text x="555" y="93" class="tl-s" text-anchor="middle">~1–2 weeks</text>
+  <rect x="480" y="140" width="150" height="50" rx="8" class="tl-box"/>
+  <text x="555" y="161" class="tl-t" text-anchor="middle">4 Better answers</text>
+  <text x="555" y="178" class="tl-s" text-anchor="middle">~1–2 weeks</text>
+
+  <rect x="670" y="55" width="170" height="50" rx="8" class="tl-box"/>
+  <text x="755" y="76" class="tl-t" text-anchor="middle">5 Replace fake numbers</text>
+  <text x="755" y="93" class="tl-s" text-anchor="middle">~1 week</text>
+  <rect x="670" y="140" width="170" height="50" rx="8" class="tl-box"/>
+  <text x="755" y="161" class="tl-t" text-anchor="middle">6 New features</text>
+  <text x="755" y="178" class="tl-s" text-anchor="middle">M to L per feature</text>
+
+  <path d="M130,123 L158,123" class="tl-line" marker-end="url(#ah)"/>
+  <path d="M280,123 L308,123" class="tl-line" marker-end="url(#ah)"/>
+  <path d="M440,123 L460,123 L460,80 L478,80" class="tl-line" marker-end="url(#ah)"/>
+  <path d="M460,123 L460,165 L478,165" class="tl-line" marker-end="url(#ah)"/>
+  <path d="M630,80 L650,80 L650,123 L650,165 L630,165" class="tl-line"/>
+  <path d="M650,123 L660,123 L660,80 L668,80" class="tl-line" marker-end="url(#ah)"/>
+  <path d="M660,123 L660,165 L668,165" class="tl-line" marker-end="url(#ah)"/>
+  <text x="555" y="125" class="tl-s" text-anchor="middle">in parallel</text>
+  <text x="755" y="125" class="tl-s" text-anchor="middle">in parallel</text>
+
+  <rect x="20" y="225" width="820" height="44" rx="8" class="tl-bar"/>
+  <text x="430" y="246" class="tl-t" text-anchor="middle">7 Production readiness — runs alongside every phase</text>
+  <text x="430" y="262" class="tl-s" text-anchor="middle">tests + CI, migrations, env checks, Sentry, crypto, rate limits, marketing cleanup</text>
+</svg>
+<figcaption>Phases 0, 1 and 2 run one after another; then 3 and 4 run in parallel, then 5 and 6 in parallel, while phase 7 runs alongside the whole time.</figcaption>
+</figure>
+
+<div class="phase" style="border-left:4px solid var(--critical)">
+  <h3>Phase 0 — Lock it down</h3>
+  <div class="est">About 2–3 days. Closes the security holes in section A.</div>
+  <ol>
+    <li>Rotate the Gmail password. Remove all hardcoded fallback secrets. Fail fast (refuse to start) if <code>JWT_SECRET</code> or email credentials are missing. <span class="chip">S</span></li>
+    <li>Add <code>auth()</code> + a workspace check to the 7 open routes. Check session ownership in <code>/api/ask</code>. <span class="chip">S</span></li>
+    <li>Add a <code>middleware.ts</code> redirect for <code>/dashboard</code>. <span class="chip">S</span></li>
+    <li>Remove the no-password login path and <code>_devPassword</code>. <span class="chip">S</span></li>
+    <li>Use a separate key for OAuth state. Check the nonce in callbacks. <span class="chip">S</span></li>
+    <li>Add permission checks on roles, settings, API keys, workflows and upload. Add new permissions <code>settings:manage</code>, <code>workflows:*</code>, <code>apikeys:manage</code>. Narrow Viewer's <code>sources:read</code>. <span class="chip">M</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 1 — Make what exists work</h3>
+  <div class="est">About 1 week. Fixes the broken items in section B.</div>
+  <ol>
+    <li>Fix Slack/Linear inserts to a single <code>supabaseAdmin</code> insert like <code>gmail.ts</code>; re-sync. <span class="chip">S</span></li>
+    <li>Wrap the connector body in try/catch so early errors set <code>error</code>; recover stale <code>syncing</code> sources. <span class="chip">S</span></li>
+    <li>Make the Slack/Linear callbacks trigger a real sync. <span class="chip">S</span></li>
+    <li>Sources UI: add the GitHub card, handle all redirects, add GitHub scope config. <span class="chip">M</span></li>
+    <li>Remove the mock Drive folders; show the real error; paginate. <span class="chip">S</span></li>
+    <li>Ask UI: handle <code>no_knowledge</code> and <code>error</code>; return the saved message id; fix up/positive; read <code>?q=</code>; share with session id; read PDF/DOCX attachments on the server. <span class="chip">M</span></li>
+    <li>Small fixes: the <code>'error'</code> case, High/HIGH, delete the memory mock cleanup, login error banner + <code>password123</code>, per-user notification read state. <span class="chip">S</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 2 — Real sync engine</h3>
+  <div class="est">About 1–2 weeks.</div>
+  <ol>
+    <li>Enqueue jobs to <code>sourceQueue</code>; run the worker as a second docker-compose service; fall back to a direct call when there is no Redis. <span class="chip">M</span></li>
+    <li>Save <code>syncSchedule</code>; use BullMQ repeatable jobs; wire the Auto re-sync toggle. <span class="chip">M</span></li>
+    <li>All connectors: purge, set <code>updatedAt</code> from the source date, share one <code>withRetry</code>, count <code>itemsIndexed</code> correctly. <span class="chip">M</span></li>
+    <li>Incremental sync: Gmail <code>history.list</code> (fix the query override), Drive <code>changes.list</code>, Slack <code>oldest</code>, Linear <code>updatedAt</code> filter. <span class="chip">L</span></li>
+    <li>Write a sync-history row per run; send a notification on sync failure. <span class="chip">S</span></li>
+    <li>Revoke provider tokens on disconnect. <span class="chip">S</span></li>
+    <li>Webhooks: Drive <code>changes.watch</code> + renewal, Notion signature check; both enqueue jobs. <span class="chip">M</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 3 — Team and account basics</h3>
+  <div class="est">About 1–2 weeks. Can run in parallel with Phase 4.</div>
+  <ol>
+    <li>Invite token, an accept page where the user sets their own password, resend/revoke. <span class="chip">M</span></li>
+    <li>Change role, remove from workspace, edit/delete roles, edit teams, add existing users. <span class="chip">M</span></li>
+    <li>Add <code>userId</code> to <code>ChatSession</code>; private chats with optional share. <span class="chip">S</span></li>
+    <li>Wire up the Profile page and link to it. <span class="chip">S</span></li>
+    <li>Email verification; a session version on <code>User</code> (so old sessions can be ended). <span class="chip">M</span></li>
+    <li>Audit log on login, invites, role changes, source connect/disconnect/sync and key creation; Export CSV. <span class="chip">M</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 4 — Better answers</h3>
+  <div class="est">About 1–2 weeks. Can run in parallel with Phase 3.</div>
+  <ol>
+    <li>Rewrite follow-ups into a standalone question. <span class="chip">S</span></li>
+    <li>Hybrid search with tsvector (Postgres keyword search) + pgvector merge; dedupe chunks per document. <span class="chip">M</span></li>
+    <li>Honour <code>defaultLlm</code>; use pinned OrgMemory as context. <span class="chip">S</span></li>
+    <li>Remove the silent <code>ada-002</code> fallback; batch embeddings. <span class="chip">S</span></li>
+    <li>Upload size/type limits, content hash, <code>.doc</code> handling. <span class="chip">S</span></li>
+    <li>Fetch more content per connector (Slack threads/private, Drive shared drives/Slides/xlsx, GitHub comments/docs, Gmail attachments, Notion DB properties). <span class="chip">L</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 5 — Replace fake numbers</h3>
+  <div class="est">About 1 week. <span class="chip">M–L</span></div>
+  <ol>
+    <li>Compute or remove each fake panel: activity feed (from audit + sync events), coverage, insights trends/timeline, team metrics, workflow KPIs/owners, memory trends, sources chart. <span class="chip">M–L</span></li>
+    <li>Wire or hide the dead buttons. <span class="chip">M–L</span></li>
+  </ol>
+</div>
+
+<div class="phase">
+  <h3>Phase 6 — New product features</h3>
+  <div class="est">Size per feature. Order by business goals.</div>
+  <ol>
+    <li>API key auth + a small public API <code>/api/v1/ask</code>, <code>/api/v1/search</code>, with a lookup prefix. <span class="chip">M</span></li>
+    <li>Stripe plans and enforced limits. <span class="chip">L</span></li>
+    <li>Workflow engine on BullMQ. <span class="chip">L</span></li>
+    <li>Memory auto-extraction + real snapshots. <span class="chip">L</span></li>
+    <li>TOTP 2FA, Google sign-in, SSO. <span class="chip">M–L each</span></li>
+    <li>HubSpot, Microsoft 365, Jira/Confluence connectors. <span class="chip">M–L each</span></li>
+  </ol>
+</div>
+
+<div class="phase" style="border-left:4px solid var(--ok)">
+  <h3>Phase 7 — Production readiness</h3>
+  <div class="est">Runs alongside all other phases.</div>
+  <ol>
+    <li>Vitest + GitHub Actions. <span class="chip">M</span></li>
+    <li>Prisma migrations + zod env validation. <span class="chip">S</span></li>
+    <li>Sentry + logger + root error pages. <span class="chip">S</span></li>
+    <li>Replace crypto-js with Node crypto AES-256-GCM and re-encrypt tokens. <span class="chip">M</span></li>
+    <li>Rate limits on register / forgot-password / search / upload, hash reset tokens, security headers. <span class="chip">S</span></li>
+    <li>Marketing cleanup — anchors, CTA, contact form, remove untrue claims. <span class="chip">S</span></li>
+  </ol>
+</div>
+</section>
+
+<section id="order">
+<h2>Suggested order</h2>
+<p>Do <strong>0 → 1 → 2</strong> first, in that order. Then do <strong>3 and 4</strong>. Then do <strong>5 and 6</strong>, picked by business goals. Run <strong>7</strong> alongside the whole time.</p>
+<div class="callout">
+  <strong>Recommendation: hide the fake panels now, build real ones later.</strong>
+  <p>Made-up numbers and dead buttons hurt trust when a customer or manager clicks around. Hiding them is quick. Building the real versions belongs in Phase 5.</p>
+</div>
+</section>
+
+<section id="claude-md">
+<h2>Wrong claims in CLAUDE.md</h2>
+<div class="callout warn">
+  <p>The project's <code>CLAUDE.md</code> says every connector does two things that only Notion actually does:</p>
+  <ol>
+    <li><strong>Purge of removed documents.</strong> CLAUDE.md says all connectors "purge documents no longer present upstream". In the code, only Notion does this (<code>notion.ts:129-147</code>).</li>
+    <li><strong><code>withRetry</code>.</strong> CLAUDE.md says provider calls go through a <code>withRetry</code> wrapper. In the code, <code>withRetry</code> exists only in <code>notion.ts</code> (line 375).</li>
+  </ol>
+  <p>One smaller mismatch: CLAUDE.md lists "OAuth client id/secret/redirect pairs per provider". In the code, only <code>GOOGLE_REDIRECT_URI</code> and <code>GMAIL_REDIRECT_URI</code> exist. The other providers build their redirect URI from the request origin.</p>
+  <p>Anyone relying on CLAUDE.md should know this until it is corrected (or until Phase 2, task 3 makes it true).</p>
+</div>
+</section>
+</main>
+</div>
+
+<footer>Generated 2026-10-04 from a read-only audit of the Corely repository (branch master).</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{var s=localStorage.getItem('corely-theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
+  function isDark(){var t=root.getAttribute('data-theme'); if(t) return t==='dark'; return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;}
+  function label(){btn.textContent=isDark()?'Light mode':'Dark mode';}
+  label();
+  btn.addEventListener('click',function(){var n=isDark()?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('corely-theme',n);}catch(e){} label();});
+
+  var items=[].slice.call(document.querySelectorAll('#findings .item'));
+  var sev='All', q=document.getElementById('q'), cnt=document.getElementById('fcount');
+  var buttons=[].slice.call(document.querySelectorAll('.filter button'));
+  function apply(){
+    var term=q.value.trim().toLowerCase(), shown=0;
+    items.forEach(function(it){
+      var ok=(sev==='All'||it.getAttribute('data-sev')===sev)&&(!term||it.textContent.toLowerCase().indexOf(term)!==-1);
+      it.classList.toggle('hidden',!ok); if(ok) shown++;
+    });
+    document.querySelectorAll('#findings h3').forEach(function(h){
+      var el=h.nextElementSibling, any=false;
+      while(el&&el.tagName!=='H3'&&el.tagName!=='H2'){ if(el.classList.contains('item')&&!el.classList.contains('hidden')) any=true; el=el.nextElementSibling; }
+      h.classList.toggle('hidden',!any);
+    });
+    document.querySelectorAll('#findings .fsec').forEach(function(s){
+      s.classList.toggle('hidden',!s.querySelector('.item:not(.hidden)'));
+    });
+    document.getElementById('noresults').classList.toggle('hidden',shown>0);
+    cnt.textContent='Showing '+shown+' of '+items.length+' findings';
+  }
+  buttons.forEach(function(b){b.addEventListener('click',function(){sev=b.getAttribute('data-f'); buttons.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');}); apply();});});
+  q.addEventListener('input',apply);
+  apply();
+})();
+</script>
+</body>
+</html>

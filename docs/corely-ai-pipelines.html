@@ -1,0 +1,1560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corely AI Pipelines</title>
+<meta name="description" content="Every AI and automation pipeline in the Corely codebase: how each one starts, what it does step by step, which models and tables it uses, what breaks, and what to build next. Audit date 2026-10-04.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f9; --border:#e3e6eb; --text:#1a1d23; --muted:#5b6472;
+  --accent:#4f46e5; --critical:#dc2626; --high:#ea580c; --medium:#ca8a04; --ok:#16a34a;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
+    --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
+  --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;overflow-x:hidden}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.84em;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.05em .35em;overflow-wrap:anywhere;word-break:break-word}
+pre{font-family:var(--mono);font-size:.82rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+pre code{border:0;padding:0;background:none}
+h1,h2,h3,h4{line-height:1.25}
+h2{margin-top:2.8rem;padding-top:.6rem;border-top:1px solid var(--border);scroll-margin-top:70px}
+h3{margin-top:1.8rem;scroll-margin-top:70px}
+h4{margin:1.4rem 0 .4rem;font-size:1rem;color:var(--accent)}
+.muted{color:var(--muted)}
+ol li,ul li{margin:.2rem 0}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;padding:.5rem 16px;flex-wrap:wrap}
+.topbar .brand{font-weight:700;margin-right:.5rem}
+.topbar nav{display:flex;gap:.25rem;flex-wrap:wrap;flex:1}
+.topbar nav a{text-decoration:none;color:var(--muted);padding:.3rem .6rem;border-radius:6px;font-size:.9rem}
+.topbar nav a:hover{background:var(--surface);color:var(--text)}
+.topbar nav a.current{background:var(--accent);color:#fff}
+.theme-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;padding:.3rem .6rem;cursor:pointer;font:inherit;font-size:.85rem}
+
+/* layout */
+.layout{display:block;max-width:1240px;margin:0 auto;padding:0 16px}
+.toc{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem}
+.toc strong{display:block;margin-bottom:.3rem}
+.toc ol{margin:0;padding-left:1.2rem}
+.toc ol ol{padding-left:1rem;font-size:.85rem}
+.toc a{text-decoration:none;color:var(--text)}
+.toc a:hover{color:var(--accent)}
+main{max-width:900px;min-width:0}
+@media (min-width:1000px){
+  .layout{display:grid;grid-template-columns:240px minmax(0,900px);gap:2.5rem;justify-content:center}
+  .toc{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto;margin-top:2rem}
+}
+
+/* header */
+header.hero h1{font-size:2.1rem;margin:1.6rem 0 .2rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1.2rem 0}
+.tile{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:.8rem 1rem;border-top:4px solid var(--c)}
+.tile .n{font-size:2rem;font-weight:700;line-height:1.1}
+.tile .l{color:var(--muted);font-size:.9rem}
+.callout{border:1px solid var(--border);border-left:4px solid var(--c,var(--accent));background:var(--surface);border-radius:8px;padding:.75rem 1rem;margin:1rem 0}
+.callout.warn{--c:var(--high)}
+.callout.bad{--c:var(--critical)}
+.callout p{margin:.35rem 0}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin:1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--border);padding:.5rem .65rem;text-align:left;vertical-align:top}
+th{background:var(--surface);font-weight:600}
+tr:last-child td{border-bottom:0}
+.tbl.wide table{min-width:820px}
+
+/* pills */
+.pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:4px;padding:.1rem .45rem;color:#fff;background:var(--c);vertical-align:2px}
+.pill.real{--c:var(--ok)} .pill.partial{--c:var(--medium)} .pill.fake{--c:var(--critical)} .pill.idle{--c:var(--high)} .pill.prop{--c:var(--accent)}
+:root[data-theme="dark"] .pill{color:#111}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill{color:#111}}
+.pipe{border:1px solid var(--border);border-radius:10px;padding:.2rem 1.1rem 1rem;margin:1.2rem 0;background:var(--bg)}
+.meta{color:var(--muted);font-size:.9rem;margin:.2rem 0 .6rem}
+.issues li{margin:.35rem 0}
+.issues .ref{color:var(--muted);font-size:.85rem}
+dl.gloss{margin:1rem 0}
+dl.gloss dt{font-weight:700;margin-top:.8rem}
+dl.gloss dd{margin:.15rem 0 0 0;color:var(--text)}
+
+/* diagrams */
+figure{margin:1.2rem 0;border:1px solid var(--border);border-radius:10px;background:var(--bg);padding:.75rem}
+figure .scroll{overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:620px}
+figure.small svg{min-width:540px}
+figcaption{color:var(--muted);font-size:.88rem;margin-top:.5rem}
+.dg text{fill:var(--text);font-family:var(--font);font-size:13px}
+.dg text.sm{font-size:11px;fill:var(--muted)}
+.dg text.b{font-weight:700}
+.dg text.mono{font-family:var(--mono);font-size:11px}
+.dg text.red{fill:var(--critical)}
+.dg text.acc{fill:var(--accent)}
+.dg .box{fill:var(--surface);stroke:var(--border);stroke-width:1.5}
+.dg .acc{fill:var(--surface);stroke:var(--accent);stroke-width:1.8}
+.dg .res{fill:var(--bg);stroke:var(--muted);stroke-width:1.5}
+.dg .okb{fill:var(--surface);stroke:var(--ok);stroke-width:1.8}
+.dg .badb{fill:var(--surface);stroke:var(--critical);stroke-width:1.8}
+.dg .warnb{fill:var(--surface);stroke:var(--medium);stroke-width:1.8}
+.dg .ln{stroke:var(--muted);stroke-width:1.4;fill:none;marker-end:url(#arr)}
+.dg .ln.nohead{marker-end:none}
+.dg .ln.bad{stroke:var(--critical);marker-end:url(#arrBad)}
+.dg .ln.acc{stroke:var(--accent);marker-end:url(#arrAcc)}
+.dg .ln.ok{stroke:var(--ok);marker-end:url(#arrOk)}
+.dg .dash{stroke-dasharray:5 4}
+.dg .life{stroke:var(--border);stroke-width:1.4;stroke-dasharray:4 4}
+.dg .frame{fill:none;stroke:var(--medium);stroke-width:1.4;stroke-dasharray:6 4}
+.dg .pframe{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:8 5}
+.mk-muted{fill:var(--muted)} .mk-bad{fill:var(--critical)} .mk-acc{fill:var(--accent)} .mk-ok{fill:var(--ok)}
+
+footer{max-width:1240px;margin:3rem auto 0;padding:1.2rem 16px 2rem;border-top:1px solid var(--border);color:var(--muted);font-size:.9rem;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- shared arrow markers for every diagram on this page -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-muted"/></marker>
+    <marker id="arrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-bad"/></marker>
+    <marker id="arrAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-acc"/></marker>
+    <marker id="arrOk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-ok"/></marker>
+  </defs>
+</svg>
+
+<div class="topbar">
+  <span class="brand">Corely docs</span>
+  <nav aria-label="Corely documents">
+    <a href="corely-findings.html">Gap Analysis</a>
+    <a href="corely-adr.html">Architecture Decisions</a>
+    <a href="corely-ai-pipelines.html" class="current" aria-current="page">AI Pipelines</a>
+    <a href="corely-system-design.html">System Design</a>
+  </nav>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
+</div>
+
+<div class="layout">
+<aside class="toc" aria-label="Table of contents">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#overview">Overview diagram</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+    <li><a href="#pipelines">The pipelines</a>
+      <ol>
+        <li><a href="#p1">Ask Corely (RAG)</a></li>
+        <li><a href="#p2">Connector sync</a></li>
+        <li><a href="#p3">Manual upload</a></li>
+        <li><a href="#p4">Background worker</a></li>
+        <li><a href="#p5">Insights generator</a></li>
+        <li><a href="#p6">Semantic search</a></li>
+        <li><a href="#p7">Workflows (simulated)</a></li>
+        <li><a href="#p8">Webhooks (stubs)</a></li>
+      </ol>
+    </li>
+    <li><a href="#models">Models and costs</a></li>
+    <li><a href="#future">Proposed future agents</a></li>
+  </ol>
+</aside>
+
+<main>
+<header class="hero" id="intro">
+  <h1>Corely AI Pipelines</h1>
+  <p class="muted">Every AI and automation pipeline in the Corely codebase, read from the code. Audit date 2026-10-04, branch <code>master</code>.</p>
+
+  <div class="tiles">
+    <div class="tile" style="--c:var(--critical)"><div class="n">0</div><div class="l">autonomous AI agents</div></div>
+    <div class="tile" style="--c:var(--accent)"><div class="n">8</div><div class="l">pipelines documented</div></div>
+    <div class="tile" style="--c:var(--ok)"><div class="n">1</div><div class="l">place that calls a chat model (<code>/api/ask</code>)</div></div>
+    <div class="tile" style="--c:var(--high)"><div class="n">3</div><div class="l">pipelines that are simulated, stubbed or never fed</div></div>
+  </div>
+
+  <div class="callout bad">
+    <p><strong>Corely has no autonomous AI agents today.</strong> Nothing in the code plans steps, picks tools, or acts on its own. The "agents" in this document are Corely's AI and automation pipelines. Each one runs only when a person clicks something, or when a page loads.</p>
+    <p>The marketing site says otherwise. <code>components/landing/FeaturesSection.tsx:74</code> shows an "Autonomous Agents" card: "Deploy workflows that execute multi-step tasks across your ecosystem without human intervention." <code>components/landing/HowItWorksSection.tsx:26</code> shows an "Action Engine": "Takes action across tools and systems on your behalf — automatically." The same "Action Engine" label appears in <code>app/components/HowItWorksSection.tsx:209</code> and <code>app/components/CorelyDiagram.tsx:357</code>. <strong>Neither of these exists yet.</strong> The dashboard's "Autonomous Actions" panel reads the <code>DashboardAction</code> table (<code>app/dashboard/page.tsx:44</code>), and no code ever writes to that table, so the panel is always empty.</p>
+  </div>
+
+  <p>Here is what does exist:</p>
+  <ul>
+    <li><strong>One real AI pipeline that writes text:</strong> Ask Corely. It finds relevant chunks with vector search and asks <code>gpt-4o</code> to answer from them.</li>
+    <li><strong>Embedding pipelines</strong> that turn text into vectors (lists of numbers that capture meaning): the six connectors, manual upload, and <code>POST /api/documents</code>. Search and Ask also embed the user's question.</li>
+    <li><strong>Plain automation with no AI</strong>: the insights generator (fixed rules), the workflow "run" button (simulated), the BullMQ worker (built but never sent a job), and two webhook stubs.</li>
+  </ul>
+  <p class="muted">Note: the project's <code>CLAUDE.md</code> says every connector purges deleted items and uses a <code>withRetry</code> wrapper. That is wrong. Only the Notion connector does either (<code>modules/sources/connectors/notion.ts:129-147</code> and <code>:375-394</code>). This page describes what the code actually does.</p>
+</header>
+
+<h2 id="overview">Overview diagram</h2>
+<p>All pipelines share four things: one Postgres database, the OpenAI API, an optional Redis server, and the external provider APIs. Postgres is reached through two clients. Prisma (<code>lib/db.ts</code>) handles normal rows. The Supabase admin client (<code>lib/supabase.ts</code>) writes the vector column, because Prisma cannot write it. Both clients talk to the <strong>same tables</strong>.</p>
+
+<figure>
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 570" role="img" aria-label="Overview of all Corely pipelines and the shared services they use">
+  <!-- top row pipelines -->
+  <rect class="acc" x="20" y="20" width="185" height="60" rx="8"/>
+  <text x="112" y="45" text-anchor="middle" class="b">1. Ask Corely (RAG)</text>
+  <text x="112" y="64" text-anchor="middle" class="sm">embeds + gpt-4o + SSE</text>
+  <rect class="box" x="245" y="20" width="185" height="60" rx="8"/>
+  <text x="337" y="45" text-anchor="middle" class="b">6. Semantic search</text>
+  <text x="337" y="64" text-anchor="middle" class="sm">embeds, no chat model</text>
+  <rect class="box" x="470" y="20" width="185" height="60" rx="8"/>
+  <text x="562" y="45" text-anchor="middle" class="b">5. Insights generator</text>
+  <text x="562" y="64" text-anchor="middle" class="sm">fixed rules, no AI</text>
+  <rect class="warnb" x="695" y="20" width="185" height="60" rx="8"/>
+  <text x="787" y="45" text-anchor="middle" class="b">7. Workflows "run"</text>
+  <text x="787" y="64" text-anchor="middle" class="sm">simulated, nothing runs</text>
+
+  <!-- middle row resources -->
+  <rect class="res" x="20" y="200" width="150" height="80" rx="8"/>
+  <text x="95" y="232" text-anchor="middle" class="b">Redis</text>
+  <text x="95" y="250" text-anchor="middle" class="sm">optional (REDIS_URL)</text>
+  <text x="95" y="265" text-anchor="middle" class="sm">rate limit + BullMQ</text>
+  <rect class="res" x="200" y="200" width="170" height="80" rx="8"/>
+  <text x="285" y="232" text-anchor="middle" class="b">OpenAI API</text>
+  <text x="285" y="250" text-anchor="middle" class="sm">text-embedding-3-small</text>
+  <text x="285" y="265" text-anchor="middle" class="sm">(ada-002 fallback), gpt-4o</text>
+  <rect class="res" x="400" y="200" width="480" height="80" rx="8"/>
+  <text x="640" y="225" text-anchor="middle" class="b">Postgres + pgvector (one database)</text>
+  <text x="640" y="244" text-anchor="middle" class="sm">Prisma (lib/db.ts) and supabaseAdmin (lib/supabase.ts) use the same tables</text>
+  <text x="640" y="262" text-anchor="middle" class="sm">sources · documents · document_chunks(embedding) · chat_sessions · chat_messages · workflows</text>
+
+  <!-- bottom row -->
+  <rect class="warnb" x="20" y="400" width="185" height="60" rx="8"/>
+  <text x="112" y="425" text-anchor="middle" class="b">4. BullMQ worker</text>
+  <text x="112" y="444" text-anchor="middle" class="sm">built, never fed a job</text>
+  <rect class="acc" x="245" y="400" width="185" height="60" rx="8"/>
+  <text x="337" y="425" text-anchor="middle" class="b">2. Connector sync</text>
+  <text x="337" y="444" text-anchor="middle" class="sm">6 connectors, embeds</text>
+  <rect class="box" x="470" y="400" width="185" height="60" rx="8"/>
+  <text x="562" y="425" text-anchor="middle" class="b">3. Manual upload</text>
+  <text x="562" y="444" text-anchor="middle" class="sm">file or pasted text, embeds</text>
+  <rect class="warnb" x="695" y="400" width="185" height="60" rx="8"/>
+  <text x="787" y="425" text-anchor="middle" class="b">8. Webhooks</text>
+  <text x="787" y="444" text-anchor="middle" class="sm">stubs, log and return 200</text>
+
+  <rect class="res" x="245" y="510" width="635" height="44" rx="8"/>
+  <text x="562" y="537" text-anchor="middle" class="b">Provider APIs: Notion · Gmail · Google Drive · GitHub · Slack · Linear</text>
+
+  <!-- lines top -->
+  <path class="ln" d="M90,80 L90,198"/>
+  <text x="96" y="140" class="sm">rate limit</text>
+  <path class="ln" d="M150,80 L255,198"/>
+  <path class="ln" d="M185,80 L420,198"/>
+  <path class="ln" d="M320,80 L300,198"/>
+  <path class="ln" d="M360,80 L470,198"/>
+  <path class="ln" d="M562,80 L580,198"/>
+  <path class="ln dash" d="M787,80 L787,198"/>
+  <text x="793" y="140" class="sm">counter + log only</text>
+  <!-- lines bottom -->
+  <path class="ln dash" d="M95,400 L95,282"/>
+  <text x="101" y="345" class="sm">listens</text>
+  <path class="ln dash" d="M205,430 L243,430"/>
+  <text x="206" y="392" class="sm red">would call</text>
+  <text x="206" y="405" class="sm red">connectors</text>
+  <path class="ln" d="M310,400 L290,282"/>
+  <path class="ln" d="M370,400 L450,282"/>
+  <path class="ln" d="M520,400 L345,282"/>
+  <path class="ln" d="M600,400 L620,282"/>
+  <path class="ln" d="M337,460 L337,508"/>
+  <text x="343" y="490" class="sm">paginate + fetch</text>
+  <path class="ln dash" d="M787,510 L787,462"/>
+  <text x="793" y="490" class="sm red">never registered</text>
+</svg>
+</div>
+<figcaption>Every pipeline reads or writes the same Postgres database; only Ask, search and the three ingestion paths call OpenAI, and dashed lines mark paths that are simulated or never used.</figcaption>
+</figure>
+
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Pipeline</th><th>Uses AI?</th><th>Status</th><th>Main file</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Ask Corely RAG</td><td>Embeddings + gpt-4o</td><td><span class="pill real">Real</span></td><td><code>app/api/ask/route.ts</code></td></tr>
+<tr><td>2</td><td>Connector sync</td><td>Embeddings</td><td><span class="pill partial">Partly works</span> Slack and Linear never become searchable</td><td><code>modules/sources/connectors/*.ts</code></td></tr>
+<tr><td>3</td><td>Manual upload</td><td>Embeddings</td><td><span class="pill real">Real</span></td><td><code>app/api/sources/upload/route.ts</code></td></tr>
+<tr><td>4</td><td>BullMQ worker</td><td>No (would call connectors)</td><td><span class="pill idle">Never fed</span></td><td><code>workers/index.ts</code></td></tr>
+<tr><td>5</td><td>Insights generator</td><td>No, fixed rules</td><td><span class="pill real">Real rules</span></td><td><code>lib/insights-generator.ts</code></td></tr>
+<tr><td>6</td><td>Semantic search</td><td>Embeddings</td><td><span class="pill real">Real</span></td><td><code>app/api/search/route.ts</code></td></tr>
+<tr><td>7</td><td>Workflows "run"</td><td>No</td><td><span class="pill fake">Simulated</span></td><td><code>app/api/workflows/[id]/run/route.ts</code></td></tr>
+<tr><td>8</td><td>Webhooks</td><td>No</td><td><span class="pill fake">Stub</span></td><td><code>app/api/webhooks/{drive,notion}/route.ts</code></td></tr>
+</tbody></table></div>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="gloss">
+  <dt>RAG (retrieval-augmented generation)</dt>
+  <dd>The model answers from documents you hand it, not from memory. Corely first finds the most relevant text in your data, then puts that text into the prompt.</dd>
+  <dt>Embedding</dt>
+  <dd>A list of numbers that stands for the meaning of a piece of text. Texts with similar meaning get similar lists. Corely uses 1536 numbers per text.</dd>
+  <dt>Chunk</dt>
+  <dd>A small slice of a document. Corely cuts each document into slices of 400 words that overlap by 50 words, and embeds each slice on its own. Stored in the <code>document_chunks</code> table.</dd>
+  <dt>Cosine similarity</dt>
+  <dd>A score for how close two embeddings are, from about 0 (unrelated) to 1 (same meaning). pgvector's <code>&lt;=&gt;</code> operator gives cosine <em>distance</em>, so the code uses <code>1 - distance</code> as similarity.</dd>
+  <dt>pgvector</dt>
+  <dd>A Postgres add-on that stores embeddings in a <code>vector</code> column and searches them fast. <code>scripts/init-pgvector.ts</code> adds <code>document_chunks.embedding vector(1536)</code> and an HNSW cosine index (with an ivfflat fallback).</dd>
+  <dt>SSE (server-sent events)</dt>
+  <dd>A way for a server to keep a web response open and push small messages one by one. Each message is a line that starts with <code>data: </code>. Ask Corely uses it to stream the answer word by word.</dd>
+  <dt>BullMQ</dt>
+  <dd>A job queue library that stores jobs in Redis. One process adds jobs, and a separate worker process picks them up and runs them.</dd>
+  <dt>contentHash</dt>
+  <dd>A short fingerprint of a document's text (SHA-256 in four connectors, MD5 in Slack and Linear). If the fingerprint has not changed since the last sync, the connector skips the document and does not pay to embed it again. Stored in <code>documents.content_hash</code>.</dd>
+  <dt>Temporal confidence</dt>
+  <dd>A 0–100 freshness score that Ask gives each retrieved chunk. It starts at 100 and loses a fixed number of points per day of age. The rate depends on the source type. The label (Fresh, Aged, Stale) goes into the prompt so the model can warn about old facts.</dd>
+</dl>
+
+<h2 id="pipelines">The pipelines</h2>
+<p>Each pipeline below uses the same sub-sections, in the same order. Line numbers point at the code on <code>master</code> as of 2026-10-04.</p>
+
+<!-- ============================== P1 ============================== -->
+<section class="pipe" id="p1">
+<h3>1. Ask Corely RAG pipeline <span class="pill real">Real</span></h3>
+<p class="meta">Files: <code>app/api/ask/route.ts</code>, <code>lib/openai.ts</code>, <code>lib/rate-limit.ts</code>, <code>app/dashboard/ask-corely/components/AskMain.tsx</code></p>
+
+<h4>Purpose</h4>
+<p>A user asks a question in plain words. Corely finds the most relevant chunks of the workspace's indexed data, asks <code>gpt-4o</code> to answer only from those chunks with numbered citations, and streams the answer back. It also saves the conversation so follow-up questions have context.</p>
+
+<h4>Trigger</h4>
+<ul>
+  <li>The user submits a question on the Ask Corely page. <code>handleSubmit</code> in <code>AskMain.tsx</code> runs.</li>
+  <li>If there is no open chat yet, the page first calls <code>POST /api/chats</code> to create a session (<code>AskMain.tsx:469-486</code>).</li>
+  <li>Then it calls <code>POST /api/ask</code> (<code>AskMain.tsx:488-499</code>).</li>
+  <li>A preset prompt passed into the page also triggers <code>handleSubmit</code> (the "Preset prompt auto-trigger" effect right after it).</li>
+</ul>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li><strong>Request body sent by the page:</strong> <code>question</code>, <code>workspaceId</code>, <code>sessionId</code>, <code>webSearch</code>, <code>knowledgeOnly</code>.</li>
+  <li><strong>What the route reads:</strong> only <code>question</code> and <code>sessionId</code> (<code>route.ts:100</code>). The zod schema also accepts <code>workspaceId</code> but the route ignores it and uses the workspace from the login cookie. <code>webSearch</code> and <code>knowledgeOnly</code> are dropped.</li>
+  <li><strong>Attached files:</strong> the page reads the file as text in the browser, cuts it to 8,000 characters (<code>AskMain.tsx:280-290</code>), and pastes it in front of the question as <code>[Attached file: name] … User question: …</code> (<code>AskMain.tsx:440-443</code>).</li>
+  <li><strong>Output:</strong> an SSE stream (<code>Content-Type: text/event-stream</code>). Event types are listed below. On some failures the route returns plain JSON instead (see Failure modes).</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li><strong>Log-in check.</strong> <code>auth()</code> reads the <code>corely_session</code> JWT cookie and loads the user and workspace (<code>route.ts:74</code>).</li>
+  <li><strong>Rate limit.</strong> <code>rateLimit(user.id, 20, 60)</code> allows 20 requests per user per 60 seconds (<code>route.ts:77</code>). It uses a Redis counter with key <code>rate_limit:&lt;userId&gt;</code> that expires after 60s. If Redis is not set or fails, it uses an in-memory map in the same process (<code>lib/rate-limit.ts:70-112</code>). Over the limit, the route sends one SSE <code>error</code> event plus <code>[DONE]</code> with HTTP 429 (<code>route.ts:78-91</code>).</li>
+  <li><strong>Check the body</strong> with zod. A bad body returns <code>400 Invalid payload</code> (<code>route.ts:93-98</code>).</li>
+  <li><strong>Save the question.</strong> If there is a <code>sessionId</code>, insert a <code>ChatMessage</code> with <code>sender: "user"</code> (<code>route.ts:103-107</code>).</li>
+  <li><strong>Load history.</strong> Read the newest 6 messages of the session, put them back in time order, and drop any message whose text equals the current question (<code>route.ts:109-123</code>). The just-saved question is one of the 6, so in practice the model sees up to 5 earlier messages.</li>
+  <li><strong>Build the allowed source list</strong> (<code>route.ts:127-156</code>):
+    <ul>
+      <li>sources the user owns (<code>sources.user_id = user.id</code>);</li>
+      <li>plus sources whose <code>config.permissions</code> equals <code>"everyone"</code>;</li>
+      <li>plus <strong>every</strong> source in the workspace if <code>user.role === "admin"</code> or the user's role permissions include <code>sources:read</code>.</li>
+      <li>If the list is empty, use the sentinel UUID <code>00000000-0000-0000-0000-000000000000</code>. This makes the query match nothing instead of everything.</li>
+    </ul>
+  </li>
+  <li><strong>Embed the question</strong> with <code>generateEmbedding(question)</code> (<code>route.ts:158</code>). It cuts the text to 8,000 characters and calls <code>text-embedding-3-small</code> (<code>lib/openai.ts:16-23</code>).</li>
+  <li><strong>Vector search</strong> with raw SQL through <code>prisma.$queryRaw</code> (<code>route.ts:162-179</code>):
+<pre><code>SELECT dc.id, dc.content, dc.document_id, dc.source_id, dc.metadata, dc.created_at,
+       d.updated_at AS source_updated_at,
+       1 - (dc.embedding &lt;=&gt; $vector::vector) AS similarity
+FROM document_chunks dc
+LEFT JOIN documents d ON d.id = dc.document_id
+WHERE dc.workspace_id = $workspaceId::uuid
+  AND dc.source_id::text IN ($allowedSourceIds)
+  AND 1 - (dc.embedding &lt;=&gt; $vector::vector) &gt; 0.55
+ORDER BY dc.embedding &lt;=&gt; $vector::vector
+LIMIT 8;</code></pre>
+  </li>
+  <li><strong>No-knowledge guard.</strong> If zero chunks pass the 0.55 bar, the route does <strong>not</strong> call the model. It streams <code>sources: []</code>, then a <code>no_knowledge</code> event with a fixed message ("I don't have enough information about that in the connected knowledge base. … I will never fabricate answers from outside your connected knowledge base."), saves that message, renames the session if needed, and sends <code>[DONE]</code> (<code>route.ts:63-70</code>, <code>182-215</code>).</li>
+  <li><strong>Score freshness</strong> for each chunk with <code>calculateTemporalConfidence</code> (<code>route.ts:38-61</code>, used at <code>218-247</code>). See the table under Models and parameters.</li>
+  <li><strong>Build the prompt.</strong> Each chunk becomes a block like <code>[Source 1: &lt;title&gt; | Type: &lt;type&gt; | Freshness: Aged (72%)]</code> followed by the chunk text. Blocks are joined with <code>---</code> (<code>route.ts:218-230</code>). The message list is: system prompt, then history, then one user message: <code>Context from company knowledge base: … --- Question: &lt;question&gt;</code> (<code>route.ts:263-272</code>).</li>
+  <li><strong>Call the model.</strong> <code>openai.chat.completions.create</code> with <code>model: "gpt-4o"</code>, <code>temperature: 0.2</code>, <code>max_tokens: 1500</code>, <code>stream: true</code> (<code>route.ts:275-281</code>).</li>
+  <li><strong>Stream back.</strong> First one <code>sources</code> event with title, url, type, confidence score and label for each chunk. Then one <code>text</code> event per token delta (<code>route.ts:294-303</code>). The SSE is written by hand with a <code>ReadableStream</code>, not with the <code>ai</code> SDK helpers.</li>
+  <li><strong>Save the answer.</strong> After the stream ends, insert a <code>ChatMessage</code> with <code>sender: "corely"</code>, the full text and the <code>sources</code> JSON (<code>route.ts:306-314</code>).</li>
+  <li><strong>Rename or touch the session.</strong> If the session title is still <code>"New Conversation"</code>, set it to the first 40 characters of the question plus <code>...</code>. Otherwise just update <code>updatedAt</code> (<code>route.ts:316-330</code>).</li>
+  <li>Send <code>data: [DONE]</code> and close (<code>route.ts:333</code>, <code>339</code>).</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure>
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 640" role="img" aria-label="Sequence diagram of one Ask Corely request">
+  <!-- headers -->
+  <rect class="box" x="10" y="10" width="120" height="40" rx="6"/><text x="70" y="35" text-anchor="middle" class="b">Browser</text>
+  <rect class="acc" x="160" y="10" width="120" height="40" rx="6"/><text x="220" y="35" text-anchor="middle" class="b">/api/ask</text>
+  <rect class="box" x="310" y="10" width="120" height="40" rx="6"/><text x="370" y="30" text-anchor="middle" class="b">Rate limiter</text><text x="370" y="44" text-anchor="middle" class="sm">Redis or memory</text>
+  <rect class="box" x="460" y="10" width="120" height="40" rx="6"/><text x="520" y="30" text-anchor="middle" class="b">Postgres</text><text x="520" y="44" text-anchor="middle" class="sm">+ pgvector</text>
+  <rect class="box" x="615" y="10" width="130" height="40" rx="6"/><text x="680" y="30" text-anchor="middle" class="b">OpenAI</text><text x="680" y="44" text-anchor="middle" class="sm">embeddings</text>
+  <rect class="box" x="770" y="10" width="120" height="40" rx="6"/><text x="830" y="30" text-anchor="middle" class="b">OpenAI</text><text x="830" y="44" text-anchor="middle" class="sm">chat (gpt-4o)</text>
+  <!-- lifelines -->
+  <line class="life" x1="70" y1="50" x2="70" y2="630"/>
+  <line class="life" x1="220" y1="50" x2="220" y2="630"/>
+  <line class="life" x1="370" y1="50" x2="370" y2="630"/>
+  <line class="life" x1="520" y1="50" x2="520" y2="630"/>
+  <line class="life" x1="680" y1="50" x2="680" y2="630"/>
+  <line class="life" x1="830" y1="50" x2="830" y2="630"/>
+  <!-- messages -->
+  <path class="ln" d="M70,82 L218,82"/><text x="76" y="76" class="sm">1. POST {question, sessionId}</text>
+  <text x="228" y="104" class="sm">2. auth() reads JWT cookie</text>
+  <path class="ln" d="M220,122 L368,122"/><text x="226" y="116" class="sm">3. rateLimit(user, 20, 60s)</text>
+  <path class="ln dash" d="M370,146 L222,146"/><text x="232" y="160" class="sm">ok · or 429 + SSE error</text>
+  <path class="ln" d="M220,186 L518,186"/><text x="226" y="180" class="sm">4. INSERT user message · SELECT last 6 messages</text>
+  <path class="ln" d="M220,220 L518,220"/><text x="226" y="214" class="sm">5. SELECT allowed source ids</text>
+  <path class="ln" d="M220,256 L678,256"/><text x="380" y="250" class="sm">6. embed question (text-embedding-3-small)</text>
+  <path class="ln dash" d="M680,280 L222,280"/><text x="540" y="294" class="sm">1536 numbers</text>
+  <path class="ln" d="M220,318 L518,318"/><text x="226" y="312" class="sm">7. cosine search: similarity &gt; 0.55, LIMIT 8</text>
+  <path class="ln dash" d="M520,342 L222,342"/><text x="420" y="356" class="sm">0–8 chunks</text>
+  <!-- alt frame -->
+  <rect class="frame" x="30" y="366" width="520" height="50" rx="4"/>
+  <text x="38" y="384" class="sm b">if 0 chunks:</text>
+  <text x="38" y="404" class="sm">send sources [] + no_knowledge, save fixed reply, [DONE]. No gpt-4o call.</text>
+  <path class="ln" d="M220,446 L828,446"/><text x="400" y="440" class="sm">8. gpt-4o · temperature 0.2 · max_tokens 1500 · stream</text>
+  <path class="ln dash" d="M830,472 L222,472"/><text x="600" y="486" class="sm">token deltas</text>
+  <path class="ln dash" d="M220,512 L72,512"/><text x="80" y="506" class="sm">9. SSE: sources, then text…</text>
+  <path class="ln" d="M220,550 L518,550"/><text x="226" y="544" class="sm">10. INSERT corely message + sources; rename / touch session</text>
+  <path class="ln dash" d="M220,592 L72,592"/><text x="80" y="586" class="sm">11. data: [DONE]</text>
+</svg>
+</div>
+<figcaption>One Ask request goes through the rate limiter, Postgres, the embeddings API, a pgvector search and gpt-4o, then streams back over SSE and saves the answer.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<div class="tbl"><table>
+<thead><tr><th>Setting</th><th>Value</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Question embedding</td><td><code>text-embedding-3-small</code>, fallback <code>text-embedding-ada-002</code>; input cut to 8,000 chars</td><td><code>lib/openai.ts:16-51</code></td></tr>
+<tr><td>Similarity bar / max chunks</td><td><code>&gt; 0.55</code> / <code>LIMIT 8</code></td><td><code>route.ts:176-178</code></td></tr>
+<tr><td>Chat model</td><td><code>gpt-4o</code>, <code>temperature: 0.2</code>, <code>max_tokens: 1500</code>, <code>stream: true</code></td><td><code>route.ts:275-281</code></td></tr>
+<tr><td>History</td><td>newest 6 messages of the session (about 5 earlier turns reach the model)</td><td><code>route.ts:111-122</code></td></tr>
+<tr><td>Rate limit</td><td>20 requests / 60 s per user</td><td><code>route.ts:77</code></td></tr>
+</tbody></table></div>
+
+<p><strong>Temporal confidence.</strong> <code>score = 100 − (age in days × decay rate)</code>, never below 0, rounded. Age is measured from <code>documents.updated_at</code>, or from the chunk's <code>created_at</code> if there is no document date. Labels: <strong>Fresh</strong> if score ≥ 80, <strong>Aged</strong> if 50–79, <strong>Stale</strong> if below 50 (<code>route.ts:53-60</code>). The type comes from <code>metadata.file_type</code>, or <code>metadata.source_type</code> if there is no file type (<code>route.ts:221</code>).</p>
+<div class="tbl"><table>
+<thead><tr><th>Type value</th><th>Points lost per day</th><th>Becomes Aged after</th><th>Becomes Stale after</th><th>Reaches 0 after</th></tr></thead>
+<tbody>
+<tr><td><code>slack_channel</code></td><td>2.0</td><td>10 days</td><td>25 days</td><td>50 days</td></tr>
+<tr><td>anything else (default) — e.g. <code>gmail</code>, <code>pdf</code>, <code>docx</code>, <code>google_sheet</code>, <code>github_readme</code>, uploads</td><td>0.5</td><td>40 days</td><td>100 days</td><td>200 days</td></tr>
+<tr><td><code>linear_issue</code></td><td>0.4</td><td>50 days</td><td>125 days</td><td>250 days</td></tr>
+<tr><td><code>github_issue</code>, <code>github_pr</code></td><td>0.3</td><td>about 67 days</td><td>about 167 days</td><td>about 333 days</td></tr>
+<tr><td><code>notion_page</code>, <code>google_doc</code></td><td>0.2</td><td>100 days</td><td>250 days</td><td>500 days</td></tr>
+</tbody></table></div>
+
+<p><strong>The real system prompt</strong> (<code>route.ts:252-260</code>), quoted:</p>
+<pre><code>You are Corely, an AI institutional memory engine for the organization.
+Synthesize a coherent, accurate response ONLY from the provided source context.
+
+CRITICAL INSTRUCTIONS:
+1. CITATIONS: You MUST use inline citations for every factual claim you make. Use the format [1], [2], etc.,
+   corresponding exactly to the "Source X" numbers provided in the context. Place the citation at the end of
+   the relevant sentence or claim.
+2. DECISION RECONSTRUCTION: If the user asks about a decision (e.g., "why was X delayed", "how did we decide"),
+   you must construct a chronological timeline with stakeholder attribution. Clearly state WHO decided WHAT and WHEN.
+3. TEMPORAL DECAY: Always note if information is Stale or Aged based on the freshness scores provided.
+4. NO HALLUCINATION: If the context does not contain enough information to answer confidently, say so clearly
+   — do NOT fabricate or guess.
+5. Format your response in clean Markdown.</code></pre>
+
+<p><strong>SSE event types</strong> the route can send:</p>
+<div class="tbl"><table>
+<thead><tr><th>Event</th><th>Payload</th><th>When</th><th>Does the page handle it?</th></tr></thead>
+<tbody>
+<tr><td><code>sources</code></td><td><code>{type, sources:[{title,url,type,confidenceScore,confidenceLabel}]}</code></td><td>First event of every successful stream; empty array on no-knowledge (<code>route.ts:190</code>, <code>294</code>)</td><td>Yes</td></tr>
+<tr><td><code>text</code></td><td><code>{type, text}</code> one token delta</td><td>While gpt-4o streams (<code>route.ts:301</code>)</td><td>Yes</td></tr>
+<tr><td><code>no_knowledge</code></td><td><code>{type, text}</code> fixed reply</td><td>Zero chunks above 0.55 (<code>route.ts:191</code>)</td><td><strong>No</strong> — reply never shows</td></tr>
+<tr><td><code>error</code></td><td><code>{type, message}</code></td><td>Rate limit (<code>route.ts:82</code>, HTTP 429) or a failure mid-stream (<code>route.ts:336</code>)</td><td><strong>No</strong> as an event</td></tr>
+<tr><td><code>[DONE]</code></td><td>plain text sentinel, not JSON</td><td>End of every stream (<code>route.ts:83</code>, <code>208</code>, <code>333</code>, <code>337</code>)</td><td>Yes — stops streaming</td></tr>
+</tbody></table></div>
+
+<h4>Data it reads and writes</h4>
+<ul>
+  <li><strong>Reads</strong> <code>users</code>, <code>workspaces</code>, <code>workspace_roles.permissions</code> (through <code>auth()</code>); <code>sources</code> (<code>id</code>, <code>workspace_id</code>, <code>user_id</code>, <code>config-&gt;permissions</code>); <code>document_chunks</code> (<code>id</code>, <code>content</code>, <code>document_id</code>, <code>source_id</code>, <code>workspace_id</code>, <code>metadata</code>, <code>created_at</code>, <code>embedding</code>); <code>documents.updated_at</code>; <code>chat_messages</code> (history); <code>chat_sessions.title</code>.</li>
+  <li><strong>Writes</strong> <code>chat_messages</code> (<code>session_id</code>, <code>sender</code> = <code>"user"</code> or <code>"corely"</code>, <code>text</code>, <code>sources</code>); <code>chat_sessions</code> (<code>title</code>, <code>updated_at</code>).</li>
+  <li><strong>Redis:</strong> key <code>rate_limit:&lt;userId&gt;</code> with a 60 s expiry.</li>
+</ul>
+
+<h4>Config and env vars</h4>
+<ul>
+  <li><code>OPENAI_API_KEY</code> — falls back to <code>"dummy-key-for-build"</code> (<code>lib/openai.ts:7</code>), so a missing key only shows up when a request runs.</li>
+  <li><code>DATABASE_URL</code>, <code>JWT_SECRET</code> (cookie check), <code>REDIS_URL</code> (optional; without it the rate limit is per process).</li>
+  <li>The workspace's <code>defaultLlm</code> setting exists in Settings but is ignored; the model is hard-coded to <code>gpt-4o</code> (<code>route.ts:276</code>).</li>
+</ul>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li><strong>No-knowledge guard:</strong> zero chunks above 0.55 means no model call and a fixed reply. Keep this guard; it is the main defence against made-up answers.</li>
+  <li><strong>Prompt guard:</strong> the system prompt tells the model to cite every claim and to say when the context is not enough.</li>
+  <li><strong>Rate limit:</strong> 20 per minute. The in-memory fallback "fails closed" (still limits) but only inside one server process (<code>lib/rate-limit.ts:97-111</code>).</li>
+  <li><strong>Stream errors:</strong> an error while reading tokens sends an <code>error</code> event and <code>[DONE]</code> (<code>route.ts:334-337</code>). <code>safeEnqueue</code> swallows writes to a closed stream.</li>
+  <li><strong>Errors before streaming</strong> (for example a bad OpenAI key when the call is created) fall to the outer catch, which returns JSON <code>{error}</code> with HTTP 500 (<code>route.ts:351-358</code>). The page then shows "Corely was unable to answer your query. Reason: …" (<code>AskMain.tsx:553-560</code>).</li>
+  <li>The outer catch does not check for <code>"Unauthorized"</code>, so a logged-out caller gets 500, not 401 (<code>route.ts:351-358</code>).</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Endless "thinking" state on <code>no_knowledge</code> and mid-stream <code>error</code>.</strong> The page only handles <code>sources</code> and <code>text</code> (<code>AskMain.tsx:525-546</code>). The answer text stays empty, so <code>ThinkingState</code> keeps showing (<code>AskMain.tsx:785</code>). <span class="ref">route sends them at <code>route.ts:191</code>, <code>:336</code>.</span></li>
+  <li><strong>The session is not checked against the caller's workspace.</strong> Any logged-in user who knows a <code>sessionId</code> can write into it and read its history into their prompt. <span class="ref"><code>route.ts:103-123</code></span></li>
+  <li><strong>Permission filter restricts nothing.</strong> All four default roles include <code>sources:read</code>, which unlocks every workspace source. <span class="ref"><code>route.ts:146</code>, <code>lib/rbac.ts:26-55</code></span></li>
+  <li><strong>Feedback on a new answer always fails with 404.</strong> The answer keeps its local id <code>corely-${Date.now()}</code>; the route never returns the saved message id. <span class="ref"><code>AskMain.tsx:452</code>, <code>:401</code></span></li>
+  <li><strong>"Web Search" and "Knowledge Only" toggles do nothing.</strong> Sent at <code>AskMain.tsx:495-496</code>, ignored at <code>route.ts:100</code>.</li>
+  <li><strong>PDF and DOCX attachments become garbage</strong> because the page reads every file with <code>readAsText</code>. <span class="ref"><code>AskMain.tsx:285-290</code></span></li>
+  <li><strong>Follow-up questions are not rewritten.</strong> Only the latest question is embedded, so "what about last week?" searches for those words alone. <span class="ref"><code>route.ts:158</code></span></li>
+  <li><strong>Freshness usually measures index time, not content time.</strong> <code>Document.updatedAt</code> is <code>@updatedAt</code> (<code>prisma/schema.prisma:109</code>). Only Slack and Linear set it from the source. So a two-year-old Google Doc indexed today scores "Fresh".</li>
+  <li><strong>Slack and Linear decay rates never apply</strong>, because Slack and Linear chunks never get embeddings (see pipeline 2).</li>
+  <li><strong>The embedding fallback can silently ruin search.</strong> <code>ada-002</code> and <code>3-small</code> both give 1536 numbers but live in different vector spaces. <span class="ref"><code>lib/openai.ts:16-51</code></span></li>
+  <li><strong>History filter drops repeats.</strong> Any earlier message with exactly the same text as the new question is removed from history. <span class="ref"><code>route.ts:118</code></span></li>
+  <li><strong><code>match_chunks()</code> SQL function is unused</strong> and has no source filter. <span class="ref"><code>scripts/init-pgvector.ts:60-91</code></span></li>
+  <li>Share copies the page URL without the session id (<code>AskMain.tsx:306-311</code>), and links that pass <code>?q=</code> (<code>Topbar.tsx:214</code>, <code>:595</code>, <code>:694</code>) are never read.</li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 0: check that <code>sessionId</code> belongs to the caller's workspace; narrow <code>sources:read</code> so the Viewer role does not see everything.</li>
+  <li>Phase 1: handle <code>no_knowledge</code> and <code>error</code> in the page; return the saved message id so feedback works; read <code>?q=</code>; share with the session id; extract PDF/DOCX attachments on the server.</li>
+  <li>Phase 4: rewrite follow-ups into a standalone question before embedding; hybrid search (Postgres full-text <code>tsvector</code> + pgvector) with one chunk per document; honour <code>defaultLlm</code>; add pinned <code>OrgMemory</code> as context; remove the silent <code>ada-002</code> fallback.</li>
+  <li>Phase 2: set <code>documents.updated_at</code> from the provider's own date in every connector so freshness means something.</li>
+</ul>
+</section>
+
+<!-- ============================== P2 ============================== -->
+<section class="pipe" id="p2">
+<h3>2. Ingestion / connector sync pipeline <span class="pill partial">Partly works</span></h3>
+<p class="meta">Files: <code>modules/sources/connectors/{notion,gmail,google-drive,github,slack,linear}.ts</code>, <code>modules/ai/chunker.ts</code>, <code>lib/crypto.ts</code>, <code>lib/openai.ts</code>, <code>app/api/sources/[sourceId]/sync/route.ts</code></p>
+
+<h4>Purpose</h4>
+<p>Copy content from a connected tool into Corely, cut it into chunks, embed each chunk, and store the chunks so Ask and search can find them. Each connector exports one function, <code>sync&lt;Provider&gt;(sourceId)</code>.</p>
+
+<h4>Trigger</h4>
+<ul>
+  <li><strong>Sync button.</strong> The Sources page calls <code>POST /api/sources/[sourceId]/sync</code> (<code>SourcesMain.tsx:796</code>, also <code>:1859</code> after saving config).</li>
+  <li><strong>Right after connecting</strong> — only for Gmail (<code>app/api/sources/gmail/callback/route.ts:100-108</code>) and Notion (<code>app/api/sources/notion/callback/route.ts:145-154</code>). Drive and GitHub create the source as <code>idle</code> and wait. Slack and Linear mark it <code>synced</code> without syncing.</li>
+  <li><strong>By hand:</strong> <code>npx tsx scripts/reindex.ts</code> re-syncs every <code>google_drive</code> source.</li>
+  <li>There is <strong>no schedule</strong>. Nothing syncs on its own. The BullMQ queue is never used (pipeline 4).</li>
+</ul>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li><strong>Input:</strong> a <code>sourceId</code>. The connector loads the <code>Source</code> row, its encrypted tokens and its <code>config</code> (for example Drive <code>folderIds</code>, GitHub <code>selectedRepos</code>, Gmail <code>query</code>).</li>
+  <li><strong>Output:</strong> upserted <code>documents</code> rows, fresh <code>document_chunks</code> rows with embeddings, and an updated <code>Source.status</code>. The HTTP route itself returns at once with <code>{message: "Sync started", sourceId, jobId}</code> (<code>sync/route.ts:107</code>). The <code>jobId</code> is just a string; nothing tracks it.</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li><strong>Route checks.</strong> <code>auth()</code>; the source must belong to the caller's workspace or the route returns 404 (<code>sync/route.ts:13-23</code>). If <code>status</code> is already <code>"syncing"</code>, return <code>409 Sync already in progress</code> (<code>:25-27</code>).</li>
+  <li><strong>Mark syncing.</strong> Set <code>status: "syncing"</code>, <code>errorMessage: null</code> (<code>:30-33</code>).</li>
+  <li><strong>Fire and forget.</strong> Dynamically <code>import()</code> the right connector and call <code>sync*()</code> without waiting. Errors are only logged (<code>:39-98</code>). An unknown type sets <code>status: "error"</code>, <code>"Unsupported source type: …"</code> (<code>:99-104</code>). The route then returns 200.</li>
+  <li><strong>Load the source and decrypt the token.</strong> <code>lib/crypto.ts</code> uses crypto-js AES in passphrase mode with <code>ENCRYPTION_KEY</code> (<code>lib/crypto.ts:9-15</code>). It throws if the key is missing (<code>:3-7</code>). A wrong key returns an empty string instead of failing.</li>
+  <li><strong>Refresh tokens (Google only).</strong> Gmail and Drive build a Google <code>OAuth2</code> client with the refresh token and listen to its <code>"tokens"</code> event. When Google issues a new access token, the connector encrypts it and saves <code>accessToken</code> and <code>tokenExpiry</code> (<code>gmail.ts:34-41</code>, <code>google-drive.ts:100-107</code>). Drive also forces a refresh first and turns <code>invalid_grant</code>/revoked errors into "401 Re-Auth Required" (<code>google-drive.ts:109-116</code>). The other four connectors have no refresh logic.</li>
+  <li><strong>Mark syncing again</strong> inside the connector (every connector does this).</li>
+  <li><strong>Paginate the provider API.</strong> Limits differ per connector; see the table below.</li>
+  <li><strong>Dedupe with <code>contentHash</code>.</strong> Hash the built text, look up the document by the unique pair <code>(sourceId, externalId)</code>, and skip it if the hash is the same (for example <code>notion.ts:191-202</code>).</li>
+  <li><strong>Upsert the document</strong> (title, file type, url, raw content, hash, <code>indexedAt</code>), then <strong>delete its old chunks</strong> through <code>supabaseAdmin</code>.</li>
+  <li><strong>Chunk.</strong> <code>chunkText(text, title)</code> splits on whitespace into 400-word slices, stepping 350 words each time, so neighbours share 50 words (<code>chunker.ts:12-13</code>, <code>:24</code>, <code>:49</code>). Slices under 30 characters are skipped (<code>:37-40</code>). Every chunk starts with <code>[title]</code> on its own line (<code>:43</code>). <code>tokenCount</code> is really the word count (<code>:45</code>).</li>
+  <li><strong>Embed</strong> each chunk, one API call at a time, with <code>generateEmbedding</code> (<code>text-embedding-3-small</code>, falling back to <code>text-embedding-ada-002</code> on 403/404/model-not-found errors; <code>lib/openai.ts:16-51</code>).</li>
+  <li><strong>Insert</strong> one row per chunk with a single <code>supabaseAdmin.from("document_chunks").insert({ workspace_id, document_id, source_id, content, chunk_index, token_count, embedding, metadata })</code> (for example <code>gmail.ts:200-209</code>). Slack and Linear do this wrongly; see Known issues.</li>
+  <li><strong>Purge</strong> documents no longer upstream — <strong>Notion only</strong> (<code>notion.ts:129-147</code>).</li>
+  <li><strong>Finish.</strong> Set <code>status: "synced"</code>, <code>lastSyncedAt: now</code>, <code>itemsIndexed: {increment: n}</code>. On an error inside the main <code>try</code>, set <code>status: "error"</code> and <code>errorMessage</code>.</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure>
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 560" role="img" aria-label="Flowchart of a connector sync including the stuck syncing path">
+  <!-- left column: route -->
+  <text x="30" y="14" class="sm b">ROUTE  app/api/sources/[sourceId]/sync</text>
+  <rect class="box" x="30" y="22" width="300" height="44" rx="6"/>
+  <text x="180" y="49" text-anchor="middle">Sync button → POST /sync</text>
+  <path class="ln" d="M180,66 L180,85"/>
+  <polygon class="box" points="180,87 270,117 180,147 90,117"/>
+  <text x="180" y="121" text-anchor="middle">already syncing?</text>
+  <path class="ln" d="M270,117 L288,117"/><text x="272" y="110" class="sm">yes</text>
+  <rect class="warnb" x="290" y="97" width="140" height="40" rx="6"/>
+  <text x="360" y="121" text-anchor="middle" class="sm">409 Sync already in progress</text>
+  <path class="ln" d="M180,147 L180,173"/><text x="186" y="164" class="sm">no</text>
+  <rect class="box" x="30" y="175" width="300" height="44" rx="6"/>
+  <text x="180" y="196" text-anchor="middle">status = "syncing", errorMessage = null</text>
+  <text x="180" y="212" text-anchor="middle" class="sm">route.ts:30-33</text>
+  <path class="ln" d="M180,219 L180,248"/>
+  <rect class="box" x="30" y="250" width="330" height="44" rx="6"/>
+  <text x="195" y="271" text-anchor="middle">import() connector → sync*(id), no await</text>
+  <text x="195" y="287" text-anchor="middle" class="sm">errors only console.error'd</text>
+  <path class="ln" d="M180,294 L180,323"/>
+  <rect class="okb" x="30" y="325" width="300" height="44" rx="6"/>
+  <text x="180" y="352" text-anchor="middle">200 { message: "Sync started" }</text>
+  <path class="ln" d="M360,272 L470,272 L470,42 L518,42"/>
+
+  <!-- right column: connector -->
+  <text x="520" y="14" class="sm b">CONNECTOR  sync&lt;Provider&gt;(sourceId)</text>
+  <rect class="box" x="520" y="22" width="360" height="44" rx="6"/>
+  <text x="700" y="42" text-anchor="middle">load Source · check token · decrypt</text>
+  <text x="700" y="58" text-anchor="middle" class="sm">Gmail: check OAuth env · Drive: force token refresh</text>
+  <path class="ln" d="M700,66 L700,88"/>
+  <polygon class="box" points="700,90 800,120 700,150 600,120"/>
+  <text x="700" y="117" text-anchor="middle" class="sm">throws here,</text>
+  <text x="700" y="131" text-anchor="middle" class="sm">before try { }?</text>
+  <path class="ln bad" d="M600,120 L500,120 L500,450 L462,450"/><text x="540" y="112" class="sm red">yes</text>
+  <path class="ln" d="M700,150 L700,173"/><text x="706" y="166" class="sm">no</text>
+  <rect class="box" x="520" y="175" width="360" height="58" rx="6"/>
+  <text x="700" y="195" text-anchor="middle">status = "syncing"; try {</text>
+  <text x="700" y="211" text-anchor="middle" class="sm">paginate → contentHash skip → chunk → embed</text>
+  <text x="700" y="225" text-anchor="middle" class="sm">→ supabaseAdmin insert (→ purge: Notion only) }</text>
+  <path class="ln" d="M700,233 L700,258"/>
+  <polygon class="box" points="700,260 800,290 700,320 600,290"/>
+  <text x="700" y="294" text-anchor="middle" class="sm">error in try?</text>
+  <path class="ln bad" d="M640,308 L605,368"/><text x="590" y="340" class="sm">yes</text>
+  <path class="ln ok" d="M760,308 L795,368"/><text x="790" y="340" class="sm">no</text>
+  <rect class="badb" x="520" y="370" width="170" height="58" rx="6"/>
+  <text x="605" y="392" text-anchor="middle">status = "error"</text>
+  <text x="605" y="410" text-anchor="middle" class="sm">errorMessage = message</text>
+  <rect class="okb" x="710" y="370" width="170" height="58" rx="6"/>
+  <text x="795" y="390" text-anchor="middle">status = "synced"</text>
+  <text x="795" y="406" text-anchor="middle" class="sm">lastSyncedAt = now</text>
+  <text x="795" y="420" text-anchor="middle" class="sm">itemsIndexed += n</text>
+
+  <!-- stuck box -->
+  <rect class="badb" x="30" y="420" width="430" height="60" rx="6"/>
+  <text x="245" y="444" text-anchor="middle" class="b red">STUCK: status stays "syncing" forever</text>
+  <text x="245" y="464" text-anchor="middle" class="sm">The route already returned 200. Every retry now gets 409.</text>
+
+  <text x="30" y="515" class="sm">Slack and Linear catch errors without re-throwing. Notion, Gmail, Drive and GitHub re-throw, and the route only logs.</text>
+  <text x="30" y="535" class="sm">Early throws: "no access token", "no refresh token", "Gmail OAuth is not configured", Drive refresh failure, ENCRYPTION_KEY missing.</text>
+</svg>
+</div>
+<figcaption>The sync route returns right away and the connector runs in the background; an error thrown before the connector's try block leaves the source stuck in "syncing" with no way to retry.</figcaption>
+</figure>
+
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 290" role="img" aria-label="State machine for Source.status">
+  <circle cx="30" cy="140" r="8" style="fill:var(--text)"/>
+  <path class="ln" d="M38,140 L98,140"/>
+  <text x="34" y="122" class="sm">Drive / GitHub</text>
+  <text x="34" y="108" class="sm">callback</text>
+  <rect class="box" x="100" y="115" width="120" height="50" rx="25"/>
+  <text x="160" y="145" text-anchor="middle" class="b">idle</text>
+  <path class="ln" d="M220,140 L338,140"/>
+  <text x="228" y="132" class="sm">Sync clicked, or</text>
+  <text x="228" y="160" class="sm">Gmail/Notion callback</text>
+  <rect class="acc" x="340" y="115" width="140" height="50" rx="25"/>
+  <text x="410" y="145" text-anchor="middle" class="b">syncing</text>
+  <path class="ln ok" d="M480,128 L638,62"/>
+  <text x="530" y="78" class="sm">connector finishes</text>
+  <path class="ln bad" d="M480,152 L638,218"/>
+  <text x="520" y="214" class="sm">error inside try</text>
+  <rect class="okb" x="640" y="35" width="130" height="50" rx="25"/>
+  <text x="705" y="65" text-anchor="middle" class="b">synced</text>
+  <rect class="badb" x="640" y="195" width="130" height="50" rx="25"/>
+  <text x="705" y="225" text-anchor="middle" class="b">error</text>
+  <path class="ln" d="M705,35 C705,5 430,5 420,113"/>
+  <text x="470" y="20" class="sm">Sync clicked again</text>
+  <path class="ln" d="M705,245 C705,280 430,280 418,167"/>
+  <text x="470" y="276" class="sm">Sync clicked again</text>
+  <!-- stuck self loop -->
+  <path class="ln bad" d="M370,115 C340,70 300,95 352,118"/>
+  <text x="240" y="70" class="sm red">early throw: never leaves</text>
+  <text x="240" y="84" class="sm red">(retries get 409)</text>
+  <!-- slack/linear shortcut -->
+  <circle cx="860" cy="60" r="8" style="fill:var(--text)"/>
+  <path class="ln dash" d="M852,60 L772,60"/>
+  <text x="790" y="104" class="sm">Slack / Linear callback,</text>
+  <text x="790" y="118" class="sm">manual_upload source:</text>
+  <text x="790" y="132" class="sm">born "synced", 0 items</text>
+</svg>
+</div>
+<figcaption><code>Source.status</code> moves idle → syncing → synced or error; the red loop is the bug where an early error leaves the source in syncing forever.</figcaption>
+</figure>
+
+<h4>Per-connector comparison</h4>
+<div class="tbl wide"><table>
+<thead><tr><th>Connector</th><th>What it fetches</th><th>Limits</th><th>Token refresh</th><th>Purge removed items</th><th>Retry</th><th>Hash</th><th>Known bugs</th></tr></thead>
+<tbody>
+<tr><td><strong>Notion</strong><br><code>notion.ts</code></td>
+<td>All pages from <code>search</code> (filter page); then every database from a second unfiltered <code>search</code> and its rows via a raw <code>POST databases/{id}/query</code>; block text read recursively</td>
+<td>page size 100, follows cursors; block depth max 5 (<code>:27</code>); many block types return "" (<code>:344-345</code>); DB properties not indexed</td>
+<td>None in code</td>
+<td><strong>Yes</strong> — deletes docs not seen this run (<code>:129-147</code>)</td>
+<td><strong>Yes</strong> — <code>withRetry</code>: 3 tries, waits 1 s then 2 s on 429; 401 → "401 Re-Auth Required … reconnect Notion" (<code>:375-394</code>)</td>
+<td>SHA-256</td>
+<td>Early throws at <code>:36-37</code> leave it stuck. The database step may break on newer <code>@notionhq/client</code> (unverified).</td></tr>
+<tr><td><strong>Gmail</strong><br><code>gmail.ts</code></td>
+<td>Thread ids from <code>threads.list</code> with a search query, then each thread with <code>threads.get format:"full"</code>; one document per thread</td>
+<td><strong>100 threads per sync</strong> (<code>MAX_THREADS_PER_SYNC</code>, <code>:11</code>), 50 per page; default query <code>newer_than:180d -category:promotions -category:social</code> (<code>:10</code>); no attachments</td>
+<td>Yes — saves new access token on the <code>"tokens"</code> event (<code>:34-41</code>)</td>
+<td>No</td>
+<td>No</td>
+<td>SHA-256</td>
+<td>Incremental sync never runs: <code>buildQuery</code> returns <code>config.query</code> first (<code>:136-138</code>) and the callback always stores one (<code>gmail/callback/route.ts:95</code>). <code>historyId</code> is saved but unused (<code>:75-93</code>). Early throws at <code>:17-18</code>, <code>:24-26</code>.</td></tr>
+<tr><td><strong>Google Drive</strong><br><code>google-drive.ts</code></td>
+<td>Files of 6 MIME types: Google Docs (as text), Sheets (as CSV), PDF (pdf-parse), plain text, Markdown, DOCX (mammoth); optional folder limit with sub-folders</td>
+<td>100 per page, follows <code>nextPageToken</code>, newest first; sub-folder listing takes only the first 100 per folder (<code>:60-64</code>); Sheets export only the first sheet; no shared drives, Slides or xlsx</td>
+<td>Yes — <code>"tokens"</code> event (<code>:100-107</code>) plus a forced refresh before work (<code>:109-116</code>)</td>
+<td>No</td>
+<td>No</td>
+<td>SHA-256</td>
+<td>The forced refresh throws <em>before</em> the <code>try</code> (<code>:109-116</code>), so a revoked token leaves the source stuck in syncing. The folder picker can return mock folders (<code>folders/route.ts:36-90</code>), which sync 0 files.</td></tr>
+<tr><td><strong>GitHub</strong><br><code>github.ts</code></td>
+<td>Per repo: README, issues (PRs skipped), pull requests</td>
+<td><code>selectedRepos</code>, else 30 most recently updated repos (<code>:79-85</code>); 100 issues (<code>:124-130</code>) and 50 PRs (<code>:174-181</code>), one page each; no code, comments or wikis</td>
+<td>None in code</td>
+<td>No</td>
+<td>No; checks rate limit first: under 50 left it waits up to 5 min, under 10 it aborts (<code>:47-60</code>)</td>
+<td>SHA-256</td>
+<td>Chunk insert errors are not even checked (<code>:300-315</code>). Early throws at <code>:31-32</code>. No GitHub card in the Add Source modal.</td></tr>
+<tr><td><strong>Slack</strong><br><code>slack.ts</code></td>
+<td>Public channels the bot is already in; message history; one document per channel; user ids turned into names</td>
+<td>One <code>conversations.list</code> call, <code>limit=200</code>, no paging (<code>:126-128</code>); 500 messages per channel (<code>:158</code>); no thread replies, no private channels</td>
+<td>None</td>
+<td>No</td>
+<td>No (any non-200 HTTP throws)</td>
+<td>MD5</td>
+<td><strong>Chunks never get embeddings</strong> (<code>:243-271</code>, see below). Catch block does not re-throw (<code>:292-299</code>). The connect callback sets <code>synced</code> with 0 items and never syncs (<code>slack/callback:76-93</code>).</td></tr>
+<tr><td><strong>Linear</strong><br><code>linear.ts</code></td>
+<td>Issues via GraphQL with state, assignee, team, project, labels and comments; one document per issue</td>
+<td>50 per page, max 20 pages = 1,000 issues (<code>:120</code>); only the first page of comments; no projects or docs</td>
+<td>None</td>
+<td>No</td>
+<td>On HTTP 429 waits <code>Retry-After</code> (default 10 s) and retries with <strong>no upper limit</strong> (<code>:34-40</code>)</td>
+<td>MD5</td>
+<td><strong>Chunks never get embeddings</strong> (<code>:244-271</code>). Catch does not re-throw (<code>:293-300</code>). Callback sets <code>synced</code> without syncing (<code>linear/callback:92-106</code>).</td></tr>
+</tbody></table></div>
+
+<h4>Models and parameters</h4>
+<ul>
+  <li>Embedding: <code>text-embedding-3-small</code> (1536 numbers), fallback <code>text-embedding-ada-002</code>. Input cut to 8,000 characters. One request per chunk, no batching (<code>lib/openai.ts:16-51</code>).</li>
+  <li>Chunking: <code>CHUNK_SIZE = 400</code> words, <code>CHUNK_OVERLAP = 50</code> words (<code>modules/ai/chunker.ts:12-13</code>).</li>
+  <li>No chat model is used here.</li>
+</ul>
+
+<h4>Data it reads and writes</h4>
+<ul>
+  <li><strong><code>sources</code></strong>: reads <code>access_token</code>, <code>refresh_token</code>, <code>config</code>, <code>workspace_id</code>; writes <code>status</code>, <code>error_message</code>, <code>last_synced_at</code>, <code>items_indexed</code>, <code>access_token</code>/<code>token_expiry</code> (Google), <code>config</code> (Gmail saves <code>query</code>, <code>historyId</code>, <code>lastSyncedAt</code>).</li>
+  <li><strong><code>documents</code></strong>: upsert on the unique pair <code>(source_id, external_id)</code>; writes <code>title</code>, <code>file_type</code>, <code>url</code>, <code>raw_content</code>, <code>content_hash</code>, <code>indexed_at</code>; Slack and Linear also set <code>updated_at</code>. Notion deletes stale rows.</li>
+  <li><strong><code>document_chunks</code></strong>: deletes the document's old chunks, then inserts <code>workspace_id</code>, <code>document_id</code>, <code>source_id</code>, <code>content</code>, <code>chunk_index</code>, <code>token_count</code>, <code>embedding</code>, <code>metadata</code> (<code>document_title</code>, <code>file_type</code>, <code>url</code>, <code>source_type</code>, plus provider extras).</li>
+</ul>
+
+<h4>Config and env vars</h4>
+<ul>
+  <li><code>ENCRYPTION_KEY</code> — required; <code>lib/crypto.ts</code> throws without it.</li>
+  <li><code>OPENAI_API_KEY</code>, <code>DATABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code> (all with dummy fallbacks).</li>
+  <li>Drive: <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>GOOGLE_REDIRECT_URI</code> (<code>google-drive.ts:88-92</code>).</li>
+  <li>Gmail: <code>GMAIL_CLIENT_ID</code>/<code>GMAIL_CLIENT_SECRET</code>/<code>GMAIL_REDIRECT_URI</code>, falling back to the <code>GOOGLE_*</code> values and <code>NEXT_PUBLIC_APP_URL</code> (<code>gmail.ts:20-26</code>).</li>
+  <li>Notion, GitHub, Slack and Linear use only the stored token at sync time. Their <code>*_CLIENT_ID</code>/<code>*_CLIENT_SECRET</code> values are used in the connect/callback routes.</li>
+  <li>Per-source <code>config</code>: Drive <code>folderIds</code> (or legacy <code>folderId</code>), GitHub <code>selectedRepos</code>, Gmail <code>query</code>/<code>historyId</code>/<code>lastSyncedAt</code>, Slack <code>teamId</code>, and <code>permissions</code> (<code>"everyone"</code> shares it in Ask).</li>
+</ul>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>One bad item does not stop the run: every connector wraps each page, file, thread, repo step or channel in its own <code>try/catch</code> and logs.</li>
+  <li><code>contentHash</code> skip avoids paying to re-embed unchanged documents.</li>
+  <li>409 stops two syncs of the same source at once — but it also blocks retries of a stuck source.</li>
+  <li>A failed chunk insert is logged and the run carries on, so a document can end up with only some of its chunks.</li>
+  <li>Old chunks are deleted <em>before</em> new ones are embedded. If embedding fails midway, the document is left with fewer chunks until the next sync, and its hash is already updated, so the next sync skips it.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Slack and Linear content can never be found.</strong> They call <code>prisma.documentChunk.create()</code> (a row with no embedding), then <code>supabaseAdmin.insert()</code> with the same <code>id</code> into the same table. The second insert fails on the primary key (and lacks the required <code>source_id</code> and <code>chunk_index</code>). The error is only logged. Rows keep <code>embedding = NULL</code>, which the similarity filter skips. <span class="ref"><code>slack.ts:243-271</code>, <code>linear.ts:244-272</code></span></li>
+  <li><strong>Stuck "syncing".</strong> Errors thrown before the connector's <code>try</code> never set <code>error</code>; the route only logs. <span class="ref"><code>sync/route.ts:30-33</code>, <code>:25-27</code>; e.g. <code>gmail.ts:17-26</code>, <code>google-drive.ts:84-116</code></span></li>
+  <li><strong>Only Notion purges and only Notion retries.</strong> <code>CLAUDE.md</code> says all connectors do. <span class="ref"><code>notion.ts:129-147</code>, <code>:375-394</code></span></li>
+  <li><strong>Gmail incremental sync never runs</strong> and is capped at 100 threads. <span class="ref"><code>gmail.ts:11</code>, <code>:136-150</code></span></li>
+  <li><strong><code>itemsIndexed</code> only grows.</strong> It adds changed documents again on every sync and never subtracts purged ones. <span class="ref">e.g. <code>notion.ts:155</code></span></li>
+  <li><strong>Freshness date is index time</strong> for Notion, Gmail, Drive and GitHub, because they never set <code>documents.updated_at</code> from the provider date. <span class="ref"><code>prisma/schema.prisma:109</code></span></li>
+  <li><strong>Chunker quirks.</strong> Splits on whitespace only, despite its comment about paragraphs; a 400-word document gets a second, duplicate 50-word chunk because the loop steps 350 words. <span class="ref"><code>chunker.ts:23-24</code>, <code>:49</code></span></li>
+  <li><strong>Weak token encryption.</strong> crypto-js passphrase mode (MD5 key derivation, 1 round, AES-CBC, no MAC); <code>decrypt</code> returns <code>""</code> on a wrong key; crypto-js is discontinued. <span class="ref"><code>lib/crypto.ts:9-15</code></span></li>
+  <li><strong>Sync schedule is ignored.</strong> The UI sends hourly/daily/weekly; the config route drops it. <span class="ref"><code>SourcesMain.tsx:1849</code>, <code>config/route.ts:20</code></span></li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 1: make Slack and Linear use one <code>supabaseAdmin</code> insert like <code>gmail.ts</code>, then re-sync; wrap the whole connector body in <code>try/catch</code> so early errors set <code>error</code>, and reset sources stuck in syncing; make Slack/Linear callbacks run a real sync; remove the mock Drive folders.</li>
+  <li>Phase 2: purge, provider dates for <code>updated_at</code>, a shared <code>withRetry</code>, and correct <code>itemsIndexed</code> in all connectors; incremental sync (Gmail <code>history.list</code>, Drive <code>changes.list</code>, Slack <code>oldest</code>, Linear <code>updatedAt</code> filter); a sync-history row per run; revoke tokens on disconnect.</li>
+  <li>Phase 4: batch embeddings; drop the silent <code>ada-002</code> fallback; fetch more content per connector (Slack threads and private channels, Drive shared drives/Slides/xlsx, GitHub comments and docs, Gmail attachments, Notion DB properties).</li>
+  <li>Phase 7: replace crypto-js with Node <code>crypto</code> AES-256-GCM and re-encrypt stored tokens.</li>
+</ul>
+</section>
+
+<!-- ============================== P3 ============================== -->
+<section class="pipe" id="p3">
+<h3>3. Manual upload pipeline <span class="pill real">Real</span></h3>
+<p class="meta">Files: <code>app/api/sources/upload/route.ts</code>, <code>app/api/documents/route.ts</code> (POST)</p>
+
+<h4>Purpose</h4>
+<p>Let a user add knowledge by hand, without a connector. There are two entry points. <strong>Upload</strong> takes a file. <strong><code>POST /api/documents</code></strong> takes pasted text and a title for an existing source. Both skip the connector pipeline but use the same chunker, embedding function and <code>supabaseAdmin</code> insert.</p>
+
+<h4>Trigger</h4>
+<ul>
+  <li>Upload: the file picker on the Sources page sends <code>FormData</code> to <code>POST /api/sources/upload</code> (<code>SourcesMain.tsx:823</code>).</li>
+  <li>Pasted text: the "add document" form on a source sends JSON to <code>POST /api/documents</code> (<code>SourcesMain.tsx:2421</code>). The form shows "Analyzing &amp; Chunking" and "Generating vector embeddings" steps on timers, not real progress (<code>SourcesMain.tsx:2413-2418</code>).</li>
+</ul>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Upload input: one <code>file</code> field. Output: <code>{success: true, message: "File uploaded successfully"}</code> — plain <code>NextResponse.json</code>, not the usual <code>{success, data, version}</code> envelope (<code>upload/route.ts:133</code>).</li>
+  <li><code>/api/documents</code> input: <code>{sourceId (uuid), title, fileType?, rawContent}</code> checked by zod (<code>documents/route.ts:13-18</code>). Output: <code>successResponse({document})</code>.</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<p><strong>Upload (<code>/api/sources/upload</code>)</strong></p>
+<ol>
+  <li><code>auth()</code> (<code>:10</code>). No permission check beyond being logged in.</li>
+  <li>Read the file; take the file type from the extension, default <code>txt</code> (<code>:18-19</code>).</li>
+  <li>Extract text: <code>pdf</code> → <code>pdf-parse</code> after adding stand-in <code>DOMMatrix</code>, <code>ImageData</code> and <code>Path2D</code> classes so pdf.js runs under Node (<code>:22-53</code>); <code>docx</code> or <code>doc</code> → <code>mammoth.extractRawText</code> (<code>:54-59</code>); anything else → <code>file.text()</code> (<code>:60-62</code>).</li>
+  <li>Strip null bytes, which Postgres rejects (<code>:64</code>).</li>
+  <li>Find the workspace's one <code>type: "manual_upload"</code> source, or create it as <code>"Manual Uploads"</code> with <code>status: "synced"</code> and <code>config: {permissions: "everyone"}</code> (<code>:66-84</code>).</li>
+  <li>Create a <code>documents</code> row with a random <code>externalId</code> like <code>upload_&lt;time&gt;_&lt;random&gt;</code> and <strong>no</strong> <code>contentHash</code> (<code>:86-98</code>).</li>
+  <li><code>chunkText</code> → for each chunk, <code>generateEmbedding</code> → <code>supabaseAdmin</code> insert with metadata <code>{document_title, file_type, source_type: "manual_upload"}</code> (<code>:101-122</code>). This all happens inside the HTTP request.</li>
+  <li><code>itemsIndexed += 1</code> and <code>lastSyncedAt = now</code> on the source (<code>:125-131</code>).</li>
+</ol>
+<p><strong>Pasted text (<code>POST /api/documents</code>)</strong></p>
+<ol>
+  <li><code>auth()</code>, zod check, and the source must be in the caller's workspace (<code>:53-70</code>).</li>
+  <li>Create a <code>documents</code> row with <code>externalId: manual-&lt;time&gt;</code> and a SHA-256 <code>contentHash</code> (<code>:73-88</code>). The hash is stored but never compared.</li>
+  <li>Chunk, embed and insert, with metadata <code>source_type: "manual"</code> (<code>:91-113</code>). It does not update <code>itemsIndexed</code>.</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 230" role="img" aria-label="Flow of the manual upload pipeline">
+  <rect class="box" x="10" y="20" width="200" height="56" rx="6"/>
+  <text x="110" y="44" text-anchor="middle">Pick a file</text>
+  <text x="110" y="62" text-anchor="middle" class="sm">SourcesMain.tsx:823</text>
+  <path class="ln" d="M210,48 L238,48"/>
+  <rect class="acc" x="240" y="20" width="200" height="56" rx="6"/>
+  <text x="340" y="44" text-anchor="middle">POST /api/sources/upload</text>
+  <text x="340" y="62" text-anchor="middle" class="sm">FormData · auth() only</text>
+  <path class="ln" d="M440,48 L468,48"/>
+  <rect class="box" x="470" y="20" width="200" height="56" rx="6"/>
+  <text x="570" y="40" text-anchor="middle">Extract text by extension</text>
+  <text x="570" y="56" text-anchor="middle" class="sm">pdf → pdf-parse · docx/doc → mammoth</text>
+  <text x="570" y="69" text-anchor="middle" class="sm">else → file.text()</text>
+  <path class="ln" d="M670,48 L698,48"/>
+  <rect class="box" x="700" y="20" width="190" height="56" rx="6"/>
+  <text x="795" y="40" text-anchor="middle">Strip \0 · find or create</text>
+  <text x="795" y="58" text-anchor="middle" class="sm">"Manual Uploads" source</text>
+  <path class="ln" d="M795,76 L795,128"/>
+  <rect class="warnb" x="640" y="130" width="250" height="56" rx="6"/>
+  <text x="765" y="152" text-anchor="middle">documents row</text>
+  <text x="765" y="170" text-anchor="middle" class="sm">random externalId · no contentHash</text>
+  <path class="ln" d="M640,158 L578,158"/>
+  <rect class="acc" x="300" y="130" width="276" height="56" rx="6"/>
+  <text x="438" y="150" text-anchor="middle">chunkText → embed each chunk</text>
+  <text x="438" y="168" text-anchor="middle" class="sm">→ supabaseAdmin insert (inside the request)</text>
+  <path class="ln" d="M300,158 L238,158"/>
+  <rect class="okb" x="10" y="130" width="226" height="56" rx="6"/>
+  <text x="123" y="152" text-anchor="middle">itemsIndexed += 1</text>
+  <text x="123" y="170" text-anchor="middle" class="sm">return {success: true}</text>
+  <text x="10" y="215" class="sm">POST /api/documents follows the same chunk → embed → insert steps for pasted text, with a stored but unused contentHash.</text>
+</svg>
+</div>
+<figcaption>An uploaded file is turned into text, stored as a new document, and chunked and embedded inside the same HTTP request.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<ul>
+  <li><code>text-embedding-3-small</code> (fallback <code>text-embedding-ada-002</code>), one call per chunk, input cut to 8,000 characters.</li>
+  <li>Chunking 400 words / 50 overlap.</li>
+  <li>Text extraction: <code>pdf-parse</code> with the pdf.js worker <code>pdfjs-dist/legacy/build/pdf.worker.mjs</code> (<code>upload/route.ts:46</code>); <code>mammoth</code> for Word.</li>
+</ul>
+
+<h4>Data it reads and writes</h4>
+<ul>
+  <li><code>sources</code>: find/create the <code>manual_upload</code> row; update <code>items_indexed</code>, <code>last_synced_at</code> (upload only).</li>
+  <li><code>documents</code>: insert <code>workspace_id</code>, <code>source_id</code>, <code>external_id</code>, <code>title</code>, <code>file_type</code>, <code>raw_content</code>, <code>indexed_at</code> (+ <code>content_hash</code> for <code>/api/documents</code>).</li>
+  <li><code>document_chunks</code>: insert with <code>embedding</code> and metadata.</li>
+</ul>
+
+<h4>Config and env vars</h4>
+<p><code>OPENAI_API_KEY</code>, <code>DATABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>JWT_SECRET</code>. No size or type settings exist.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>Any thrown error returns HTTP 500 with the error message (<code>upload/route.ts:134-137</code>).</li>
+  <li>A failed chunk insert is only logged; the request still says "uploaded successfully".</li>
+  <li>If embedding fails halfway, the document row stays with only some chunks; nothing cleans it up.</li>
+  <li>Large files hold the request open while every chunk is embedded one by one.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>No server-side type check and no size limit.</strong> <span class="ref"><code>upload/route.ts:18-62</code></span></li>
+  <li><strong><code>.doc</code> files are sent to mammoth</strong>, which only reads <code>.docx</code>. <span class="ref"><code>upload/route.ts:54</code></span></li>
+  <li><strong>No dedupe.</strong> Uploading the same file twice stores and embeds it twice. <span class="ref"><code>upload/route.ts:86-98</code>; <code>documents/route.ts:74</code> computes a hash and never uses it</span></li>
+  <li><strong>Embedding is synchronous and one chunk at a time</strong> inside the request. <span class="ref"><code>upload/route.ts:103-122</code></span></li>
+  <li><strong>Any member can upload</strong>; there is no permission check. <span class="ref"><code>upload/route.ts:10</code></span></li>
+  <li>Inconsistent <code>source_type</code>: <code>"manual_upload"</code> for files, <code>"manual"</code> for pasted text. <span class="ref"><code>upload/route.ts:116</code>, <code>documents/route.ts:107</code></span></li>
+  <li><code>POST /api/documents</code> never updates <code>itemsIndexed</code>, so the source's count is wrong.</li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 4: size and type limits, a content hash with a skip on repeat uploads, proper <code>.doc</code> handling.</li>
+  <li>Phase 0: add a permission check on upload.</li>
+  <li>Phase 2: move chunking and embedding into a BullMQ job so the request returns at once; batch embeddings.</li>
+</ul>
+</section>
+
+<!-- ============================== P4 ============================== -->
+<section class="pipe" id="p4">
+<h3>4. Background worker (BullMQ) <span class="pill idle">Present but never fed</span></h3>
+<p class="meta">Files: <code>workers/index.ts</code>, <code>lib/redis.ts</code></p>
+
+<h4>Purpose</h4>
+<p>A separate Node process meant to run connector syncs from a Redis-backed queue, so syncs do not run inside the web server. The code works, but <strong>nothing ever adds a job to the queue</strong>. A search for <code>sourceQueue</code> finds only its definition (<code>lib/redis.ts:27</code>) and its error handler (<code>:38</code>). So the worker always sits idle.</p>
+
+<h4>Trigger</h4>
+<ul>
+  <li>Started by hand: <code>npm run worker</code> (or <code>npm run worker:dev</code> with watch mode).</li>
+  <li><code>docker-compose.yml</code> has <strong>no worker service, on purpose</strong>. Its comment says syncing runs straight away inside the web app, so a worker would sit idle, and shows how to start one by hand: <code>docker compose run --rm app npm run worker</code> (<code>docker-compose.yml:117-124</code>).</li>
+</ul>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Input (if anything enqueued): jobs on queue <code>corely-sources</code> with data <code>{sourceId, workspaceId}</code>.</li>
+  <li>Output: the connector's own writes (pipeline 2) plus console logs for completed/failed jobs.</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li>Load <code>.env</code> with <code>dotenv/config</code>; log "Corely background worker started".</li>
+  <li><strong>Probe Redis</strong> with a throwaway IORedis client: <code>maxRetriesPerRequest: 0</code>, <code>connectTimeout: 1000</code>, <code>retryStrategy: () =&gt; null</code> (no reconnects) (<code>workers/index.ts:13-17</code>). URL is <code>REDIS_URL</code> or <code>redis://127.0.0.1:6379</code>.</li>
+  <li>Three ways out of the probe:
+    <ul>
+      <li><code>connect</code> event → disconnect the probe → <strong>worker mode</strong> (<code>:30-37</code>).</li>
+      <li><code>error</code> event → <strong>standby mode</strong>, reason "Redis is offline" (<code>:20-28</code>).</li>
+      <li>Nothing within <strong>1.5 seconds</strong> → <strong>standby mode</strong>, reason "Connection timeout" (<code>:40-48</code>).</li>
+    </ul>
+  </li>
+  <li><strong>Standby mode:</strong> log "Running in Standby Mode — Direct In-Memory Sync is active", then run an empty 60-second <code>setInterval</code> just to keep the process alive (<code>:50-58</code>). It never re-checks Redis.</li>
+  <li><strong>Worker mode:</strong> import BullMQ, <code>bullMQConnection</code> and the Drive connector; create <code>new Worker("corely-sources", handler, {concurrency: 2})</code> (<code>:60-119</code>).</li>
+  <li>The handler switches on <code>job.name</code> and calls the matching connector (<code>:75-110</code>). Unknown names log a warning.</li>
+  <li>Log on <code>completed</code>, <code>failed</code> and <code>error</code>; close cleanly on <code>SIGTERM</code>/<code>SIGINT</code> (<code>:121-144</code>).</li>
+</ol>
+
+<p><strong>The 6 job names</strong> (<code>workers/index.ts:76-110</code>):</p>
+<div class="tbl"><table>
+<thead><tr><th>Job name</th><th>Calls</th></tr></thead>
+<tbody>
+<tr><td><code>sync-google-drive</code></td><td><code>syncGoogleDrive(sourceId)</code></td></tr>
+<tr><td><code>sync-notion</code></td><td><code>syncNotion(sourceId)</code></td></tr>
+<tr><td><code>sync-gmail</code></td><td><code>syncGmail(sourceId)</code></td></tr>
+<tr><td><code>sync-github</code></td><td><code>syncGitHub(sourceId)</code></td></tr>
+<tr><td><code>sync-slack</code></td><td><code>syncSlack(sourceId)</code></td></tr>
+<tr><td><code>sync-linear</code></td><td><code>syncLinear(sourceId)</code></td></tr>
+</tbody></table></div>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 300" role="img" aria-label="State diagram of the worker startup">
+  <circle cx="30" cy="140" r="8" style="fill:var(--text)"/>
+  <path class="ln" d="M38,140 L78,140"/>
+  <text x="20" y="120" class="sm">npm run worker</text>
+  <rect class="acc" x="80" y="105" width="210" height="70" rx="10"/>
+  <text x="185" y="132" text-anchor="middle" class="b">Probe Redis</text>
+  <text x="185" y="150" text-anchor="middle" class="sm">IORedis, connectTimeout 1000 ms</text>
+  <text x="185" y="164" text-anchor="middle" class="sm">no retries, no reconnect</text>
+  <path class="ln ok" d="M290,120 L418,60"/>
+  <text x="320" y="72" class="sm">"connect" event</text>
+  <path class="ln" d="M290,150 L418,206"/>
+  <text x="300" y="200" class="sm">"error" event</text>
+  <path class="ln" d="M240,175 L420,240"/>
+  <text x="250" y="240" class="sm">no answer in 1.5 s</text>
+  <rect class="okb" x="420" y="25" width="250" height="70" rx="10"/>
+  <text x="545" y="50" text-anchor="middle" class="b">Worker mode</text>
+  <text x="545" y="68" text-anchor="middle" class="sm">BullMQ Worker "corely-sources"</text>
+  <text x="545" y="82" text-anchor="middle" class="sm">concurrency 2 · 6 job names</text>
+  <path class="ln dash" d="M670,60 L718,60"/>
+  <rect class="badb" x="720" y="25" width="170" height="70" rx="10"/>
+  <text x="805" y="50" text-anchor="middle" class="sm b red">waits forever</text>
+  <text x="805" y="68" text-anchor="middle" class="sm">nothing calls</text>
+  <text x="805" y="82" text-anchor="middle" class="sm">sourceQueue.add()</text>
+  <rect class="warnb" x="420" y="190" width="250" height="70" rx="10"/>
+  <text x="545" y="215" text-anchor="middle" class="b">Standby mode</text>
+  <text x="545" y="233" text-anchor="middle" class="sm">empty 60 s heartbeat</text>
+  <text x="545" y="247" text-anchor="middle" class="sm">never re-checks Redis</text>
+  <text x="690" y="215" class="sm">Syncs still run, but inside the</text>
+  <text x="690" y="230" class="sm">web server via the sync route,</text>
+  <text x="690" y="245" class="sm">not here.</text>
+</svg>
+</div>
+<figcaption>The worker probes Redis once: it becomes a BullMQ worker that never receives a job, or it falls into a standby heartbeat that never re-checks.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<ul>
+  <li>No AI model of its own. It would call the connectors, which embed with <code>text-embedding-3-small</code>.</li>
+  <li>Queue defaults (<code>lib/redis.ts:27-35</code>): <code>attempts: 3</code>, <code>backoff: {type: "exponential", delay: 5000}</code>, <code>removeOnComplete: 100</code>, <code>removeOnFail: 200</code>.</li>
+  <li>Connection (<code>lib/redis.ts:20-24</code>): parsed from <code>REDIS_URL</code> (TLS when the scheme is <code>rediss:</code>), <code>maxRetriesPerRequest: null</code>, <code>enableReadyCheck: false</code>.</li>
+  <li>Probe: 1,000 ms connect timeout, 1,500 ms overall timer. Worker concurrency 2. Standby heartbeat 60,000 ms.</li>
+</ul>
+
+<h4>Data it reads and writes</h4>
+<p>Redis keys owned by BullMQ for queue <code>corely-sources</code>. Through the connectors (if ever fed): <code>sources</code>, <code>documents</code>, <code>document_chunks</code>.</p>
+
+<h4>Config and env vars</h4>
+<p><code>REDIS_URL</code> (default <code>redis://127.0.0.1:6379</code>; docker-compose sets <code>redis://redis:6379</code> for the app container). Plus everything the connectors need.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>Redis down → standby instead of a crash. The queue's error handler is silent (<code>lib/redis.ts:38-40</code>), so Next.js does not crash either.</li>
+  <li>If Redis starts later, a standby worker stays in standby until restarted.</li>
+  <li>If it were fed: connectors that re-throw (Notion, Gmail, Drive, GitHub) would get 3 attempts with backoff. Slack and Linear swallow errors, so BullMQ would mark those jobs "completed" even when they failed.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Never fed.</strong> No code calls <code>sourceQueue.add</code>. <span class="ref"><code>lib/redis.ts:27</code>; <code>sync/route.ts:39-98</code> calls connectors directly</span></li>
+  <li><strong>The standby log is misleading.</strong> "Direct In-Memory Sync is active" describes the web route, not anything the worker does. <span class="ref"><code>workers/index.ts:52</code></span></li>
+  <li><strong>No worker service in docker-compose.</strong> <span class="ref"><code>docker-compose.yml:117-124</code></span></li>
+  <li>The Drive webhook comment mentions a job <code>sync-drive-incremental</code> that the worker does not handle. <span class="ref"><code>app/api/webhooks/drive/route.ts:22-23</code></span></li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 2: make the sync route enqueue onto <code>sourceQueue</code>; run the worker as a second docker-compose service; keep the direct call as a fallback when Redis is missing.</li>
+  <li>Phase 2: save <code>syncSchedule</code> and add BullMQ repeatable jobs; wire the "Auto re-sync" toggle; have webhooks enqueue.</li>
+  <li>Make Slack and Linear re-throw so BullMQ retries work; re-probe Redis from standby.</li>
+</ul>
+</section>
+
+<!-- ============================== P5 ============================== -->
+<section class="pipe" id="p5">
+<h3>5. Insights generator <span class="pill real">Rule-based, no AI</span></h3>
+<p class="meta">File: <code>lib/insights-generator.ts</code> (function <code>generateDynamicInsights</code>)</p>
+
+<h4>Purpose</h4>
+<p>Build the "insight" cards on the dashboard and the Insights page. Despite the name, there is <strong>no LLM call</strong>. It runs a fixed set of database counts and turns them into cards with <code>if</code> rules and date maths from <code>date-fns</code>. Results are not stored; the <code>DashboardInsight</code> table is unused.</p>
+
+<h4>Trigger</h4>
+<ul>
+  <li>Every load of the dashboard home (server component, <code>app/dashboard/page.tsx:40</code>, keeps the first 4).</li>
+  <li><code>GET /api/insights</code> (<code>app/api/insights/route.ts:14</code>), used by the Insights page.</li>
+  <li><code>app/api/dashboard/route.ts:40</code> also calls it, but that route is unused.</li>
+</ul>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Input: <code>workspaceId</code>.</li>
+  <li>Output: an array of card objects with <code>id</code> (<code>dyn-insight-N</code>), <code>icon</code>, <code>title</code>, <code>description</code>, <code>category</code> (Operational, Activity, Product, People, Risk, Knowledge), <code>priority</code> (Low, Medium, High, Critical), <code>impact</code>, <code>trend</code>, <code>time</code>, <code>source</code> and colour fields (<code>:25-60</code>).</li>
+</ul>
+
+<h4>Step-by-step flow (every rule and threshold)</h4>
+<ol>
+  <li><strong>Source health</strong> (<code>:72-124</code>). Load all sources.
+    <ul>
+      <li>0 sources → "No data sources connected" — Product, <strong>High</strong>.</li>
+      <li>Each source with <code>status = "error"</code> → "Sync failure — &lt;name&gt;" with its error message — Risk, <strong>Critical</strong>.</li>
+      <li>Each source with <code>lastSyncedAt</code> older than 1 day and status not error → "Stale data — &lt;name&gt;" — Risk, <strong>Medium</strong>.</li>
+      <li>Any source with <code>status = "syncing"</code> → "N source(s) currently syncing" — Activity, Low.</li>
+      <li>No error, no stale, and at least one source synced in the last day → "All N sources healthy" — Operational, Low.</li>
+    </ul>
+  </li>
+  <li><strong>Knowledge growth</strong> (<code>:127-153</code>). Count documents by <code>indexedAt</code>.
+    <ul>
+      <li>New in last 24 h &gt; 0 → "N new documents indexed today" — Activity, Low.</li>
+      <li>Else, if there are sources and documents → "No new knowledge indexed today" — Activity, <strong>Medium</strong>.</li>
+      <li>New in 7 days &gt; new in 24 h <em>and</em> &gt; 5 → "N documents indexed this week" with docs/day average — Knowledge, Low (impact High).</li>
+    </ul>
+  </li>
+  <li><strong>AI usage</strong> (<code>:156-180</code>).
+    <ul>
+      <li>Chat sessions in last 24 h &gt; 0 → "N AI sessions in the last 24h", quoting user questions in the last 7 days and total sessions; adoption is "strong" if total sessions &gt; 10, else "growing" — Activity, Low.</li>
+      <li>Else, if total sessions = 0 → "Start using Corely AI" — Product, <strong>High</strong>.</li>
+    </ul>
+  </li>
+  <li><strong>Negative feedback</strong> (<code>:183-198</code>). Corely messages with <code>feedback = "negative"</code> in the last 7 days ≥ 3 → "N poor AI responses this week" — Risk, <strong>High</strong>.</li>
+  <li><strong>Team</strong> (<code>:201-218</code>).
+    <ul>
+      <li>0 teams and more than 1 user → "Workspace lacks team organization" — People, Medium.</li>
+      <li>Else, exactly 1 user → "Invite your team to Corely" — People, <strong>High</strong>.</li>
+    </ul>
+  </li>
+  <li><strong>Staleness</strong> (<code>:221-244</code>), only if there are documents. Stale % = documents with <code>updatedAt</code> older than 30 days ÷ all documents.
+    <ul>
+      <li>≥ 40% → "X% of knowledge is 30+ days old" — Risk, <strong>High</strong> if ≥ 70%, else Medium.</li>
+      <li>&lt; 15% and at least 10 documents → "Knowledge base is highly fresh" — Knowledge, Low.</li>
+    </ul>
+  </li>
+  <li><strong>Coverage gap</strong> (<code>:247-257</code>). Of the "tier 1" types <code>github</code>, <code>slack</code>, <code>notion</code>, <code>google_drive</code>, if 3 or more are missing and at least one source exists → "N key integrations not connected" — Product, Medium.</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 330" role="img" aria-label="Flow of the insights rules">
+  <rect class="box" x="10" y="20" width="220" height="56" rx="6"/>
+  <text x="120" y="42" text-anchor="middle">Dashboard load or</text>
+  <text x="120" y="60" text-anchor="middle">GET /api/insights</text>
+  <path class="ln" d="M230,48 L268,48"/>
+  <rect class="acc" x="270" y="20" width="250" height="56" rx="6"/>
+  <text x="395" y="42" text-anchor="middle">generateDynamicInsights(ws)</text>
+  <text x="395" y="60" text-anchor="middle" class="sm">11 Prisma queries · no LLM</text>
+  <path class="ln" d="M520,48 L558,48"/>
+  <rect class="okb" x="560" y="20" width="330" height="56" rx="6"/>
+  <text x="725" y="42" text-anchor="middle">Array of cards (not stored)</text>
+  <text x="725" y="60" text-anchor="middle" class="sm">dashboard shows first 4</text>
+  <path class="ln nohead" d="M395,76 L395,100"/>
+  <path class="ln nohead" d="M80,100 L820,100"/>
+  <!-- rule boxes -->
+  <path class="ln" d="M80,100 L80,118"/>
+  <rect class="box" x="10" y="120" width="140" height="80" rx="6"/>
+  <text x="80" y="140" text-anchor="middle" class="b">Source health</text>
+  <text x="80" y="158" text-anchor="middle" class="sm">error → Critical</text>
+  <text x="80" y="172" text-anchor="middle" class="sm">&gt;1 day → Medium</text>
+  <text x="80" y="186" text-anchor="middle" class="sm">0 sources → High</text>
+  <path class="ln" d="M228,100 L228,118"/>
+  <rect class="box" x="158" y="120" width="140" height="80" rx="6"/>
+  <text x="228" y="140" text-anchor="middle" class="b">Growth</text>
+  <text x="228" y="158" text-anchor="middle" class="sm">new in 24 h &gt; 0</text>
+  <text x="228" y="172" text-anchor="middle" class="sm">none today → Medium</text>
+  <text x="228" y="186" text-anchor="middle" class="sm">7 d &gt; 5 → week card</text>
+  <path class="ln" d="M376,100 L376,118"/>
+  <rect class="box" x="306" y="120" width="140" height="80" rx="6"/>
+  <text x="376" y="140" text-anchor="middle" class="b">AI usage</text>
+  <text x="376" y="158" text-anchor="middle" class="sm">sessions 24 h &gt; 0</text>
+  <text x="376" y="172" text-anchor="middle" class="sm">"strong" if &gt; 10 total</text>
+  <text x="376" y="186" text-anchor="middle" class="sm">0 ever → High</text>
+  <path class="ln" d="M524,100 L524,118"/>
+  <rect class="box" x="454" y="120" width="140" height="80" rx="6"/>
+  <text x="524" y="140" text-anchor="middle" class="b">Feedback</text>
+  <text x="524" y="158" text-anchor="middle" class="sm">"negative" in 7 d</text>
+  <text x="524" y="172" text-anchor="middle" class="sm">≥ 3 → High</text>
+  <path class="ln" d="M672,100 L672,118"/>
+  <rect class="box" x="602" y="120" width="140" height="80" rx="6"/>
+  <text x="672" y="140" text-anchor="middle" class="b">Team</text>
+  <text x="672" y="158" text-anchor="middle" class="sm">0 teams, &gt;1 user</text>
+  <text x="672" y="172" text-anchor="middle" class="sm">1 user → High</text>
+  <path class="ln" d="M820,100 L820,118"/>
+  <rect class="box" x="750" y="120" width="140" height="80" rx="6"/>
+  <text x="820" y="140" text-anchor="middle" class="b">Staleness</text>
+  <text x="820" y="158" text-anchor="middle" class="sm">≥ 40% &gt; 30 d old</text>
+  <text x="820" y="172" text-anchor="middle" class="sm">≥ 70% → High</text>
+  <text x="820" y="186" text-anchor="middle" class="sm">&lt; 15% → "fresh"</text>
+  <rect class="box" x="306" y="220" width="288" height="56" rx="6"/>
+  <text x="450" y="242" text-anchor="middle" class="b">Coverage gap</text>
+  <text x="450" y="260" text-anchor="middle" class="sm">≥ 3 of github, slack, notion, google_drive missing</text>
+  <path class="ln" d="M450,200 L450,218"/>
+  <text x="10" y="310" class="sm">Every card is built by buildInsight() with fixed colours per category and priority (lib/insights-generator.ts:7-21).</text>
+</svg>
+</div>
+<figcaption>Each page load runs the same database counts through seven groups of fixed rules and returns cards, with no model involved.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<p>No model. Time windows: 24 hours (<code>subHours(now, 24)</code>), 1 day, 7 days and 30 days (<code>:66-69</code>, <code>:225</code>). Thresholds as listed above.</p>
+
+<h4>Data it reads and writes</h4>
+<ul>
+  <li><strong>Reads only:</strong> <code>sources</code> (<code>status</code>, <code>last_synced_at</code>, <code>name</code>, <code>type</code>, <code>error_message</code>); <code>documents</code> (count, <code>indexed_at</code>, <code>updated_at</code>); <code>chat_sessions</code> (count, <code>created_at</code>); <code>chat_messages</code> (<code>sender</code>, <code>feedback</code>, <code>created_at</code>); <code>teams</code> and <code>users</code> (counts). About 11 queries per call.</li>
+  <li><strong>Writes:</strong> nothing.</li>
+</ul>
+
+<h4>Config and env vars</h4>
+<p><code>DATABASE_URL</code> only.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>A database error throws to the caller. On the dashboard that breaks the server-rendered page.</li>
+  <li>No caching: the full set of queries runs on every dashboard load.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Priority colours never apply.</strong> The panel checks <code>"HIGH"</code>/<code>"MEDIUM"</code>; the generator emits <code>"High"</code>/<code>"Medium"</code>/<code>"Critical"</code>. <span class="ref"><code>app/dashboard/components/InsightsPanel.tsx:106</code>, <code>lib/insights-generator.ts:30</code></span></li>
+  <li><strong>Stuck sources look healthy.</strong> A source stuck in "syncing" shows as "actively ingesting data". <span class="ref"><code>:109-115</code></span></li>
+  <li><strong>Every source turns "stale" after 1 day</strong>, because nothing syncs automatically. <span class="ref"><code>:83-85</code></span></li>
+  <li><strong>Staleness uses index time</strong>, since <code>documents.updated_at</code> is usually the time Corely last wrote the row. <span class="ref"><code>:225</code></span></li>
+  <li><strong>Shared id counter.</strong> <code>insightIdCounter</code> lives at module level and is reset on every call, so two requests at once can produce mixed ids. <span class="ref"><code>:23</code>, <code>:63</code></span></li>
+  <li><code>DashboardInsight</code> model unused; the Insights page around the cards shows fixed trends and invented numbers (see the Gap Analysis).</li>
+  <li>Related: dashboard health checks <code>'ERROR'</code> while connectors write <code>'error'</code>, so health always says "Operational". <span class="ref"><code>app/dashboard/page.tsx:36</code></span></li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 1: fix the <code>High</code>/<code>HIGH</code> mismatch and the <code>'error'</code> health check.</li>
+  <li>Phase 5: compute trends and timeline from real data or remove them.</li>
+  <li>Later: store insights in <code>DashboardInsight</code> from a scheduled job (once BullMQ is live), and optionally add an LLM summary on top of the rules.</li>
+</ul>
+</section>
+
+<!-- ============================== P6 ============================== -->
+<section class="pipe" id="p6">
+<h3>6. Semantic search endpoint <span class="pill real">Real</span></h3>
+<p class="meta">File: <code>app/api/search/route.ts</code>; caller <code>app/dashboard/components/Topbar.tsx:150</code></p>
+
+<h4>Purpose</h4>
+<p>Quick "search by meaning" in the top bar. It returns matching chunks, not a written answer, and calls no chat model.</p>
+
+<h4>Trigger</h4>
+<p>Typing at least 2 characters in the top-bar search. The Topbar debounces the input and posts <code>{query, limit: 6}</code> (<code>Topbar.tsx:140-155</code>).</p>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Input: <code>{query: string (min 1), limit: number 1–20, default 5}</code> (<code>:9-12</code>).</li>
+  <li>Output: <code>successResponse({results})</code>, each with <code>id</code>, <code>content</code>, <code>document_id</code>, <code>metadata</code>, <code>similarity</code> (<code>:69-84</code>).</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li><code>auth()</code> and zod check (<code>:24-30</code>).</li>
+  <li>Build the same allowed source list as Ask, with the same sentinel UUID (<code>:36-64</code>).</li>
+  <li>Embed the query with <code>generateEmbedding</code> (<code>:66</code>).</li>
+  <li>Raw pgvector query on <code>document_chunks</code> only (no join to <code>documents</code>), filtered by workspace and allowed sources, <code>1 - distance &gt; 0.4</code>, ordered by distance, <code>LIMIT ${limit}</code> (<code>:69-82</code>).</li>
+  <li>Return the rows.</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 120" role="img" aria-label="Flow of the semantic search endpoint">
+  <rect class="box" x="10" y="30" width="150" height="56" rx="6"/>
+  <text x="85" y="54" text-anchor="middle">Top-bar search</text>
+  <text x="85" y="72" text-anchor="middle" class="sm">≥ 2 chars, limit 6</text>
+  <path class="ln" d="M160,58 L188,58"/>
+  <rect class="acc" x="190" y="30" width="150" height="56" rx="6"/>
+  <text x="265" y="54" text-anchor="middle">POST /api/search</text>
+  <text x="265" y="72" text-anchor="middle" class="sm">auth · zod</text>
+  <path class="ln" d="M340,58 L368,58"/>
+  <rect class="box" x="370" y="30" width="150" height="56" rx="6"/>
+  <text x="445" y="54" text-anchor="middle">Allowed sources</text>
+  <text x="445" y="72" text-anchor="middle" class="sm">same rules as Ask</text>
+  <path class="ln" d="M520,58 L548,58"/>
+  <rect class="box" x="550" y="30" width="150" height="56" rx="6"/>
+  <text x="625" y="54" text-anchor="middle">Embed query</text>
+  <text x="625" y="72" text-anchor="middle" class="sm">text-embedding-3-small</text>
+  <path class="ln" d="M700,58 L728,58"/>
+  <rect class="okb" x="730" y="30" width="160" height="56" rx="6"/>
+  <text x="810" y="54" text-anchor="middle">pgvector &gt; 0.4</text>
+  <text x="810" y="72" text-anchor="middle" class="sm">LIMIT limit → JSON</text>
+</svg>
+</div>
+<figcaption>Search embeds the query and returns the closest chunks above a 0.4 similarity bar, with no chat model.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<p><code>text-embedding-3-small</code> (fallback <code>ada-002</code>). Similarity bar <strong>0.4</strong> (lower than Ask's 0.55). <code>limit</code> 1–20, default 5; the Topbar sends 6.</p>
+
+<h4>Data it reads and writes</h4>
+<p>Reads <code>sources</code> (for the allowed list) and <code>document_chunks</code> (<code>id</code>, <code>content</code>, <code>document_id</code>, <code>metadata</code>, <code>embedding</code>, <code>workspace_id</code>, <code>source_id</code>). Writes nothing.</p>
+
+<h4>Config and env vars</h4>
+<p><code>OPENAI_API_KEY</code>, <code>DATABASE_URL</code>, <code>JWT_SECRET</code>.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li><code>"Unauthorized"</code> → 401; anything else → 500 "Internal Server Error" (<code>:85-89</code>).</li>
+  <li>Sentinel UUID stops an empty allowed list from matching everything.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Permission filter restricts nothing</strong>, same as Ask. <span class="ref"><code>:54</code>, <code>lib/rbac.ts:26-55</code></span></li>
+  <li><strong>No rate limit</strong>, and each keystroke burst costs one embedding call.</li>
+  <li><strong>Different bar from Ask</strong> (0.4 vs 0.55), so search can show results that Ask then answers with "no knowledge". <span class="ref"><code>:79</code> vs <code>ask/route.ts:176</code></span></li>
+  <li>Slack and Linear chunks never appear (no embeddings).</li>
+  <li>Topbar links that send <code>?q=</code> to Ask are never read. <span class="ref"><code>Topbar.tsx:214</code>, <code>:595</code>, <code>:694</code></span></li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 7: add a rate limit on search.</li>
+  <li>Phase 4: hybrid keyword + vector search and one result per document; share one retrieval function between Ask and search.</li>
+  <li>Phase 6: expose it as <code>/api/v1/search</code> with API-key auth.</li>
+</ul>
+</section>
+
+<!-- ============================== P7 ============================== -->
+<section class="pipe" id="p7">
+<h3>7. Simulated workflows "agent" <span class="pill fake">Simulated</span></h3>
+<p class="meta">File: <code>app/api/workflows/[id]/run/route.ts</code></p>
+
+<h4>Purpose</h4>
+<p>The Workflows page lets users define workflows and press "Run". This route is the closest thing in the code to an "agent" — and it <strong>does not execute anything</strong>. The code comment says it plainly: <code>// Simulate execution updates</code> (<code>:21</code>). The page itself shows a banner: "the full execution engine (trigger automation, action dispatch) is coming soon. Executions are currently logged for tracking purposes only." (<code>WorkflowsMain.tsx:329-331</code>).</p>
+
+<h4>Trigger</h4>
+<p>The user clicks Run on a workflow, which calls <code>POST /api/workflows/[id]/run</code>.</p>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Input: the workflow <code>id</code> in the URL. No body.</li>
+  <li>Output: <code>successResponse({activity})</code> — the new <code>WorkflowActivity</code> row, always <code>status: "success"</code>.</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li><code>auth()</code>; find the workflow by <code>id</code> and <code>workspaceId</code>, else 404 (<code>:7-19</code>).</li>
+  <li>Format "now" as a date string and a time string in the server's locale (<code>:22-24</code>).</li>
+  <li>Update the workflow: <code>executions += 1</code>, <code>lastRun</code>, <code>lastRunTime</code> (<code>:26-35</code>).</li>
+  <li>Insert a <code>WorkflowActivity</code> with <code>status: "success"</code> (<code>:38-46</code>).</li>
+  <li>Return it. No trigger, condition or action runs.</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 150" role="img" aria-label="Flow of the simulated workflow run">
+  <rect class="box" x="10" y="30" width="150" height="56" rx="6"/>
+  <text x="85" y="62" text-anchor="middle">Run button</text>
+  <path class="ln" d="M160,58 L188,58"/>
+  <rect class="acc" x="190" y="30" width="170" height="56" rx="6"/>
+  <text x="275" y="54" text-anchor="middle">POST /workflows/[id]/run</text>
+  <text x="275" y="72" text-anchor="middle" class="sm">auth · find in workspace</text>
+  <path class="ln" d="M360,58 L388,58"/>
+  <rect class="box" x="390" y="30" width="190" height="56" rx="6"/>
+  <text x="485" y="54" text-anchor="middle">executions += 1</text>
+  <text x="485" y="72" text-anchor="middle" class="sm">lastRun / lastRunTime strings</text>
+  <path class="ln" d="M580,58 L608,58"/>
+  <rect class="okb" x="610" y="30" width="190" height="56" rx="6"/>
+  <text x="705" y="54" text-anchor="middle">WorkflowActivity</text>
+  <text x="705" y="72" text-anchor="middle" class="sm">status "success", always</text>
+  <path class="ln bad dash" d="M485,86 L485,108"/>
+  <rect class="badb" x="330" y="110" width="310" height="32" rx="6"/>
+  <text x="485" y="131" text-anchor="middle" class="sm red b">no trigger · no condition · no action runs</text>
+</svg>
+</div>
+<figcaption>"Run" only bumps a counter and writes a success log row; no workflow step is ever executed.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<p>None.</p>
+
+<h4>Data it reads and writes</h4>
+<p>Reads <code>workflows</code>. Writes <code>workflows</code> (<code>executions</code>, <code>last_run</code>, <code>last_run_time</code>) and <code>workflow_activities</code> (<code>workspace_id</code>, <code>workflow_id</code>, <code>workflow_title</code>, <code>status</code>).</p>
+
+<h4>Config and env vars</h4>
+<p><code>DATABASE_URL</code>, <code>JWT_SECRET</code>.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>Workflow must be in the caller's workspace (404 otherwise). <code>"Unauthorized"</code> → 401; anything else → 500.</li>
+  <li>It can never report a failed run, because nothing runs.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>Simulated, always "success".</strong> <span class="ref"><code>:21</code>, <code>:43</code></span></li>
+  <li><strong>No permission check</strong> and <strong>no status check</strong>: a "Draft" or "Inactive" workflow can be "run". <span class="ref"><code>:7-19</code></span></li>
+  <li><code>lastRun</code>/<code>lastRunTime</code> are stored as display strings in the server's locale, not dates. <span class="ref"><code>:23-24</code></span></li>
+  <li>The page around it shows fake KPIs (1842 executions, 128 hours saved) and fake owners. <span class="ref"><code>WorkflowsMain.tsx:120-129</code></span></li>
+  <li>Workflow PATCH copies the whole request body into the row (<code>{...data}</code>).</li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Now: hide "Run" or label it clearly as a test log.</li>
+  <li>Phase 6: build a real workflow engine on BullMQ (see <a href="#future">Proposed future agents</a>) with triggers, conditions, actions, real <code>running</code>/<code>failed</code> states, and permissions <code>workflows:*</code>.</li>
+</ul>
+</section>
+
+<!-- ============================== P8 ============================== -->
+<section class="pipe" id="p8">
+<h3>8. Webhooks <span class="pill fake">Stubs</span></h3>
+<p class="meta">Files: <code>app/api/webhooks/drive/route.ts</code>, <code>app/api/webhooks/notion/route.ts</code></p>
+
+<h4>Purpose</h4>
+<p>Meant to receive "something changed" pings from Google Drive and Notion so Corely can re-sync only what changed. Today both routes only log and return 200. Nothing registers them with the providers, so in practice they are never called.</p>
+
+<h4>Trigger</h4>
+<p>An HTTP <code>POST</code> from anyone. Corely never calls Drive's <code>changes.watch</code> or sets up a Notion webhook, so no provider sends to these URLs today.</p>
+
+<h4>Inputs and outputs</h4>
+<ul>
+  <li>Drive: reads headers <code>x-goog-resource-state</code> and <code>x-goog-channel-id</code>. Returns <code>400 Missing channel ID</code>, <code>{status: "acknowledged"}</code> for the <code>sync</code> state, or <code>{status: "processed"}</code>.</li>
+  <li>Notion: reads nothing; returns <code>{status: "processed"}</code>.</li>
+</ul>
+
+<h4>Step-by-step flow</h4>
+<ol>
+  <li>Drive: no channel id → 400 (<code>drive/route.ts:10-12</code>); <code>resourceState === "sync"</code> → "acknowledged" (<code>:14-17</code>); else log "Received update for channel …" and return "processed" (<code>:20-25</code>). A comment shows the missing step: <code>queue.add('sync-drive-incremental', { channelId })</code> (<code>:22-23</code>).</li>
+  <li>Notion: log "[Notion Webhook] Received update" and return "processed" (<code>notion/route.ts:11-13</code>). The comment admits there is no signature check (<code>:7-9</code>).</li>
+</ol>
+
+<h4>Diagram</h4>
+<figure class="small">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 160" role="img" aria-label="Flow of the webhook stubs">
+  <rect class="res" x="10" y="20" width="170" height="50" rx="6"/>
+  <text x="95" y="50" text-anchor="middle">Google Drive</text>
+  <rect class="res" x="10" y="90" width="170" height="50" rx="6"/>
+  <text x="95" y="120" text-anchor="middle">Notion</text>
+  <path class="ln dash" d="M180,45 L258,45"/>
+  <path class="ln dash" d="M180,115 L258,115"/>
+  <text x="186" y="80" class="sm red">never registered</text>
+  <rect class="acc" x="260" y="20" width="200" height="50" rx="6"/>
+  <text x="360" y="42" text-anchor="middle">/api/webhooks/drive</text>
+  <text x="360" y="60" text-anchor="middle" class="sm">check channel id header</text>
+  <rect class="acc" x="260" y="90" width="200" height="50" rx="6"/>
+  <text x="360" y="112" text-anchor="middle">/api/webhooks/notion</text>
+  <text x="360" y="130" text-anchor="middle" class="sm">no checks at all</text>
+  <path class="ln" d="M460,45 L538,70"/>
+  <path class="ln" d="M460,115 L538,90"/>
+  <rect class="okb" x="540" y="55" width="150" height="50" rx="6"/>
+  <text x="615" y="78" text-anchor="middle">console.log</text>
+  <text x="615" y="94" text-anchor="middle" class="sm">→ 200 "processed"</text>
+  <path class="ln bad dash" d="M690,80 L758,80"/>
+  <rect class="badb" x="760" y="55" width="130" height="50" rx="6"/>
+  <text x="825" y="78" text-anchor="middle" class="sm">BullMQ / sync</text>
+  <text x="825" y="94" text-anchor="middle" class="sm red">not called</text>
+</svg>
+</div>
+<figcaption>Both webhook routes log the call and return 200; neither checks a signature or starts a sync.</figcaption>
+</figure>
+
+<h4>Models and parameters</h4>
+<p>None.</p>
+
+<h4>Data it reads and writes</h4>
+<p>Nothing. No database access.</p>
+
+<h4>Config and env vars</h4>
+<p>None. There is no webhook secret or channel token setting.</p>
+
+<h4>Failure modes and guards</h4>
+<ul>
+  <li>Unexpected errors → 500. Drive returns 400 without a channel id.</li>
+  <li>No authentication: anyone can call both routes. They do nothing harmful today, but they would become an open door once they start syncs.</li>
+</ul>
+
+<h4>Known issues</h4>
+<ul class="issues">
+  <li><strong>No auth or signature check</strong> on either route. <span class="ref"><code>drive/route.ts:4-30</code>, <code>notion/route.ts:5-18</code></span></li>
+  <li><strong>No watch channel registration</strong> anywhere, so Drive never calls in.</li>
+  <li><strong>No enqueue</strong>; the job name in the comment (<code>sync-drive-incremental</code>) does not exist in the worker. <span class="ref"><code>drive/route.ts:22-23</code></span></li>
+  <li>No webhooks at all for Slack, GitHub, Linear or Gmail.</li>
+</ul>
+
+<h4>Improvement ideas</h4>
+<ul>
+  <li>Phase 2: register Drive <code>changes.watch</code> channels with a secret token and renew them before they expire; check Notion's signature; have both enqueue a sync job.</li>
+  <li>Add Slack Events, GitHub, Linear webhooks and Gmail push once the queue is live.</li>
+</ul>
+</section>
+
+<!-- ============================== MODELS ============================== -->
+<h2 id="models">Models and costs</h2>
+<p>Corely uses three OpenAI models, all through one client in <code>lib/openai.ts</code>. No other AI provider is called. The marketing site mentions "Claude 3.5" and "custom LLM fine-tuning"; neither exists in the code. The Settings "default LLM" choice is saved but ignored.</p>
+
+<div class="tbl wide"><table>
+<thead><tr><th>Model</th><th>Where it is used</th><th>Parameters</th><th>What drives cost</th></tr></thead>
+<tbody>
+<tr><td><code>text-embedding-3-small</code><br><span class="muted">lib/openai.ts:20</span></td>
+<td>All six connectors, manual upload, <code>POST /api/documents</code>, the Ask question, the search query</td>
+<td>1536 numbers per text; input cut to 8,000 characters (<code>lib/openai.ts:17</code>); one request per text, no batching</td>
+<td>One call per chunk. A document of N words makes about N ÷ 350 chunks. Unchanged documents are skipped by <code>contentHash</code> (not for uploads). One call per Ask and per search request.</td></tr>
+<tr><td><code>text-embedding-ada-002</code><br><span class="muted">lib/openai.ts:41</span></td>
+<td>Automatic fallback when <code>3-small</code> fails with 403/404, "model_not_found", "does not have access to model", "not found" or "403"</td>
+<td>Same input; also 1536 numbers but a different vector space</td>
+<td>Same call count. The real cost is quality: vectors from the two models do not compare well.</td></tr>
+<tr><td><code>gpt-4o</code><br><span class="muted">app/api/ask/route.ts:276</span></td>
+<td>Ask Corely answers only</td>
+<td><code>temperature: 0.2</code>, <code>max_tokens: 1500</code>, <code>stream: true</code>; system prompt + up to 5 history messages + up to 8 chunks of about 400 words each</td>
+<td>One call per Ask that finds at least one chunk above 0.55. No-knowledge answers skip it. Capped by the 20 requests / 60 s rate limit per user. Output capped at 1,500 tokens.</td></tr>
+</tbody></table></div>
+<p class="muted">Prices are not listed here because they change; check OpenAI's pricing page. Insights, workflows, the worker and webhooks call no model.</p>
+
+<!-- ============================== FUTURE ============================== -->
+<h2 id="future">Proposed future agents <span class="pill prop">Proposed</span></h2>
+<div class="callout warn">
+  <p><strong>Everything in this section is a proposal from the implementation plan. None of it is built.</strong></p>
+</div>
+<p>The plan turns today's manual pipelines into automatic ones in three steps. Each builds on the BullMQ queue that already exists.</p>
+<ol>
+  <li><strong>Scheduled sync jobs (Phase 2).</strong> The sync route adds a job to <code>sourceQueue</code> instead of calling the connector directly. The worker runs as its own docker-compose service. Each source's saved <code>syncSchedule</code> (hourly, daily, weekly) becomes a BullMQ repeatable job. Drive <code>changes.watch</code> and signed Notion webhooks also add jobs. Connectors get a shared retry wrapper, purge, provider dates and incremental sync. A sync-history row is written per run, and a notification is sent on failure.</li>
+  <li><strong>Workflow engine on BullMQ (Phase 6).</strong> Real triggers (a schedule, a new document, a webhook), conditions, and actions, run as jobs on their own queue. Each run records real <code>running</code>, <code>success</code> or <code>failed</code> states in <code>WorkflowActivity</code>, replacing the simulated route. New permissions <code>workflows:*</code> control who can run what. This is the first piece that could honestly be called an "action engine".</li>
+  <li><strong>Memory auto-extraction (Phase 6).</strong> After a sync, a job reads new or changed documents and uses an LLM to pull out decisions and key facts into <code>OrgMemory</code> rows. Real <code>MemorySnapshot</code> rows with restore replace today's title-only snapshots. Phase 4 then feeds pinned <code>OrgMemory</code> into Ask as extra context, alongside follow-up rewriting and hybrid search.</li>
+</ol>
+
+<figure>
+<div class="scroll">
+<svg class="dg" viewBox="0 0 900 470" role="img" aria-label="Proposed future agent architecture, not built">
+  <rect class="pframe" x="6" y="6" width="888" height="458" rx="12"/>
+  <text x="20" y="30" class="b acc">PROPOSED — NOT BUILT</text>
+  <!-- triggers -->
+  <rect class="box" x="20" y="50" width="200" height="50" rx="6"/>
+  <text x="120" y="72" text-anchor="middle">Schedules</text>
+  <text x="120" y="88" text-anchor="middle" class="sm">repeatable jobs from syncSchedule</text>
+  <rect class="box" x="20" y="115" width="200" height="50" rx="6"/>
+  <text x="120" y="137" text-anchor="middle">Webhooks</text>
+  <text x="120" y="153" text-anchor="middle" class="sm">Drive changes.watch · Notion signed</text>
+  <rect class="box" x="20" y="180" width="200" height="50" rx="6"/>
+  <text x="120" y="202" text-anchor="middle">Sync button</text>
+  <text x="120" y="218" text-anchor="middle" class="sm">enqueue instead of direct call</text>
+  <!-- queue -->
+  <rect class="acc" x="270" y="100" width="170" height="80" rx="8"/>
+  <text x="355" y="128" text-anchor="middle" class="b">Redis + BullMQ</text>
+  <text x="355" y="146" text-anchor="middle" class="sm">corely-sources queue</text>
+  <text x="355" y="162" text-anchor="middle" class="sm">+ workflow queue</text>
+  <path class="ln acc" d="M220,75 L268,120"/>
+  <path class="ln acc" d="M220,140 L268,140"/>
+  <path class="ln acc" d="M220,205 L268,160"/>
+  <!-- worker -->
+  <rect class="acc" x="490" y="50" width="190" height="60" rx="8"/>
+  <text x="585" y="75" text-anchor="middle" class="b">Sync worker service</text>
+  <text x="585" y="93" text-anchor="middle" class="sm">docker-compose · retry · purge</text>
+  <path class="ln acc" d="M440,125 L488,85"/>
+  <rect class="box" x="720" y="50" width="160" height="60" rx="8"/>
+  <text x="800" y="75" text-anchor="middle">Connectors</text>
+  <text x="800" y="93" text-anchor="middle" class="sm">incremental sync</text>
+  <path class="ln acc" d="M680,80 L718,80"/>
+  <!-- workflow engine -->
+  <rect class="acc" x="490" y="150" width="190" height="70" rx="8"/>
+  <text x="585" y="175" text-anchor="middle" class="b">Workflow engine</text>
+  <text x="585" y="193" text-anchor="middle" class="sm">triggers → conditions → actions</text>
+  <text x="585" y="207" text-anchor="middle" class="sm">real running / failed states</text>
+  <path class="ln acc" d="M440,155 L488,180"/>
+  <rect class="box" x="720" y="150" width="160" height="70" rx="8"/>
+  <text x="800" y="175" text-anchor="middle">Actions in tools</text>
+  <text x="800" y="193" text-anchor="middle" class="sm">to be designed</text>
+  <path class="ln acc" d="M680,185 L718,185"/>
+  <!-- memory extraction -->
+  <rect class="acc" x="490" y="260" width="190" height="70" rx="8"/>
+  <text x="585" y="285" text-anchor="middle" class="b">Memory extraction job</text>
+  <text x="585" y="303" text-anchor="middle" class="sm">LLM reads new documents</text>
+  <text x="585" y="317" text-anchor="middle" class="sm">pulls out decisions + facts</text>
+  <path class="ln acc dash" d="M800,110 L800,240 L640,240 L620,258"/>
+  <text x="680" y="234" class="sm">after each sync</text>
+  <!-- database -->
+  <rect class="res" x="270" y="380" width="610" height="60" rx="8"/>
+  <text x="575" y="405" text-anchor="middle" class="b">Postgres + pgvector</text>
+  <text x="575" y="423" text-anchor="middle" class="sm">document_chunks · OrgMemory · MemorySnapshot (real) · WorkflowActivity · sync history</text>
+  <path class="ln acc" d="M585,330 L585,378"/>
+  <path class="ln acc" d="M840,110 L840,378"/>
+  <!-- ask -->
+  <rect class="box" x="20" y="300" width="220" height="70" rx="8"/>
+  <text x="130" y="324" text-anchor="middle" class="b">Ask Corely (better)</text>
+  <text x="130" y="342" text-anchor="middle" class="sm">follow-up rewrite · hybrid search</text>
+  <text x="130" y="356" text-anchor="middle" class="sm">pinned OrgMemory as context</text>
+  <path class="ln acc" d="M268,410 L130,410 L130,372"/>
+  <text x="140" y="430" class="sm">reads chunks + memory</text>
+</svg>
+</div>
+<figcaption>Proposed only: schedules, webhooks and the Sync button feed a BullMQ queue that drives a sync worker, a workflow engine and a memory-extraction job, all writing to the same Postgres that Ask reads.</figcaption>
+</figure>
+
+<p>Until these exist, the marketing copy about "Autonomous Agents" and an "Action Engine" should be removed or marked as coming later (Phase 7, "marketing cleanup — remove untrue claims").</p>
+
+</main>
+</div>
+
+<footer>Generated 2026-10-04 from a read-only audit of the Corely repository (branch master).</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{var s=localStorage.getItem('corely-theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
+  function isDark(){var t=root.getAttribute('data-theme'); if(t) return t==='dark'; return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;}
+  function label(){btn.textContent=isDark()?'Light mode':'Dark mode';}
+  label();
+  btn.addEventListener('click',function(){var n=isDark()?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('corely-theme',n);}catch(e){} label();});
+})();
+</script>
+</body>
+</html>

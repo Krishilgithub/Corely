@@ -1,0 +1,550 @@
+<template id="03-connect-template">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-500-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 600;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-600-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      font-weight: 700;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/space-grotesk-latin-700-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Inter";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+    }
+
+    #root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Inter", sans-serif;
+    }
+
+    /* full-bleed ground */
+    #c03-bg {
+      position: absolute;
+      inset: 0;
+      background: #fdfae7;
+    }
+
+    #c03-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ---------- shared pipeline rail (frames 03-07 geometry) ---------- */
+    #c03-rail {
+      position: absolute;
+      inset: 0;
+    }
+    #c03-rail-line {
+      position: absolute;
+      left: 360px;
+      top: 119px;
+      width: 1200px;
+      height: 2px;
+      background: rgba(30, 43, 250, 0.2);
+      transform-origin: 0 50%;
+    }
+    .c03-step {
+      position: absolute;
+      top: 92px;
+      width: 56px;
+      height: 56px;
+      margin-left: -28px;
+    }
+    .c03-step-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #fdfae7;
+      border: 1.5px solid rgba(30, 43, 250, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      color: #1e2bfa;
+    }
+    #c03-step1-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #1e2bfa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fdfae7;
+    }
+    .c03-step-label {
+      position: absolute;
+      top: 164px;
+      width: 260px;
+      margin-left: -130px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9a9a9a;
+    }
+    #c03-label1 {
+      color: #1e2bfa;
+    }
+
+    #c03-eyebrow {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 236px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 26px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1e2bfa;
+    }
+    #c03-accent {
+      position: absolute;
+      left: 930px;
+      top: 222px;
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1e2bfa;
+      transform-origin: 50% 50%;
+    }
+
+    /* ---------- flow diagram ---------- */
+    #c03-flow {
+      position: absolute;
+      inset: 0;
+      transform-origin: 1060px 570px;
+    }
+    #c03-lines {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: visible;
+    }
+    #c03-lines path {
+      fill: none;
+      stroke: #1e2bfa;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    #c03-lines .c03-feed {
+      stroke: rgba(30, 43, 250, 0.35);
+      stroke-width: 2;
+    }
+
+    /* source chips */
+    .c03-chip {
+      position: absolute;
+      left: 120px;
+      width: 260px;
+      height: 60px;
+      border-radius: 12px;
+      background: rgba(30, 43, 250, 0.04);
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-left: 14px;
+      box-sizing: border-box;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 27px;
+      color: #111111;
+    }
+    .c03-chip-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(30, 43, 250, 0.15);
+      color: #1e2bfa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 17px;
+      flex: 0 0 auto;
+    }
+
+    /* document tiles */
+    .c03-doc {
+      position: absolute;
+      left: 454px;
+      top: 538px;
+      width: 52px;
+      height: 64px;
+      border-radius: 10px;
+      background-color: #fdfae7;
+      background-image: linear-gradient(rgba(30, 43, 250, 0.08), rgba(30, 43, 250, 0.08));
+      border: 1.5px solid rgba(30, 43, 250, 0.35);
+      box-sizing: border-box;
+      padding: 14px 10px 0 10px;
+    }
+    .c03-doc span {
+      display: block;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(30, 43, 250, 0.45);
+      margin-bottom: 7px;
+    }
+    .c03-doc span:nth-child(2) {
+      width: 70%;
+    }
+    .c03-doc span:nth-child(3) {
+      width: 85%;
+    }
+
+    /* OAuth pill on the line */
+    #c03-oauth {
+      position: absolute;
+      left: 515px;
+      top: 552px;
+      width: 110px;
+      height: 36px;
+      border-radius: 100px;
+      background-color: #fdfae7;
+      background-image: linear-gradient(rgba(30, 43, 250, 0.08), rgba(30, 43, 250, 0.08));
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 19px;
+      letter-spacing: 0.04em;
+      color: #1e2bfa;
+    }
+
+    /* lock */
+    #c03-lock {
+      position: absolute;
+      left: 690px;
+      top: 530px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #fdfae7;
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      box-sizing: border-box;
+    }
+    #c03-lock svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 77px;
+      height: 77px;
+      overflow: visible;
+    }
+    #c03-lock svg .c03-lock-stroke {
+      fill: none;
+      stroke: #1e2bfa;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    #c03-lock-body {
+      fill: #1e2bfa;
+      fill-opacity: 0;
+    }
+    #c03-keyhole {
+      fill: #fdfae7;
+    }
+    #c03-lock-label {
+      position: absolute;
+      left: 580px;
+      top: 628px;
+      width: 300px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 26px;
+      color: #6b6b6b;
+    }
+
+    /* SHA-256 filter card (focal) */
+    #c03-card {
+      position: absolute;
+      left: 880px;
+      top: 455px;
+      width: 360px;
+      height: 230px;
+      border-radius: 14px;
+      background-color: #fdfae7;
+      background-image: linear-gradient(rgba(30, 43, 250, 0.04), rgba(30, 43, 250, 0.04));
+      border: 1.5px solid rgba(30, 43, 250, 0.2);
+      box-sizing: border-box;
+      padding: 26px 30px 0 30px;
+    }
+    #c03-card-inner {
+      position: relative;
+    }
+    #c03-card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #c03-card-head svg {
+      width: 30px;
+      height: 30px;
+    }
+    #c03-card-head svg path {
+      fill: none;
+      stroke: #1e2bfa;
+      stroke-width: 2.5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+    #c03-card-eyebrow {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 19px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1e2bfa;
+    }
+    #c03-card-num {
+      margin-top: 20px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 60px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: #1e2bfa;
+    }
+    #c03-card-title {
+      margin-top: 10px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: #111111;
+    }
+
+    /* outputs */
+    #c03-pass-label {
+      position: absolute;
+      left: 1380px;
+      top: 478px;
+      width: 300px;
+      text-align: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 27px;
+      color: #111111;
+      letter-spacing: -0.01em;
+    }
+    #c03-unchanged {
+      position: absolute;
+      left: 1112px;
+      top: 742px;
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 100px;
+      background: rgba(17, 17, 17, 0.06);
+      border: 1.5px solid rgba(17, 17, 17, 0.15);
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 500;
+      font-size: 22px;
+      color: #6b6b6b;
+    }
+  </style>
+
+  <div data-hf-id="hf-60pj" id="root" data-composition-id="03-connect" data-start="0" data-duration="7.113" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-jaq8" id="c03-bg" class="clip" data-start="0" data-duration="7.113" data-track-index="0"></div>
+
+    <div data-hf-id="hf-5h9m" id="c03-stage" class="clip" data-start="0" data-duration="7.113" data-track-index="1">
+      <!-- shared pipeline rail -->
+      <div data-hf-id="hf-2i5s" id="c03-rail">
+        <div data-hf-id="hf-qhmn" id="c03-rail-line"></div>
+
+        <div data-hf-id="hf-5a25" class="c03-step" id="c03-step1" style="left: 360px">
+          <div data-hf-id="hf-r7jf" class="c03-step-ring" data-layout-allow-overlap="">01</div>
+          <div data-hf-id="hf-psao" id="c03-step1-fill" data-layout-allow-overlap="">01</div>
+        </div>
+        <div data-hf-id="hf-kdqr" class="c03-step" id="c03-step2" style="left: 660px"><div data-hf-id="hf-z4m8" class="c03-step-ring">02</div></div>
+        <div data-hf-id="hf-bf85" class="c03-step" id="c03-step3" style="left: 960px"><div data-hf-id="hf-yqb7" class="c03-step-ring">03</div></div>
+        <div data-hf-id="hf-ele4" class="c03-step" id="c03-step4" style="left: 1260px"><div data-hf-id="hf-wqs2" class="c03-step-ring">04</div></div>
+        <div data-hf-id="hf-saso" class="c03-step" id="c03-step5" style="left: 1560px"><div data-hf-id="hf-wch1" class="c03-step-ring">05</div></div>
+
+        <div data-hf-id="hf-fvdq" class="c03-step-label" id="c03-label1" style="left: 360px">Connect</div>
+        <div data-hf-id="hf-9kuo" class="c03-step-label" id="c03-label2" style="left: 660px">Chunk &amp; Embed</div>
+        <div data-hf-id="hf-r3kk" class="c03-step-label" id="c03-label3" style="left: 960px">Retrieve</div>
+        <div data-hf-id="hf-sbe2" class="c03-step-label" id="c03-label4" style="left: 1260px">Freshness</div>
+        <div data-hf-id="hf-rknd" class="c03-step-label" id="c03-label5" style="left: 1560px">Answer</div>
+      </div>
+
+      <div data-hf-id="hf-r5t6" id="c03-accent"></div>
+      <div data-hf-id="hf-k9eg" id="c03-eyebrow">Step 1 · Connect &amp; Sync</div>
+
+      <!-- flow diagram -->
+      <div data-hf-id="hf-d7w8" id="c03-flow">
+        <svg data-hf-id="hf-coua" id="c03-lines" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+          <path data-hf-id="hf-9e3x" class="c03-feed" id="c03-feed0" d="M380 375 C 440 375, 430 570, 480 570" />
+          <path data-hf-id="hf-s778" class="c03-feed" id="c03-feed1" d="M380 453 C 440 453, 430 570, 480 570" />
+          <path data-hf-id="hf-e7iz" class="c03-feed" id="c03-feed2" d="M380 531 C 440 531, 430 570, 480 570" />
+          <path data-hf-id="hf-aldi" class="c03-feed" id="c03-feed3" d="M380 609 C 440 609, 430 570, 480 570" />
+          <path data-hf-id="hf-t0jt" class="c03-feed" id="c03-feed4" d="M380 687 C 440 687, 430 570, 480 570" />
+          <path data-hf-id="hf-57lo" class="c03-feed" id="c03-feed5" d="M380 765 C 440 765, 430 570, 480 570" />
+          <path data-hf-id="hf-pfqr" id="c03-main" d="M480 570 L880 570" />
+          <path data-hf-id="hf-0gve" id="c03-out" d="M1240 570 L1394 570" />
+        </svg>
+
+        <div data-hf-id="hf-r97k" class="c03-chip" id="c03-chip0" style="top: 345px"><div data-hf-id="hf-0qan" class="c03-chip-mark">N</div>Notion</div>
+        <div data-hf-id="hf-xa0p" class="c03-chip" id="c03-chip1" style="top: 423px"><div data-hf-id="hf-xy5g" class="c03-chip-mark">G</div>Gmail</div>
+        <div data-hf-id="hf-k8fi" class="c03-chip" id="c03-chip2" style="top: 501px"><div data-hf-id="hf-wr8d" class="c03-chip-mark">D</div>Google Drive</div>
+        <div data-hf-id="hf-wgjs" class="c03-chip" id="c03-chip3" style="top: 579px"><div data-hf-id="hf-5d5o" class="c03-chip-mark">G</div>GitHub</div>
+        <div data-hf-id="hf-eu5j" class="c03-chip" id="c03-chip4" style="top: 657px"><div data-hf-id="hf-t6h4" class="c03-chip-mark">S</div>Slack</div>
+        <div data-hf-id="hf-fege" class="c03-chip" id="c03-chip5" style="top: 735px"><div data-hf-id="hf-zxol" class="c03-chip-mark">L</div>Linear</div>
+
+        <!-- document tiles (ride behind the pill, lock and card) -->
+        <div data-hf-id="hf-3jno" class="c03-doc" id="c03-doc0"><span data-hf-id="hf-uckh"></span><span data-hf-id="hf-l73p"></span><span data-hf-id="hf-me0s"></span></div>
+        <div data-hf-id="hf-4bbh" class="c03-doc" id="c03-doc1"><span data-hf-id="hf-lzpr"></span><span data-hf-id="hf-n6mu"></span><span data-hf-id="hf-msbt"></span></div>
+        <div data-hf-id="hf-89fi" class="c03-doc" id="c03-doc2"><span data-hf-id="hf-nz8w"></span><span data-hf-id="hf-nkxv"></span><span data-hf-id="hf-ieyi"></span></div>
+        <div data-hf-id="hf-ef5b" class="c03-doc" id="c03-doc3"><span data-hf-id="hf-i0nh"></span><span data-hf-id="hf-1qzj"></span><span data-hf-id="hf-25ak"></span></div>
+
+        <div data-hf-id="hf-rawc" id="c03-oauth">OAuth</div>
+
+        <div data-hf-id="hf-dszh" id="c03-lock">
+          <svg data-hf-id="hf-n3v7" viewBox="0 0 77 77" xmlns="http://www.w3.org/2000/svg">
+            <path data-hf-id="hf-h6qp" class="c03-lock-stroke" id="c03-shackle" d="M27 36 V28 A11.5 11.5 0 0 1 50 28 V36" />
+            <rect data-hf-id="hf-2sku" class="c03-lock-stroke" id="c03-lock-body" x="21" y="36" width="35" height="25" rx="5" />
+            <circle data-hf-id="hf-v1wi" id="c03-keyhole" cx="38.5" cy="47" r="3.6" />
+          </svg>
+        </div>
+        <div data-hf-id="hf-8srg" id="c03-lock-label">AES-encrypted tokens</div>
+
+        <div data-hf-id="hf-1qju" id="c03-card">
+          <div data-hf-id="hf-y3pl" id="c03-card-inner">
+            <div data-hf-id="hf-pvhh" id="c03-card-head">
+              <svg data-hf-id="hf-24qp" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                <path data-hf-id="hf-nsq0" d="M4 6 H26 L17.5 16 V24 L12.5 26 V16 Z" />
+              </svg>
+              <div data-hf-id="hf-cbsf" id="c03-card-eyebrow">Dedupe</div>
+            </div>
+            <div data-hf-id="hf-fk99" id="c03-card-num">SHA-256</div>
+            <div data-hf-id="hf-71pc" id="c03-card-title">content hash</div>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-yk2l" id="c03-pass-label">new / changed</div>
+        <div data-hf-id="hf-kj1s" id="c03-unchanged">unchanged</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const FRAME_ID = "03-connect";
+      const DURATION = 6.613;
+      window.__timelines = window.__timelines || {};
+      const root = document.querySelector('[data-composition-id="03-connect"]');
+      const q = (sel) => root.querySelector(sel);
+      const qa = (sel) => Array.from(root.querySelectorAll(sel));
+
+      // svg-path-draw setup: measured lengths, dash fully offset (invisible)
+      const drawables = qa("#c03-lines path, #c03-shackle, #c03-lock-body");
+      drawables.forEach((p) => {
+        const len = Math.ceil(p.getTotalLength() * 1.05);
+        p.style.strokeDasharray = len + "";
+        p.style.strokeDashoffset = len + "";
+      });
+
+      const tl = gsap.timeline({ paused: true });
+
+      // macro camera: slow push on the flow diagram (rail stays fixed for cross-frame match)
+      tl.fromTo(q("#c03-flow"), { scale: 1 }, { scale: 1.025, duration: DURATION, ease: "none" }, 0);
+
+      // ---- Scene 1 (0.0-1.2s): rail draws in, step 01 pops cobalt, eyebrow ----
+      tl.fromTo(q("#c03-rail-line"), { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 0.05);
+      ["#c03-step1", "#c03-step2", "#c03-step3", "#c03-step4", "#c03-step5"].forEach((id, i) => {
+        tl.fromTo(q(id), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 0.08 + i * 0.1);
+      });
+      ["#c03-label1", "#c03-label2", "#c03-label3", "#c03-label4", "#c03-label5"].forEach((id, i) => {
+        tl.fromTo(q(id), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: "power1.out" }, 0.25 + i * 0.08);
+      });
+      tl.fromTo(q("#c03-step1-fill"), { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "power3.out" }, 0.6);
+      tl.fromTo(q("#c03-accent"), { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: "power2.out" }, 0.75);
+      tl.fromTo(q("#c03-eyebrow"), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0.8);
+
+      // ---- Scene 2 (1.2-2.8s): six source chips stack in, OAuth line draws ----
+      for (let i = 0; i < 6; i++) {
+        tl.fromTo(q("#c03-chip" + i), { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 1.2 + i * 0.12);
+        tl.to(q("#c03-feed" + i), { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 1.5 + i * 0.08);
+      }
+      tl.to(q("#c03-main"), { strokeDashoffset: 0, duration: 0.6, ease: "power2.out" }, 2.0);
+      tl.fromTo(q("#c03-oauth"), { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out" }, 2.3);
+
+      // ---- Scene 3 (2.8-4.1s): lock self-draws on the line + label ----
+      tl.fromTo(q("#c03-lock"), { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, 2.8);
+      tl.to(q("#c03-shackle"), { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 2.9);
+      tl.to(q("#c03-lock-body"), { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 3.22);
+      tl.to(q("#c03-lock-body"), { fillOpacity: 1, duration: 0.3, ease: "power1.out" }, 3.72);
+      tl.fromTo(q("#c03-keyhole"), { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out" }, 3.85);
+      tl.fromTo(q("#c03-lock-label"), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power1.out" }, 3.6);
+
+      // ---- Scene 4 (4.1-6.6s): docs flow into the SHA-256 filter; one unchanged drops out ----
+      tl.fromTo(q("#c03-card"), { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 4.1);
+      tl.to(q("#c03-out"), { strokeDashoffset: 0, duration: 0.35, ease: "power2.out" }, 4.45);
+      tl.fromTo(q("#c03-pass-label"), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power1.out" }, 4.75);
+
+      const TO_CARD = 1060 - 480; // tile centre -> card centre
+      const SLOTS = [1420 - 480, 1530 - 480, 1640 - 480];
+      for (let i = 0; i < 4; i++) {
+        const doc = q("#c03-doc" + i);
+        const t0 = 4.3 + i * 0.22;
+        tl.fromTo(doc, { opacity: 0, scale: 0.6, x: 0, y: 0, rotation: 0 }, { opacity: 1, scale: 1, duration: 0.2, ease: "power2.out" }, t0);
+        tl.to(doc, { x: TO_CARD, duration: 0.5, ease: "power1.inOut" }, t0 + 0.12);
+        if (i < 3) {
+          tl.to(doc, { x: SLOTS[i], duration: 0.42, ease: "power2.out" }, t0 + 0.62);
+        } else {
+          // unchanged doc: hash matches -> dims to 40% and drops out of the flow
+          const tDrop = t0 + 0.68;
+          tl.to(q("#c03-card-inner"), { scale: 1.04, duration: 0.12, ease: "power1.out" }, t0 + 0.56);
+          tl.to(q("#c03-card-inner"), { scale: 1, duration: 0.2, ease: "power1.inOut" }, t0 + 0.68);
+          tl.to(doc, { y: 190, rotation: -10, opacity: 0.4, duration: 0.5, ease: "power2.out" }, tDrop);
+          tl.fromTo(q("#c03-unchanged"), { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, tDrop + 0.3);
+        }
+      }
+
+      window.__timelines[FRAME_ID] = tl;
+    })();
+  </script>
+</template>
