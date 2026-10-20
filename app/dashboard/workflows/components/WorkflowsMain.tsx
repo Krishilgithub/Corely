@@ -27,10 +27,61 @@ import {
   ToggleLeft,
   Edit2,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowRight,
+  ChevronDown,
+  Info
 } from "lucide-react";
 import { useAuth } from "../../../lib/auth-context";
 import { WorkflowItem } from "./WorkflowsLayout";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge, toneForStatus } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+
+/** KPI tile: icon well, big number, label, and the change under the label. */
+const StatTile = ({
+  icon,
+  value,
+  label,
+  delta,
+  accent = false,
+}: {
+  icon: React.ReactNode;
+  value: React.ReactNode;
+  label: string;
+  delta: string;
+  accent?: boolean;
+}) => (
+  <div className="ui-kpi">
+    <span className={`ui-icon-well${accent ? " ui-icon-well--accent" : ""}`}>{icon}</span>
+    <div className="wf-kpi-text">
+      <span className="type-metric">{value}</span>
+      <span className="type-caption">{label}</span>
+      <span className="wf-kpi-delta"><ArrowUpRight size={14} strokeWidth={2.5} /> {delta}</span>
+    </div>
+  </div>
+);
+
+/** Native select with a chevron that follows the theme. */
+const SelectField = ({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
+  <div className="wf-select">
+    <select className="ui-input" {...props}>{children}</select>
+    <ChevronDown size={16} />
+  </div>
+);
+
+/** Icon choices for the forms. Values are unchanged; labels no longer name colours. */
+const ICON_OPTIONS = [
+  { value: "Mail", label: "Mail envelope" },
+  { value: "Video", label: "Video camera" },
+  { value: "Cloud", label: "Database cloud" },
+  { value: "Headphones", label: "Support headphones" },
+  { value: "DollarSign", label: "Dollar sign" },
+  { value: "Users", label: "Users team" },
+  { value: "LineChart", label: "Analytics chart" },
+  { value: "FileText", label: "Document text" },
+];
 
 // ── Icon Helper ──────────────────────────────────────────────────────────────
 export const getLucideIcon = (name: string, size = 16, className = "") => {
@@ -282,181 +333,156 @@ export default function WorkflowsMain({
     }
   };
 
+  // One menu, used by both the table rows and the grid cards.
+  const renderRowMenu = (row: WorkflowItem) => (
+    <div className="wf-actions-container" ref={activeDropdownId === row.id ? dropdownRef : null}>
+      <button
+        className="ui-icon-btn ui-icon-btn--sm wf-more-btn"
+        aria-label="Workflow actions"
+        onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}
+      >
+        <MoreHorizontal size={16} />
+      </button>
+
+      {activeDropdownId === row.id && (
+        <div className="ui-popover wf-actions-dropdown">
+          <button className="ui-menu-item" onClick={() => onRun(row.id)}>
+            <Play size={16} />
+            Run now
+          </button>
+          <button className="ui-menu-item" onClick={() => onToggleStatus(row.id)}>
+            <ToggleLeft size={16} />
+            Toggle active
+          </button>
+          <button className="ui-menu-item" onClick={() => openEditModal(row)}>
+            <Edit2 size={16} />
+            Edit settings
+          </button>
+          <button className="ui-menu-item ui-menu-item--danger" onClick={() => confirmDeleteWorkflow(row)}>
+            <Trash2 size={16} />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const modalMotion = {
+    initial: { scale: 0.98, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.98, opacity: 0 },
+    transition: { duration: 0.15, ease: "easeOut" as const },
+  };
+
   return (
-    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "24px" }}>
-      
+    <div className="wf-main">
+
       {/* ── 1. Header ── */}
-      <motion.div
-        className="wf-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div>
-          <div className="wf-title-wrap">
-            <GitBranch size={28} style={{ color: "#ff6b00" }} />
-            <h1 className="wf-title">Workflows</h1>
-          </div>
-          <p className="wf-subtitle">Automate repetitive work and orchestrate intelligent actions across your organization.</p>
-        </div>
-        <div className="src-header-actions" style={{ display: "flex", gap: "10px" }}>
-          <button className="src-btn-secondary" onClick={onImport}>
-            <Upload size={14} /> Import Workflow
-          </button>
-          <button className="src-btn-primary" onClick={() => setShowAddModal(true)}>
-            <Plus size={16} strokeWidth={2.5} /> New Workflow
-          </button>
-        </div>
-      </motion.div>
+      <PageHeader
+        title="Workflows"
+        subtitle="Automate repetitive work and orchestrate intelligent actions across your organization."
+        actions={
+          <>
+            <button className="ui-btn ui-btn--secondary" onClick={onImport}>
+              <Upload size={16} /> Import workflow
+            </button>
+            <button className="ui-btn ui-btn--primary" onClick={() => setShowAddModal(true)}>
+              <Plus size={16} /> New workflow
+            </button>
+          </>
+        }
+      />
 
-      {/* ── Beta Notice Banner ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.05 }}
-        style={{
-          background: "#fffbeb",
-          border: "1px solid #fde68a",
-          borderRadius: 10,
-          padding: "12px 18px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <AlertTriangle size={16} style={{ color: "#d97706", flexShrink: 0 }} />
-        <div style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
-          <strong>Workflows is in Beta.</strong>{" "}
-          You can create, organize, and run workflow definitions — the full execution engine (trigger automation, action dispatch) is coming soon.
-          Executions are currently logged for tracking purposes only.
-        </div>
-      </motion.div>
-
-
-      <motion.div
-        className="wf-kpi-grid"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        {/* Card 1 */}
-        <div className="wf-kpi-card">
-          <div className="wf-kpi-icon-wrap" style={{ borderColor: "#ffd7c7" }}>
-            <div className="wf-kpi-icon-inner" style={{ background: "#fff3ee" }}>
-              <GitBranch size={16} style={{ color: "#ff6b00" }} />
-            </div>
+      {/* ── Beta Notice ── */}
+      <div className="wf-notice">
+        <Info size={16} />
+        <div style={{ minWidth: 0 }}>
+          <div className="wf-notice__head">
+            <span className="wf-notice__title">Workflows is in Beta.</span>
+            <span className="ui-badge ui-badge--neutral">Coming soon</span>
           </div>
-          <div>
-            <div className="wf-kpi-val">{stats.activeCount}</div>
-            <div className="wf-kpi-label">Active Workflows</div>
-            <div className="wf-kpi-trend src-trend-good" style={{ color: "#16a34a" }}>
-              <ArrowUpRightIcon size={12} strokeWidth={3} /> 4 vs last month
-            </div>
+          <div className="wf-notice__text">
+            You can create, organize, and run workflow definitions — the full execution engine (trigger automation, action dispatch) is coming soon.
+            Executions are currently logged for tracking purposes only.
           </div>
         </div>
+      </div>
 
-        {/* Card 2 */}
-        <div className="wf-kpi-card">
-          <div className="wf-kpi-icon-wrap" style={{ borderColor: "#ffd7c7" }}>
-            <div className="wf-kpi-icon-inner" style={{ background: "#fff3ee" }}>
-              <PlayCircle size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="wf-kpi-val">{stats.runningCount}</div>
-            <div className="wf-kpi-label">Running Now</div>
-            <div className="wf-kpi-trend src-trend-good" style={{ color: "#16a34a" }}>
-              <ArrowUpRightIcon size={12} strokeWidth={3} /> Live executions
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div className="wf-kpi-card">
-          <div className="wf-kpi-icon-wrap" style={{ borderColor: "#ffd7c7" }}>
-            <div className="wf-kpi-icon-inner" style={{ background: "#fff3ee" }}>
-              <CheckCircle2 size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="wf-kpi-val">{stats.totalExecutions.toLocaleString()}</div>
-            <div className="wf-kpi-label">Executions (This Month)</div>
-            <div className="wf-kpi-trend src-trend-good" style={{ color: "#16a34a" }}>
-              <ArrowUpRightIcon size={12} strokeWidth={3} /> 23% vs last month
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div className="wf-kpi-card">
-          <div className="wf-kpi-icon-wrap" style={{ borderColor: "#ffd7c7" }}>
-            <div className="wf-kpi-icon-inner" style={{ background: "#fff3ee" }}>
-              <Clock size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="wf-kpi-val">{stats.totalHoursSaved}</div>
-            <div className="wf-kpi-label">Hours Saved</div>
-            <div className="wf-kpi-trend src-trend-good" style={{ color: "#16a34a" }}>
-              <ArrowUpRightIcon size={12} strokeWidth={3} /> 18% vs last month
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <div className="wf-kpi-grid">
+        <StatTile
+          accent
+          icon={<GitBranch />}
+          value={stats.activeCount}
+          label="Active workflows"
+          delta="4 vs last month"
+        />
+        <StatTile
+          icon={<PlayCircle />}
+          value={stats.runningCount}
+          label="Running now"
+          delta="Live executions"
+        />
+        <StatTile
+          icon={<CheckCircle2 />}
+          value={stats.totalExecutions.toLocaleString()}
+          label="Executions (this month)"
+          delta="23% vs last month"
+        />
+        <StatTile
+          icon={<Clock />}
+          value={stats.totalHoursSaved}
+          label="Hours saved"
+          delta="18% vs last month"
+        />
+      </div>
 
       {/* ── 3. Table/Grid Card ── */}
-      <motion.div
-        className="wf-table-card"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
+      <div className="wf-table-card">
         {/* Table Header Controls */}
-        <div className="wf-table-header">
-          <div className="wf-tabs">
+        <div className="wf-toolbar">
+          <div className="wf-seg">
             {["all workflows", "active", "draft", "scheduled", "inactive"].map((tab) => (
               <div
                 key={tab}
-                className={`wf-tab ${activeTab === tab ? "active" : ""}`}
+                className={`wf-seg__item ${activeTab === tab ? "active" : ""}`}
                 onClick={() => setActiveTab(tab)}
-                style={{ textTransform: "capitalize" }}
               >
-                {tab}
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </div>
             ))}
           </div>
 
-          <div className="wf-table-actions">
-            <div className="src-search">
-              <Search size={14} style={{ color: "var(--db-text-muted)" }} />
+          <div className="wf-toolbar__right">
+            <div className="wf-search">
+              <Search size={16} />
               <input
                 type="text"
-                className="src-search-input"
+                className="ui-input"
                 placeholder="Search workflows..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <button
-              className={`src-filter-btn ${showFilterBar ? "active" : ""}`}
+              className={`ui-btn ui-btn--secondary wf-filter-toggle ${showFilterBar ? "is-active" : ""}`}
               onClick={() => setShowFilterBar((prev) => !prev)}
             >
-              <Filter size={14} /> Filter
+              <Filter size={16} /> Filter
             </button>
-            <div style={{ display: "flex", gap: 4 }}>
+            <div className="wf-seg">
               <button
-                className="src-list-btn"
-                style={viewMode === "grid" ? { background: "#fff3ee", borderColor: "#ffedd5", color: "#ff6b00" } : {}}
+                className={`wf-seg__item wf-seg__item--icon ${viewMode === "grid" ? "active" : ""}`}
+                aria-label="Grid view"
                 onClick={() => setViewMode("grid")}
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid size={16} />
               </button>
               <button
-                className="src-list-btn"
-                style={viewMode === "list" ? { background: "#fff3ee", borderColor: "#ffedd5", color: "#ff6b00" } : {}}
+                className={`wf-seg__item wf-seg__item--icon ${viewMode === "list" ? "active" : ""}`}
+                aria-label="List view"
                 onClick={() => setViewMode("list")}
               >
-                <List size={14} />
+                <List size={16} />
               </button>
             </div>
           </div>
@@ -470,13 +496,12 @@ export default function WorkflowsMain({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
               <div className="wf-filter-row-inner">
                 <div className="wf-filter-group">
-                  <label className="wf-filter-label">Trigger Type</label>
-                  <select
-                    className="wf-filter-select"
+                  <label className="wf-filter-label">Trigger type</label>
+                  <SelectField
                     value={selectedTrigger}
                     onChange={(e) => setSelectedTrigger(e.target.value)}
                   >
@@ -484,13 +509,12 @@ export default function WorkflowsMain({
                     <option value="Schedule">Schedule</option>
                     <option value="Event">Event</option>
                     <option value="Condition">Condition</option>
-                  </select>
+                  </SelectField>
                 </div>
 
                 <div className="wf-filter-group">
                   <label className="wf-filter-label">Owner</label>
-                  <select
-                    className="wf-filter-select"
+                  <SelectField
                     value={selectedOwner}
                     onChange={(e) => setSelectedOwner(e.target.value)}
                   >
@@ -499,18 +523,18 @@ export default function WorkflowsMain({
                     <option value="JD">Jane Doe</option>
                     <option value="AM">Alex Morgan</option>
                     <option value="TR">Taylor Rogers</option>
-                  </select>
+                  </SelectField>
                 </div>
 
                 {(selectedTrigger !== "all" || selectedOwner !== "all") && (
                   <button
-                    className="wf-filter-clear-btn"
+                    className="ui-btn ui-btn--ghost ui-btn--sm wf-filter-clear-btn"
                     onClick={() => {
                       setSelectedTrigger("all");
                       setSelectedOwner("all");
                     }}
                   >
-                    Clear Filters
+                    Clear filters
                   </button>
                 )}
               </div>
@@ -521,82 +545,62 @@ export default function WorkflowsMain({
         {/* ── Table List View ── */}
         {viewMode === "list" ? (
           <div className="table-responsive-wrapper">
-            <table className="wf-table">
+            <table className="ui-table">
             <thead>
               <tr>
-                <th className="wf-th">Workflow</th>
-                <th className="wf-th">Trigger</th>
-                <th className="wf-th">Last Run</th>
-                <th className="wf-th">Executions</th>
-                <th className="wf-th">Status</th>
-                <th className="wf-th" style={{ textAlign: "center" }}>Owner</th>
-                <th className="wf-th" />
+                <th>Workflow</th>
+                <th>Trigger</th>
+                <th>Last run</th>
+                <th>Executions</th>
+                <th>Status</th>
+                <th style={{ textAlign: "center" }}>Owner</th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
+              {filteredWorkflows.length === 0 && (
+                <tr className="wf-empty-row">
+                  <td colSpan={7}>
+                    <EmptyState compact icon={<GitBranch />} title="No workflows found" description="Try another tab, search or filter." />
+                  </td>
+                </tr>
+              )}
               {filteredWorkflows.map((row) => (
-                <tr key={row.id} className="wf-tr">
-                  <td className="wf-td">
+                <tr key={row.id}>
+                  <td style={{ minWidth: 240 }}>
                     <div className="wf-cell-flex">
-                      <div className="wf-icon-box" style={{ background: row.iconBg }}>
+                      <div className="wf-icon-box">
                         {getLucideIcon(row.icon, 16, "", )}
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <div className="wf-cell-title">{row.title}</div>
-                        <div className="wf-cell-desc">{row.desc}</div>
+                        <div className="wf-cell-desc wf-clamp">{row.desc}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="wf-td">
+                  <td>
                     <div className="wf-trigger-icon">
                       {getLucideIcon(row.triggerIcon, 14)} {row.triggerType}
                     </div>
                     <div className="wf-cell-desc">{row.triggerDesc}</div>
                   </td>
-                  <td className="wf-td">
-                    <div className="src-sync-time">{row.lastRun}</div>
-                    <div className="src-sync-date">{row.lastRunTime}</div>
+                  <td className="wf-nowrap">
+                    <div>{row.lastRun}</div>
+                    <div className="wf-cell-desc">{row.lastRunTime}</div>
                   </td>
-                  <td className="wf-td" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--db-text)" }}>
+                  <td className="wf-num">
                     {row.executions}
                   </td>
-                  <td className="wf-td">
-                    <div className={`wf-status-badge ${row.status === "Active" ? "wf-status-active" : "wf-status-draft"}`}>
-                      <div className="wf-status-dot" /> {row.status}
-                    </div>
+                  <td>
+                    <StatusBadge tone={toneForStatus(row.status)} dot>{row.status}</StatusBadge>
                   </td>
-                  <td className="wf-td" align="center">
-                    <div className="wf-avatar" style={{ background: row.ownerBg }} title={row.ownerName}>
+                  <td align="center">
+                    <div className="wf-avatar" title={row.ownerName}>
                       {row.owner}
                     </div>
                   </td>
-                  <td className="wf-td" align="right" style={{ position: "relative" }}>
-                    <div className="wf-actions-container" ref={activeDropdownId === row.id ? dropdownRef : null}>
-                      <button className="wf-more-btn" onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}>
-                        <MoreHorizontal size={16} />
-                      </button>
-                      
-                      {activeDropdownId === row.id && (
-                        <div className="wf-actions-dropdown">
-                          <button className="wf-actions-dropdown-item" onClick={() => onRun(row.id)}>
-                            <Play size={12} style={{ color: "#ff6b00" }} />
-                            Run Now
-                          </button>
-                          <button className="wf-actions-dropdown-item" onClick={() => onToggleStatus(row.id)}>
-                            <ToggleLeft size={12} />
-                            Toggle Active
-                          </button>
-                          <button className="wf-actions-dropdown-item" onClick={() => openEditModal(row)}>
-                            <Edit2 size={12} />
-                            Edit Settings
-                          </button>
-                          <button className="wf-actions-dropdown-item delete" onClick={() => confirmDeleteWorkflow(row)}>
-                            <Trash2 size={12} />
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                  <td align="right" style={{ position: "relative" }}>
+                    {renderRowMenu(row)}
                   </td>
                 </tr>
               ))}
@@ -605,68 +609,44 @@ export default function WorkflowsMain({
           </div>
         ) : (
           /* ── Grid Cards View ── */
+          filteredWorkflows.length === 0 ? (
+            <EmptyState compact icon={<GitBranch />} title="No workflows found" description="Try another tab, search or filter." />
+          ) : (
           <div className="wf-grid-layout">
             {filteredWorkflows.map((row) => (
               <div key={row.id} className="wf-grid-card">
                 <div className="wf-grid-card-header">
                   <div className="wf-grid-card-icon-title">
-                    <div className="wf-icon-box" style={{ background: row.iconBg, width: 34, height: 34 }}>
+                    <div className="wf-icon-box">
                       {getLucideIcon(row.icon, 18)}
                     </div>
-                    <div className="wf-grid-card-title">{row.title}</div>
+                    <div className="wf-cell-title" style={{ minWidth: 0 }}>{row.title}</div>
                   </div>
 
-                  <div className="wf-actions-container" ref={activeDropdownId === row.id ? dropdownRef : null}>
-                    <button className="wf-more-btn" onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}>
-                      <MoreHorizontal size={16} />
-                    </button>
-                    
-                    {activeDropdownId === row.id && (
-                      <div className="wf-actions-dropdown" style={{ right: 0, top: "100%" }}>
-                        <button className="wf-actions-dropdown-item" onClick={() => onRun(row.id)}>
-                          <Play size={12} style={{ color: "#ff6b00" }} />
-                          Run Now
-                        </button>
-                        <button className="wf-actions-dropdown-item" onClick={() => onToggleStatus(row.id)}>
-                          <ToggleLeft size={12} />
-                          Toggle Active
-                        </button>
-                        <button className="wf-actions-dropdown-item" onClick={() => openEditModal(row)}>
-                          <Edit2 size={12} />
-                          Edit Settings
-                        </button>
-                        <button className="wf-actions-dropdown-item delete" onClick={() => confirmDeleteWorkflow(row)}>
-                          <Trash2 size={12} />
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {renderRowMenu(row)}
                 </div>
 
                 <p className="wf-grid-card-desc">{row.desc}</p>
 
                 <div className="wf-grid-card-meta">
                   <div className="wf-grid-meta-row">
-                    <span style={{ fontWeight: 700 }}>Trigger:</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
+                    <span>Trigger</span>
+                    <span>
                       {getLucideIcon(row.triggerIcon, 12)}
                       {row.triggerDesc}
                     </span>
                   </div>
                   <div className="wf-grid-meta-row">
-                    <span style={{ fontWeight: 700 }}>Executions:</span>
-                    <span style={{ fontWeight: 650 }}>{row.executions} runs</span>
+                    <span>Executions</span>
+                    <span className="wf-num">{row.executions} runs</span>
                   </div>
                   <div className="wf-grid-meta-row">
-                    <span style={{ fontWeight: 700 }}>Last Run:</span>
+                    <span>Last run</span>
                     <span>{row.lastRun} {row.lastRunTime}</span>
                   </div>
-                  <div className="wf-grid-meta-row" style={{ paddingTop: 6, borderTop: "1px dashed #f4f4f5" }}>
-                    <div className={`wf-status-badge ${row.status === "Active" ? "wf-status-active" : "wf-status-draft"}`}>
-                      <div className="wf-status-dot" /> {row.status}
-                    </div>
-                    <div className="wf-avatar" style={{ background: row.ownerBg }} title={row.ownerName}>
+                  <div className="wf-grid-meta-row wf-grid-meta-row--foot">
+                    <StatusBadge tone={toneForStatus(row.status)} dot>{row.status}</StatusBadge>
+                    <div className="wf-avatar" title={row.ownerName}>
                       {row.owner}
                     </div>
                   </div>
@@ -674,186 +654,174 @@ export default function WorkflowsMain({
               </div>
             ))}
           </div>
+          )
         )}
-      </motion.div>
+      </div>
 
       {/* ── 4. Bottom Flowchart Banner ── */}
-      <motion.div
-        className="wf-banner"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-      >
+      <div className="wf-banner">
         <div>
-          <div className="wf-banner-title">Build Smarter Workflows with Corely</div>
-          <div className="wf-banner-desc">Use triggers, conditions, and actions to automate any process.</div>
+          <div className="type-heading">Build smarter workflows with Corely</div>
+          <div className="type-subtitle wf-banner-desc">Use triggers, conditions, and actions to automate any process.</div>
           <a href="#" className="wf-banner-link">
-            Learn more <ArrowUpRightIcon size={14} strokeWidth={3} />
+            Learn more <ArrowUpRight size={16} />
           </a>
         </div>
-        
+
         <div className="wf-banner-flow">
           <div className="wf-flow-step">
             <div className="wf-flow-icon">
-              <Zap size={18} style={{ color: "#ff6b00" }} fill="#ff6b00" />
+              <Zap size={18} />
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div>
               <div className="wf-flow-title">1. Trigger</div>
               <div className="wf-flow-desc">Choose an event</div>
             </div>
           </div>
-          
-          <div className="wf-flow-arrow">--&gt;</div>
-          
+
+          <div className="wf-flow-arrow" aria-hidden="true"><ArrowRight size={16} /></div>
+
           <div className="wf-flow-step">
             <div className="wf-flow-icon">
-              <LayoutGrid size={18} style={{ color: "#9333ea" }} />
+              <LayoutGrid size={18} />
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div>
               <div className="wf-flow-title">2. Condition</div>
               <div className="wf-flow-desc">Set rules</div>
             </div>
           </div>
-          
-          <div className="wf-flow-arrow">--&gt;</div>
-          
+
+          <div className="wf-flow-arrow" aria-hidden="true"><ArrowRight size={16} /></div>
+
           <div className="wf-flow-step">
             <div className="wf-flow-icon">
-              <PlayCircle size={18} style={{ color: "#3b82f6" }} />
+              <PlayCircle size={18} />
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div>
               <div className="wf-flow-title">3. Action</div>
               <div className="wf-flow-desc">Define what happens</div>
             </div>
           </div>
-          
-          <div className="wf-flow-arrow">--&gt;</div>
-          
+
+          <div className="wf-flow-arrow" aria-hidden="true"><ArrowRight size={16} /></div>
+
           <div className="wf-flow-step">
             <div className="wf-flow-icon">
-              <CheckCircle2 size={18} style={{ color: "#16a34a" }} />
+              <CheckCircle2 size={18} />
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div>
               <div className="wf-flow-title">4. Outcome</div>
               <div className="wf-flow-desc">Get results</div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* ── 5. Add Workflow Modal Form ── */}
       <AnimatePresence>
         {showAddModal && (
           <div className="wf-modal-overlay">
-            <motion.div
-              className="wf-modal-card"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <h2 className="wf-modal-title">Create New Workflow</h2>
-              
-              <form onSubmit={handleAddSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Workflow Title</label>
-                  <input
-                    type="text"
-                    className="wf-form-input"
-                    placeholder="e.g. Sales Opportunity Alerts"
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    required
-                  />
-                </div>
+            <motion.div className="ui-popover wf-modal-card" {...modalMotion}>
+              <div className="wf-modal-header">
+                <h2 className="type-heading wf-modal-title">Create new workflow</h2>
+              </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Description</label>
-                  <textarea
-                    className="wf-form-textarea"
-                    placeholder="Describe what this workflow automates..."
-                    value={formDesc}
-                    onChange={(e) => setFormDesc(e.target.value)}
-                    required
-                  />
-                </div>
+              <form onSubmit={handleAddSubmit} className="wf-modal-form">
+                <div className="wf-modal-body">
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Workflow title</label>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      placeholder="e.g. Sales Opportunity Alerts"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Visual Icon Theme</label>
-                  <select
-                    className="wf-form-select"
-                    value={formIcon}
-                    onChange={(e) => setFormIcon(e.target.value)}
-                  >
-                    <option value="Mail">Mail Envelope (Blue)</option>
-                    <option value="Video">Video Camera (Purple)</option>
-                    <option value="Cloud">Database Cloud (Green)</option>
-                    <option value="Headphones">Support Headphones (Orange)</option>
-                    <option value="DollarSign">Dollar Sign (Red)</option>
-                    <option value="Users">Users Team (Teal)</option>
-                    <option value="LineChart">Analytics Chart (Orange)</option>
-                    <option value="FileText">Document Text (Red)</option>
-                  </select>
-                </div>
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Description</label>
+                    <textarea
+                      className="ui-input"
+                      rows={3}
+                      placeholder="Describe what this workflow automates..."
+                      value={formDesc}
+                      onChange={(e) => setFormDesc(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Trigger Rule Type</label>
-                  <select
-                    className="wf-form-select"
-                    value={formTriggerType}
-                    onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
-                  >
-                    <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
-                    <option value="Event">Event (When something happens)</option>
-                    <option value="Condition">Condition (Logical evaluation)</option>
-                  </select>
-                </div>
+                  <div className="wf-form-row">
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Icon</label>
+                      <SelectField
+                        value={formIcon}
+                        onChange={(e) => setFormIcon(e.target.value)}
+                      >
+                        {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </SelectField>
+                    </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Trigger Scope Details</label>
-                  <input
-                    type="text"
-                    className="wf-form-input"
-                    placeholder="e.g. Daily at 8:00 AM, Deal > $50K, Meeting Ended"
-                    value={formTriggerDesc}
-                    onChange={(e) => setFormTriggerDesc(e.target.value)}
-                    required
-                  />
-                </div>
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Trigger rule type</label>
+                      <SelectField
+                        value={formTriggerType}
+                        onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
+                      >
+                        <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
+                        <option value="Event">Event (When something happens)</option>
+                        <option value="Condition">Condition (Logical evaluation)</option>
+                      </SelectField>
+                    </div>
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Initial Status</label>
-                  <select
-                    className="wf-form-select"
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Trigger scope details</label>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      placeholder="e.g. Daily at 8:00 AM, Deal > $50K, Meeting Ended"
+                      value={formTriggerDesc}
+                      onChange={(e) => setFormTriggerDesc(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Workflow Owner</label>
-                  <select
-                    className="wf-form-select"
-                    value={formOwner}
-                    onChange={(e) => setFormOwner(e.target.value)}
-                  >
-                    <option value="KS">Krishil Shah (You)</option>
-                    <option value="JD">Jane Doe</option>
-                    <option value="AM">Alex Morgan</option>
-                    <option value="TR">Taylor Rogers</option>
-                  </select>
+                  <div className="wf-form-row">
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Initial status</label>
+                      <SelectField
+                        value={formStatus}
+                        onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
+                      >
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </SelectField>
+                    </div>
+
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Workflow owner</label>
+                      <SelectField
+                        value={formOwner}
+                        onChange={(e) => setFormOwner(e.target.value)}
+                      >
+                        <option value="KS">Krishil Shah (You)</option>
+                        <option value="JD">Jane Doe</option>
+                        <option value="AM">Alex Morgan</option>
+                        <option value="TR">Taylor Rogers</option>
+                      </SelectField>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="wf-modal-actions">
-                  <button type="button" className="wf-cancel-btn" onClick={() => setShowAddModal(false)}>
+                  <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setShowAddModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="wf-submit-btn">
-                    Create Workflow
+                  <button type="submit" className="ui-btn ui-btn--primary">
+                    Create workflow
                   </button>
                 </div>
               </form>
@@ -866,112 +834,104 @@ export default function WorkflowsMain({
       <AnimatePresence>
         {showEditModal && (
           <div className="wf-modal-overlay">
-            <motion.div
-              className="wf-modal-card"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <h2 className="wf-modal-title">Edit Workflow Settings</h2>
-              
-              <form onSubmit={handleEditSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Workflow Title</label>
-                  <input
-                    type="text"
-                    className="wf-form-input"
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    required
-                  />
-                </div>
+            <motion.div className="ui-popover wf-modal-card" {...modalMotion}>
+              <div className="wf-modal-header">
+                <h2 className="type-heading wf-modal-title">Edit workflow settings</h2>
+              </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Description</label>
-                  <textarea
-                    className="wf-form-textarea"
-                    value={formDesc}
-                    onChange={(e) => setFormDesc(e.target.value)}
-                    required
-                  />
-                </div>
+              <form onSubmit={handleEditSubmit} className="wf-modal-form">
+                <div className="wf-modal-body">
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Workflow title</label>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Visual Icon Theme</label>
-                  <select
-                    className="wf-form-select"
-                    value={formIcon}
-                    onChange={(e) => setFormIcon(e.target.value)}
-                  >
-                    <option value="Mail">Mail Envelope (Blue)</option>
-                    <option value="Video">Video Camera (Purple)</option>
-                    <option value="Cloud">Database Cloud (Green)</option>
-                    <option value="Headphones">Support Headphones (Orange)</option>
-                    <option value="DollarSign">Dollar Sign (Red)</option>
-                    <option value="Users">Users Team (Teal)</option>
-                    <option value="LineChart">Analytics Chart (Orange)</option>
-                    <option value="FileText">Document Text (Red)</option>
-                  </select>
-                </div>
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Description</label>
+                    <textarea
+                      className="ui-input"
+                      rows={3}
+                      value={formDesc}
+                      onChange={(e) => setFormDesc(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Trigger Rule Type</label>
-                  <select
-                    className="wf-form-select"
-                    value={formTriggerType}
-                    onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
-                  >
-                    <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
-                    <option value="Event">Event (When something happens)</option>
-                    <option value="Condition">Condition (Logical evaluation)</option>
-                  </select>
-                </div>
+                  <div className="wf-form-row">
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Icon</label>
+                      <SelectField
+                        value={formIcon}
+                        onChange={(e) => setFormIcon(e.target.value)}
+                      >
+                        {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </SelectField>
+                    </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Trigger Scope Details</label>
-                  <input
-                    type="text"
-                    className="wf-form-input"
-                    value={formTriggerDesc}
-                    onChange={(e) => setFormTriggerDesc(e.target.value)}
-                    required
-                  />
-                </div>
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Trigger rule type</label>
+                      <SelectField
+                        value={formTriggerType}
+                        onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
+                      >
+                        <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
+                        <option value="Event">Event (When something happens)</option>
+                        <option value="Condition">Condition (Logical evaluation)</option>
+                      </SelectField>
+                    </div>
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Status</label>
-                  <select
-                    className="wf-form-select"
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
+                  <div className="wf-form-group">
+                    <label className="wf-form-label">Trigger scope details</label>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      value={formTriggerDesc}
+                      onChange={(e) => setFormTriggerDesc(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="wf-form-group">
-                  <label className="wf-form-label">Workflow Owner</label>
-                  <select
-                    className="wf-form-select"
-                    value={formOwner}
-                    onChange={(e) => setFormOwner(e.target.value)}
-                  >
-                    <option value="KS">Krishil Shah (You)</option>
-                    <option value="JD">Jane Doe</option>
-                    <option value="AM">Alex Morgan</option>
-                    <option value="TR">Taylor Rogers</option>
-                  </select>
+                  <div className="wf-form-row">
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Status</label>
+                      <SelectField
+                        value={formStatus}
+                        onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
+                      >
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </SelectField>
+                    </div>
+
+                    <div className="wf-form-group">
+                      <label className="wf-form-label">Workflow owner</label>
+                      <SelectField
+                        value={formOwner}
+                        onChange={(e) => setFormOwner(e.target.value)}
+                      >
+                        <option value="KS">Krishil Shah (You)</option>
+                        <option value="JD">Jane Doe</option>
+                        <option value="AM">Alex Morgan</option>
+                        <option value="TR">Taylor Rogers</option>
+                      </SelectField>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="wf-modal-actions">
-                  <button type="button" className="wf-cancel-btn" onClick={() => setShowEditModal(false)}>
+                  <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setShowEditModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="wf-submit-btn">
-                    Save Changes
+                  <button type="submit" className="ui-btn ui-btn--primary">
+                    Save changes
                   </button>
                 </div>
               </form>
@@ -984,32 +944,28 @@ export default function WorkflowsMain({
       <AnimatePresence>
         {showDeleteConfirm && workflowToDelete && (
           <div className="wf-modal-overlay">
-            <motion.div
-              className="wf-modal-card wf-cascade-modal"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <h2 className="wf-modal-title wf-cascade-modal-title">
-                <AlertTriangle size={20} />
-                Delete Workflow
-              </h2>
-              
-              <p style={{ fontSize: 13, color: "#3f3f46", margin: 0, lineHeight: 1.6 }}>
-                Are you sure you want to delete the workflow <strong>&quot;{workflowToDelete.title}&quot;</strong>?
-              </p>
-              
-              <p style={{ fontSize: 12, color: "var(--db-text-muted)", margin: 0, lineHeight: 1.5 }}>
-                This is a cascade operation. It will permanently remove the workflow definition and flush all associated execution logs from the sidebar activity panel.
-              </p>
+            <motion.div className="ui-popover wf-modal-card wf-modal-card--sm" {...modalMotion}>
+              <div className="wf-modal-header">
+                <span className="wf-danger-tile"><AlertTriangle size={18} /></span>
+                <h2 className="type-heading wf-modal-title">Delete workflow</h2>
+              </div>
+
+              <div className="wf-modal-body">
+                <p className="wf-confirm-text">
+                  Are you sure you want to delete the workflow <strong>&quot;{workflowToDelete.title}&quot;</strong>?
+                </p>
+
+                <p className="wf-confirm-note">
+                  This is a cascade operation. It will permanently remove the workflow definition and flush all associated execution logs from the sidebar activity panel.
+                </p>
+              </div>
 
               <div className="wf-modal-actions">
-                <button type="button" className="wf-cancel-btn" onClick={() => setShowDeleteConfirm(false)}>
+                <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setShowDeleteConfirm(false)}>
                   Cancel
                 </button>
-                <button type="button" className="wf-submit-btn wf-delete-confirm-btn" onClick={handleDeleteExecute}>
-                  Confirm Delete
+                <button type="button" className="ui-btn ui-btn--destructive" onClick={handleDeleteExecute}>
+                  Confirm delete
                 </button>
               </div>
             </motion.div>
@@ -1018,14 +974,5 @@ export default function WorkflowsMain({
       </AnimatePresence>
 
     </div>
-  );
-}
-
-// Custom arrow up icon
-function ArrowUpRightIcon({ size = 24, strokeWidth = 2, color = "currentColor" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 17l9.2-9.2M17 17V7H7" />
-    </svg>
   );
 }

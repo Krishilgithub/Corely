@@ -1,9 +1,16 @@
 import "../globals.css";
+// Order matters: these files were split out of one dashboard.css and must load
+// in the same order so the cascade stays the same.
 import "./dashboard.css";
+import "./ask-corely/ask-corely.css";
+import "./sources/sources.css";
+import "./settings/settings.css";
+import "./workflows/workflows-page.css";
+import "./dashboard-responsive.css";
+import "./settings/settings-layout.css";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import { Toaster } from "sonner";
-import { ThemeProvider } from "../../components/ThemeProvider";
 import { CommandPalette } from "./components/CommandPalette";
 
 export const metadata = {
@@ -17,14 +24,26 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ThemeProvider>
+    <>
       <div className="db-layout">
         <Sidebar />
         <Topbar />
-        <div className="db-page-wrapper">{children}</div>
-        <Toaster position="bottom-right" richColors />
+        <main className="db-page-wrapper">
+          {/* Every page sits inside one bordered page card on the canvas. */}
+          <div className="db-page-shell">{children}</div>
+        </main>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            classNames: {
+              toast: "db-toast",
+              title: "db-toast-title",
+              description: "db-toast-description",
+            },
+          }}
+        />
         <CommandPalette />
       </div>
-    </ThemeProvider>
+    </>
   );
 }

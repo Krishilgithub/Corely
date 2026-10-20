@@ -1,177 +1,170 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Database, Shield, Search, Workflow, BrainCircuit } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { IconTile, SectionHeader, revealProps } from "./primitives";
 
-const features = [
-  {
-    title: "Unified Knowledge Graph",
-    description: "Corely connects to all your tools—Slack, Drive, Notion, GitHub—and builds a real-time organizational brain that understands deep semantic context.",
-    icon: <Database className="w-6 h-6 text-[#ff6b00]" />,
-    className: "md:col-span-2 md:row-span-2 min-h-[300px]",
-    visual: (
-      <div className="absolute right-0 bottom-0 w-[100%] h-[100%] pointer-events-none flex p-8 items-center justify-end overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(255,107,0,0.1),transparent_70%)] blur-[40px] -z-10" />
-        
-        {/* Connector Icons Orbiting */}
-        <div className="absolute right-12 top-12 flex gap-4 z-20">
-          {["notion.png", "slack.png", "drive.png", "gmail.png", "linear.png"].map((icon, i) => (
-            <motion.div
-              key={icon}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
-              className="w-12 h-12 bg-white rounded-xl shadow-lg border border-black/5 flex items-center justify-center p-2.5 transform hover:-translate-y-1 transition-transform"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/${icon}`} alt={icon.split('.')[0]} className="w-full h-full object-contain" />
-            </motion.div>
-          ))}
+const CONNECTORS = ["notion", "slack", "drive", "gmail", "linear"];
+
+/* Visual for the large card: connector logos and two stacked result cards. */
+function KnowledgeGraphVisual() {
+  return (
+    <div className="relative mt-8 flex flex-col gap-6 md:absolute md:mt-0 md:right-8 md:bottom-8 md:w-[46%] md:max-w-[340px]" aria-hidden="true">
+      <div className="flex flex-wrap gap-3">
+        {CONNECTORS.map((icon, i) => (
+          <motion.div
+            key={icon}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 + i * 0.08, duration: 0.4, ease: "easeOut" }}
+            className="group/logo size-11 rounded-xl border border-hairline bg-white shadow-2xs flex items-center justify-center p-2.5"
+          >
+            <Image
+              src={`/${icon}.png`}
+              alt={icon}
+              width={24}
+              height={24}
+              className="w-full h-full object-contain grayscale opacity-80 transition duration-200 group-hover/logo:grayscale-0 group-hover/logo:opacity-100"
+            />
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="rounded-xl border border-hairline bg-surface-secondary p-4 flex gap-3">
+          <span className="size-9 shrink-0 rounded-lg border border-hairline bg-surface flex items-center justify-center text-icon-secondary">
+            <Database className="size-4" />
+          </span>
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <div className="h-2.5 w-1/3 rounded-full bg-border-strong" />
+            <div className="h-2 w-full rounded-full bg-hairline" />
+            <div className="h-2 w-5/6 rounded-full bg-hairline" />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-20 relative z-10 w-[80%] max-w-[320px]">
-          {/* Floating Abstract UI Card 1 */}
-          <div className="w-full bg-white rounded-xl shadow-xl border border-black/5 p-4 flex gap-4 transform translate-x-12 translate-y-6 rotate-[-2deg]">
-            <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-black/5">
-               <Database className="w-5 h-5 text-zinc-400" />
-            </div>
-            <div className="flex-1 flex flex-col gap-2.5 justify-center">
-              <div className="h-3 w-1/3 bg-zinc-200 rounded-full" />
-              <div className="h-2 w-full bg-zinc-100 rounded-full" />
-              <div className="h-2 w-5/6 bg-zinc-100 rounded-full" />
-            </div>
-          </div>
-
-          {/* Floating Abstract UI Card 2 */}
-          <div className="w-full bg-white rounded-xl shadow-2xl border border-black/5 p-5 flex gap-4 transform translate-x-4 rotate-[1deg]">
-            <div className="absolute top-0 right-4 -translate-y-1/2 px-2 py-0.5 bg-[#ff6b00] text-white text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-              Semantic Match
-            </div>
-            <div className="w-12 h-12 rounded-full bg-[#ff6b00]/10 flex items-center justify-center shrink-0 border border-[#ff6b00]/20">
-               <BrainCircuit className="w-6 h-6 text-[#ff6b00]" />
-            </div>
-            <div className="flex-1 flex flex-col gap-2.5">
-              <div className="h-3.5 w-1/2 bg-zinc-800 rounded-full" />
-              <div className="h-2 w-full bg-zinc-100 rounded-full" />
-              <div className="h-2 w-full bg-zinc-100 rounded-full" />
-              <div className="h-2 w-2/3 bg-zinc-100 rounded-full" />
-            </div>
+        <div className="relative rounded-xl border border-border-strong bg-surface p-4 flex gap-3 shadow-sm">
+          <span className="ui-badge ui-badge--accent absolute -top-3 right-4">Semantic match</span>
+          <span className="size-9 shrink-0 rounded-lg border border-hairline bg-surface-secondary flex items-center justify-center text-icon-primary">
+            <BrainCircuit className="size-4" />
+          </span>
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="h-2.5 w-1/2 rounded-full bg-text-secondary" />
+            <div className="h-2 w-full rounded-full bg-hairline" />
+            <div className="h-2 w-full rounded-full bg-hairline" />
+            <div className="h-2 w-2/3 rounded-full bg-hairline" />
           </div>
         </div>
       </div>
-    )
-  },
-  {
-    title: "Instant Retrieval",
-    description: "Sub-50ms semantic search across billions of documents.",
-    icon: <Search className="w-6 h-6 text-zinc-900" />,
-    className: "md:col-span-1 min-h-[200px]",
-    visual: null
-  },
-  {
-    title: "Autonomous Agents",
-    description: "Deploy workflows that execute multi-step tasks across your ecosystem without human intervention.",
-    icon: <Workflow className="w-6 h-6 text-zinc-900" />,
-    className: "md:col-span-1 min-h-[200px]",
-    visual: null
-  },
-  {
-    title: "Zero-Trust Architecture",
-    description: "SOC2 Type II compliant. Your data never trains our models. Strict role-based access control.",
-    icon: <Shield className="w-6 h-6 text-zinc-900" />,
-    className: "md:col-span-2 min-h-[200px] bg-zinc-900 text-white",
-    visual: (
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
-    )
-  },
-];
+    </div>
+  );
+}
 
 interface FeatureItem {
+  id?: string;
   title: string;
   description: string;
   icon: React.ReactElement;
   className: string;
-  visual: React.ReactNode | null;
+  inverse?: boolean;
+  visual?: React.ReactNode;
 }
 
+const features: FeatureItem[] = [
+  {
+    title: "Unified Knowledge Graph",
+    description: "Corely connects to all your tools—Slack, Drive, Notion, GitHub—and builds a real-time organizational brain that understands deep semantic context.",
+    icon: <Database />,
+    className: "md:col-span-2 md:row-span-2 md:min-h-[420px]",
+    visual: <KnowledgeGraphVisual />,
+  },
+  {
+    title: "Instant Retrieval",
+    description: "Sub-50ms semantic search across billions of documents.",
+    icon: <Search />,
+    className: "md:col-span-1",
+  },
+  {
+    title: "Autonomous Agents",
+    description: "Deploy workflows that execute multi-step tasks across your ecosystem without human intervention.",
+    icon: <Workflow />,
+    className: "md:col-span-1",
+  },
+  {
+    id: "security",
+    title: "Zero-Trust Architecture",
+    description: "SOC2 Type II compliant. Your data never trains our models. Strict role-based access control.",
+    icon: <Shield />,
+    className: "md:col-span-3",
+    inverse: true,
+  },
+];
+
 const FeatureCard = ({ feature, index }: { feature: FeatureItem; index: number }) => {
-  const isDark = feature.className.includes("bg-zinc-900");
-  
+  const inverse = feature.inverse;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.7, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      id={feature.id}
+      {...revealProps}
+      transition={{ ...revealProps.transition, delay: index * 0.08 }}
       className={cn(
-        "group relative p-8 rounded-3xl border overflow-hidden transition-all duration-500",
-        isDark ? "border-zinc-800 hover:border-zinc-700 shadow-2xl" : "bg-white border-black/5 hover:border-black/15 shadow-sm hover:shadow-md",
+        "relative overflow-hidden rounded-2xl border p-6 lg:p-8 transition-colors duration-200 scroll-mt-28",
+        inverse
+          ? "bg-text-primary text-text-inverse border-text-primary"
+          : "bg-surface border-hairline hover:border-border-strong",
         feature.className
       )}
     >
-      {/* Micro-grid background for light cards */}
-      {!isDark && (
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:20px_20px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      {inverse && (
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.08] bg-[linear-gradient(currentColor_1px,transparent_1px),linear-gradient(90deg,currentColor_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:linear-gradient(to_left,#000,transparent_70%)]"
+          aria-hidden="true"
+        />
       )}
-      
-      {feature.visual}
-      
-      <div className="relative z-10 h-full flex flex-col justify-between">
-        <div>
-          <div className={cn(
-            "mb-6 p-4 rounded-2xl inline-flex shadow-sm transition-transform duration-300 group-hover:scale-110",
-            isDark ? "bg-zinc-800 border-zinc-700" : "bg-zinc-50 border-black/5 border"
-          )}>
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {isDark ? React.cloneElement(feature.icon as any, { className: "w-6 h-6 text-white" }) : feature.icon}
-          </div>
-          <h3 className={cn(
-            "text-2xl font-bold mb-3 tracking-tight",
-            isDark ? "text-white" : "text-zinc-900"
-          )}>{feature.title}</h3>
-          <p className={cn(
-            "leading-relaxed font-light text-lg max-w-sm",
-            isDark ? "text-zinc-400" : "text-zinc-600"
-          )}>{feature.description}</p>
+
+      <div className={cn("relative z-10 flex flex-col gap-5", feature.visual && "md:max-w-[48%]")}>
+        {inverse ? (
+          <span className="size-10 shrink-0 inline-flex items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--text-inverse)_20%,transparent)] [&_svg]:size-5">
+            {feature.icon}
+          </span>
+        ) : (
+          <IconTile>{feature.icon}</IconTile>
+        )}
+        <div className="flex flex-col gap-2">
+          <h3 className={cn("text-xl font-semibold tracking-tight", !inverse && "text-text-primary")}>{feature.title}</h3>
+          <p className={cn("text-sm sm:text-base leading-relaxed max-w-md", inverse ? "opacity-70" : "text-text-secondary")}>
+            {feature.description}
+          </p>
         </div>
       </div>
+
+      {feature.visual}
     </motion.div>
   );
 };
 
 export default function FeaturesSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
   return (
-    <section ref={containerRef} className="relative py-32 bg-zinc-50 overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#ff6b00]/10 blur-[120px] rounded-full pointer-events-none" />
+    <section id="features" className="relative py-24 lg:py-32 bg-surface border-t border-hairline scroll-mt-24">
+      <div className="max-w-6xl mx-auto px-6">
+        <SectionHeader
+          eyebrow="The engine"
+          title={
+            <>
+              A nervous system for <span className="block">modern enterprises.</span>
+            </>
+          }
+          description="Built from the ground up for massive scale, unmatched speed, and uncompromising security."
+          className="mb-14 lg:mb-16"
+        />
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="text-center max-w-3xl mx-auto mb-20"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full border border-black/10 bg-white shadow-sm">
-            <BrainCircuit className="w-4 h-4 text-[#ff6b00]" />
-            <span className="text-xs font-bold tracking-[0.15em] text-zinc-600 uppercase">The Engine</span>
-          </div>
-          <h2 className="text-5xl md:text-7xl font-bold text-black tracking-[-0.04em] mb-6 leading-[1.05]">
-            A nervous system for <br />
-            modern enterprises.
-          </h2>
-          <p className="text-xl text-zinc-600 font-light max-w-2xl mx-auto">
-            Built from the ground up for massive scale, unmatched speed, and uncompromising security.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[250px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {features.map((feature, i) => (
-            <FeatureCard key={i} feature={feature} index={i} />
+            <FeatureCard key={feature.title} feature={feature} index={i} />
           ))}
         </div>
       </div>

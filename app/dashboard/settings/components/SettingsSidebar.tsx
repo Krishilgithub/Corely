@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Settings, Building2, Users, Sparkles, Database, 
+import {
+  Settings, Building2, Users, Sparkles, Database,
   Key, Shield, Bell, FileCode2, CreditCard, Sliders
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const tabConfig = [
   { slug: "general", label: "General", icon: Settings },
@@ -24,24 +25,26 @@ export const tabConfig = [
 export default function SettingsSidebar() {
   const pathname = usePathname();
   const currentTabSlug = pathname.split("/").pop() || "general";
-  
+
+  // The wrapper uses display: contents (see settings-layout.css), so the header
+  // spans the full width above the nav and the cards.
   return (
     <div className="settings-sidebar-nav">
       <div className="settings-sidebar-header">
-        <h1 className="settings-sidebar-title">Settings</h1>
-        <p className="settings-sidebar-subtitle">Manage your workspace preferences</p>
+        <PageHeader title="Settings" subtitle="Manage your workspace preferences" />
       </div>
-      
-      <nav className="settings-nav-list">
+
+      <nav className="settings-nav-list" aria-label="Settings sections">
         {tabConfig.map((tab) => {
           const isActive = currentTabSlug === tab.slug;
           const Icon = tab.icon;
-          
+
           return (
             <Link
               key={tab.slug}
               href={`/dashboard/settings/${tab.slug}`}
               className={`settings-nav-item ${isActive ? "active" : ""}`}
+              aria-current={isActive ? "page" : undefined}
             >
               <Icon size={16} className="settings-nav-icon" />
               <span>{tab.label}</span>

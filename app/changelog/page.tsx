@@ -31,7 +31,7 @@ const LOGS = [
     date: "August 1, 2023",
     title: "Public Beta Launch",
     features: [
-      "Corely is now available in public beta!",
+      "Corely is now available in public beta.",
       "Connect Slack, GitHub, and Google Drive.",
       "Ask natural language questions to your entire organizational memory."
     ]
@@ -41,18 +41,22 @@ const LOGS = [
 export default function ChangelogPage() {
   return (
     <SimplePageLayout title="Changelog" description="See what's new in Corely.">
-      <div className="flex flex-col gap-12 mt-8 border-l border-zinc-200 pl-8 ml-4 relative">
+      {/* Timeline: the newest release gets the brand-coloured marker */}
+      <div className="not-prose relative flex flex-col gap-12 ml-1.5 pl-8 border-l border-hairline">
         {LOGS.map((log, idx) => (
           <div key={idx} className="relative">
-            <div className="absolute -left-10 mt-1.5 w-4 h-4 rounded-full bg-[#ff6b00] border-4 border-white" />
-            <div className="text-sm font-semibold text-[#ff6b00] mb-1">{log.date}</div>
-            <h3 className="text-2xl font-bold text-zinc-900 mb-4 mt-0 flex items-center gap-3">
+            <div
+              className={`absolute -left-[39px] top-1 size-3 rounded-full ring-4 ring-canvas ${idx === 0 ? "bg-accent-fill" : "bg-border-strong"}`}
+              aria-hidden="true"
+            />
+            <div className="text-sm font-medium text-text-tertiary mb-2">{log.date}</div>
+            <h3 className="text-xl font-semibold tracking-tight text-text-primary mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
               {log.title}
-              <span className="text-xs font-mono bg-zinc-100 text-zinc-500 px-2 py-1 rounded-md">{log.version}</span>
+              <span className="inline-flex items-center h-6 px-2 rounded-md border border-hairline bg-surface-secondary font-mono text-xs font-medium text-text-secondary">{log.version}</span>
             </h3>
-            <ul className="space-y-2 mt-0">
+            <ul className="list-disc pl-5 space-y-2 marker:text-text-disabled">
               {log.features.map((feature, fIdx) => (
-                <li key={fIdx} className="text-zinc-600 m-0">{feature}</li>
+                <li key={fIdx} className="text-base leading-relaxed text-text-secondary">{feature}</li>
               ))}
             </ul>
           </div>

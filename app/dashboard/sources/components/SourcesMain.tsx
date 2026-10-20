@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { ReactElement } from "react";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,7 +10,6 @@ import {
   Database,
   FileText,
   Clock,
-  Activity,
   Search,
   Filter,
   List,
@@ -19,15 +18,24 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Folder,
   Trash2,
   UploadCloud,
+  Upload,
   Check,
   History,
+  Link2,
+  Lock,
+  Info,
+  Copy,
 } from "lucide-react";
 
 import { useAuth } from "../../../lib/auth-context";
+import { StatusBadge } from "@/components/ui/status-badge";
+import type { StatusTone } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import SyncHistoryModal from "./SyncHistoryModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -68,8 +76,6 @@ const GmailIcon = ({ size = 22 }: { size?: number }) => (
   <Image src="/gmail.png" alt="Gmail" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
-
-
 const SlackIcon = ({ size = 22 }: { size?: number }) => (
   <Image src="/slack.png" alt="Slack" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
@@ -78,622 +84,270 @@ const LinearIcon = ({ size = 22 }: { size?: number }) => (
   <Image src="/linear.png" alt="Linear" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
 );
 
-
-function StatusBadge({ status }: { status: Source["status"] }) {
-  const map: Record<
-    Source["status"],
-    { label: string; color: string; bg: string; icon: ReactElement }
-  > = {
-    idle: { label: "Idle", color: "var(--db-text-muted)", bg: "#f4f4f5", icon: <Clock size={12} /> },
-    syncing: {
-      label: "Syncing",
-      color: "#2563eb",
-      bg: "#eff6ff",
-      icon: <Loader2 size={12} className="animate-spin" />,
-    },
-    synced: {
-      label: "Synced",
-      color: "#16a34a",
-      bg: "#dcfce7",
-      icon: <CheckCircle2 size={12} />,
-    },
-    error: {
-      label: "Error",
-      color: "#dc2626",
-      bg: "#fee2e2",
-      icon: <AlertCircle size={12} />,
-    },
-  };
-
-  const s = map[status] || map["idle"];
+/** Logo tile for a source type. Brand PNGs sit on a light tile; others get a neutral glyph tile. */
+function SourceLogo({ type, small = false }: { type: string; small?: boolean }) {
+  const size = small ? 18 : 22;
+  const logo =
+    type === "google_drive" ? <GoogleDriveIcon size={size} />
+    : type === "notion" ? <NotionIcon size={size} />
+    : type === "gmail" ? <GmailIcon size={size} />
+    : type === "slack" ? <SlackIcon size={size} />
+    : type === "linear" ? <LinearIcon size={size} />
+    : null;
+  if (logo) return <span className={`src-logo-tile${small ? " src-logo-tile--sm" : ""}`}>{logo}</span>;
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "3px 10px",
-        borderRadius: 20,
-        background: s.bg,
-        color: s.color,
-        fontSize: 11.5,
-        fontWeight: 700,
-      }}
-    >
-      {s.icon} {s.label}
+    <span className={`src-glyph-tile${small ? " src-glyph-tile--sm" : ""}`}>
+      <Database size={small ? 16 : 18} />
     </span>
   );
 }
 
+// ── Status badge ──────────────────────────────────────────────────────────────
+const STATUS_META: Record<Source["status"], { label: string; tone: StatusTone }> = {
+  idle: { label: "Idle", tone: "neutral" },
+  syncing: { label: "Syncing", tone: "warning" },
+  synced: { label: "Synced", tone: "success" },
+  error: { label: "Error", tone: "error" },
+};
+
+function SourceStatusBadge({ status }: { status: Source["status"] }) {
+  const s = STATUS_META[status] || STATUS_META["idle"];
+  if (status === "syncing") {
+    return (
+      <StatusBadge tone={s.tone}>
+        <Loader2 className="animate-spin" /> {s.label}
+      </StatusBadge>
+    );
+  }
+  return <StatusBadge tone={s.tone} dot>{s.label}</StatusBadge>;
+}
+
+// ── Small display helpers (formatting only) ───────────────────────────────────
+function formatCount(n: number) {
+  return n > 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+}
+
+function formatRelative(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(diff)) return "—";
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "Just now";
+  if (min < 60) return `${min} min ago`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} d ago`;
+}
+
+/** Who can search this source, read from the saved config (see /api/search). */
+function accessFor(source: Source): { label: string; title: string } {
+  const permissions = (source.config as { permissions?: string })?.permissions;
+  if (permissions === "everyone") return { label: "Everyone", title: "Everyone in the workspace can search this source" };
+  if (permissions === "admins") return { label: "Admins only", title: "Only workspace admins can search this source" };
+  return { label: "Private", title: "Only the owner and admins can search this source" };
+}
+
 // ── Connect Modal ─────────────────────────────────────────────────────────────
-function ConnectModal({ onClose, existingDriveSource, onDuplicate }: { onClose: () => void; existingDriveSource?: Source; onDuplicate?: (id: string) => void }) {
+type ProviderCategory = "all" | "docs" | "communication" | "engineering";
+
+const CATEGORY_LABELS: { id: ProviderCategory; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "docs", label: "Docs & files" },
+  { id: "communication", label: "Communication" },
+  { id: "engineering", label: "Engineering" },
+];
+
+// What each connector reads, based on modules/sources/connectors/*.
+const PROVIDERS: { type: string; name: string; category: Exclude<ProviderCategory, "all">; description: string }[] = [
+  { type: "google_drive", name: "Google Drive", category: "docs", description: "Docs, Sheets, PDFs and Word files" },
+  { type: "notion", name: "Notion", category: "docs", description: "Pages and databases" },
+  { type: "gmail", name: "Gmail", category: "communication", description: "Email threads from the last 180 days" },
+  { type: "slack", name: "Slack", category: "communication", description: "Messages in public channels the bot is in" },
+  { type: "linear", name: "Linear", category: "engineering", description: "Issues and comments" },
+];
+
+const modalFade = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.15, ease: "easeOut" as const },
+};
+const modalSlide = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 8 },
+  transition: { duration: 0.15, ease: "easeOut" as const },
+};
+
+function ConnectModal({ onClose, existingDriveSource, onDuplicate, connectedTypes = [] }: { onClose: () => void; existingDriveSource?: Source; onDuplicate?: (id: string) => void; connectedTypes?: string[] }) {
   const { workspaceId, user } = useAuth();
   const WORKSPACE_ID = workspaceId || "00000000-0000-0000-0000-000000000001";
   const USER_ID = user?.id || "00000000-0000-0000-0000-000000000002";
   const [isDuplicating, setIsDuplicating] = useState(false);
+  // Popup-only filters (client side, over the static provider list)
+  const [providerQuery, setProviderQuery] = useState("");
+  const [category, setCategory] = useState<ProviderCategory>("all");
+
+  const connectHref: Record<string, string> = {
+    google_drive: `/api/sources/google-drive/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`,
+    notion: `/api/sources/notion/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`,
+    gmail: `/api/sources/gmail/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`,
+    slack: `/api/sources/slack/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`,
+    linear: `/api/sources/linear/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`,
+  };
+
+  const visibleProviders = PROVIDERS.filter(
+    (p) =>
+      (category === "all" || p.category === category) &&
+      p.name.toLowerCase().includes(providerQuery.trim().toLowerCase())
+  );
+
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000,
-          backdropFilter: "blur(4px)",
-        }}
+        {...modalFade}
+        className="src-modal-overlay"
+        style={{ zIndex: 1000 }}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          {...modalSlide}
+          className="ui-popover src-modal src-modal--wide"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="src-connect-title"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: "var(--db-panel)",
-            borderRadius: 24,
-            padding: "40px",
-            width: "100%",
-            maxWidth: 1000,
-            maxHeight: "90vh",
-            overflowY: "auto",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.15)",
-          }}
         >
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-            <div>
-              <h2 style={{ fontSize: 26, fontWeight: 800, color: "var(--db-text)", letterSpacing: "-0.02em" }}>Add Data Source</h2>
-              <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4 }}>
-                Connect your first data source to get started.
+          <div className="src-modal__header">
+            <div className="src-modal__titles">
+              <h2 id="src-connect-title" className="src-modal__title">Add a source</h2>
+              <p className="type-subtitle">
+                Connect a tool or upload files. Corely indexes the content so you can ask questions about it.
               </p>
             </div>
-            <button
-              onClick={onClose}
-              style={{
-                border: "none",
-                background: "#f4f4f5",
-                borderRadius: 8,
-                padding: 8,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <X size={16} color="#52525b" />
+            <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
+              <X size={16} />
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: "20px" }}>
-            {/* Google Drive Card */}
-            <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)",
-                    boxShadow: "0 4px 20px rgba(0, 172, 71, 0.15)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <GoogleDriveIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Google Drive</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Docs, Sheets, PDFs, and more
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {existingDriveSource && (
-                  <button
-                    onClick={async () => {
-                      if (onDuplicate) {
-                        setIsDuplicating(true);
-                        await onDuplicate(existingDriveSource.id);
-                        setIsDuplicating(false);
-                      }
-                    }}
-                    disabled={isDuplicating}
-                    style={{
-                      padding: "8px 14px",
-                      background: "#f4f4f5",
-                      color: "var(--db-text)",
-                      border: "none",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: isDuplicating ? "not-allowed" : "pointer",
-                      opacity: isDuplicating ? 0.7 : 1,
-                    }}
-                  >
-                    {isDuplicating ? "Adding..." : "Add Another Folder"}
-                  </button>
-                )}
-                <a
-                  href={`/api/sources/google-drive/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
-                  style={{
-                    padding: "8px 18px",
-                    background: "#ff6b00",
-                    color: "#ffffff",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "background 0.15s",
-                  }}
-                >
-                  {existingDriveSource ? "New Account" : "Connect"}
-                </a>
-              </div>
+          {/* Toolbar: search + category pills */}
+          <div className="src-modal__toolbar">
+            <div className="src-search src-search--sm">
+              <Search />
+              <input
+                type="text"
+                className="ui-input"
+                placeholder="Search sources"
+                aria-label="Search sources"
+                value={providerQuery}
+                onChange={(e) => setProviderQuery(e.target.value)}
+              />
             </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Google Docs", "Google Sheets", "PDFs", "Text Files", "Markdown"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
+            <div className="src-pills" role="group" aria-label="Category">
+              {CATEGORY_LABELS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`src-pill ${category === c.id ? "is-active" : ""}`}
+                  aria-pressed={category === c.id}
+                  onClick={() => setCategory(c.id)}
                 >
-                  {t}
-                </span>
+                  {c.label}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Notion Card */}
-          <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#8b5cf6";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #f5f3ff";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
-                    boxShadow: "0 4px 20px var(--db-shadow)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <NotionIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Notion</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Wikis, documents, and workspace databases
-                  </div>
-                </div>
+          <div className="src-modal__body">
+            {visibleProviders.length === 0 ? (
+              <EmptyState
+                compact
+                icon={<Search />}
+                title={`No sources match '${providerQuery}'`}
+                description="Try another name or category."
+              />
+            ) : (
+              <div className="src-provider-grid">
+                {visibleProviders.map((p) => {
+                  const isDrive = p.type === "google_drive";
+                  const isConnected = connectedTypes.includes(p.type);
+                  return (
+                    <div
+                      key={p.type}
+                      className="src-provider"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        // Enter or Space on the focused card presses its Connect control.
+                        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          (e.currentTarget.querySelector(".src-provider__cta") as HTMLElement | null)?.click();
+                        }
+                      }}
+                    >
+                      <div className="src-provider__top">
+                        <SourceLogo type={p.type} />
+                        <div className="src-provider__text">
+                          <div className="src-provider__name-row">
+                            <span className="src-provider__name">{p.name}</span>
+                            {isConnected && <StatusBadge tone="success" dot>Connected</StatusBadge>}
+                          </div>
+                          <span className="src-provider__desc">{p.description}</span>
+                        </div>
+                        <a href={connectHref[p.type]} className="ui-btn ui-btn--secondary ui-btn--sm src-provider__cta">
+                          {isDrive && existingDriveSource ? "New account" : "Connect"}
+                        </a>
+                      </div>
+                      {isDrive && existingDriveSource && (
+                        <div className="src-provider__extra">
+                          <button
+                            type="button"
+                            className="ui-btn ui-btn--ghost ui-btn--sm"
+                            onClick={async () => {
+                              if (onDuplicate) {
+                                setIsDuplicating(true);
+                                await onDuplicate(existingDriveSource.id);
+                                setIsDuplicating(false);
+                              }
+                            }}
+                            disabled={isDuplicating}
+                          >
+                            {isDuplicating ? <Loader2 className="animate-spin" /> : <Plus />}
+                            {isDuplicating ? "Adding..." : "Add another folder"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <a
-                href={`/api/sources/notion/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
-                style={{
-                  padding: "8px 18px",
-                  background: "#8b5cf6",
-                  color: "#ffffff",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s",
-                }}
-              >
-                Connect
-              </a>
-            </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Pages", "Databases", "Wikis", "Docs", "Nested Blocks"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
+            )}
 
-          {/* Gmail Card */}
-          <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#dc2626";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fef2f2";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)",
-                    boxShadow: "0 4px 20px rgba(234, 67, 53, 0.15)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <GmailIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Gmail</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Email threads, approvals, and customer decisions
-                  </div>
-                </div>
-              </div>
-              <a
-                href={`/api/sources/gmail/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
-                style={{
-                  padding: "8px 18px",
-                  background: "#dc2626",
-                  color: "#ffffff",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s",
-                }}
-              >
-                Connect
-              </a>
-            </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Threads", "Approvals", "Customers", "Inbox", "Sent"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
-
-          {/* Slack Card */}
-          <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#fdf2f8",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <SlackIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Slack</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Messages, channels, and files
-                  </div>
-                </div>
-              </div>
-              <a
-                href={`/api/sources/slack/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
-                style={{
-                  padding: "8px 18px",
-                  background: "#e01e5a",
-                  color: "#ffffff",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s",
-                }}
-              >
-                Connect
-              </a>
-            </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Channels", "Messages", "Files", "Threads"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Linear Card */}
-          <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #fff3ee";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#eef2ff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <LinearIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Linear</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Issues, projects, and cycles
-                  </div>
-                </div>
-              </div>
-              <a
-                href={`/api/sources/linear/connect?workspaceId=${WORKSPACE_ID}&userId=${USER_ID}`}
-                style={{
-                  padding: "8px 18px",
-                  background: "#5E6AD2",
-                  color: "#ffffff",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s",
-                }}
-              >
-                Connect
-              </a>
-            </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["Issues", "Projects", "Comments", "Cycles"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Manual Upload Card */}
-          <div
-            style={{
-              border: "1.5px solid #e4e4e7",
-              borderRadius: 12,
-              padding: "20px",
-              cursor: "pointer",
-              transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "#10b981";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 3px #d1fae5";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    background: "#ecfdf5",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <UploadCloud size={22} color="#10b981" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--db-text)" }}>Manual Upload</div>
-                  <div style={{ fontSize: 12.5, color: "var(--db-text-muted)", marginTop: 2 }}>
-                    Upload documents directly
-                  </div>
-                </div>
+            {/* Manual upload */}
+            <div className="src-dropzone">
+              <span className="ui-icon-well ui-icon-well--sm"><UploadCloud /></span>
+              <div className="src-dropzone__text">
+                <span className="type-body" style={{ fontWeight: 600 }}>Upload a file</span>
+                <span className="type-caption">PDF, DOC, DOCX, TXT, MD, CSV or JSON</span>
               </div>
               <button
+                type="button"
+                className="ui-btn ui-btn--secondary ui-btn--sm"
                 onClick={() => {
                   document.getElementById("manual-upload-input")?.click();
                   onClose();
                 }}
-                style={{
-                  padding: "8px 18px",
-                  background: "#10b981",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s",
-                }}
               >
-                Upload File
+                <Upload /> Choose file
               </button>
-            </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {["PDF", "DOCX", "TXT", "Markdown", "CSV"].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#52525b",
-                    background: "#f4f4f5",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
             </div>
           </div>
 
+          <div className="src-modal__footer src-modal__footer--split">
+            <span className="src-modal__note type-caption">
+              <Lock /> You can disconnect a source at any time.
+            </span>
           </div>
         </motion.div>
       </motion.div>
@@ -711,7 +365,7 @@ export default function SourcesMain() {
   const [configuringSourceId, setConfiguringSourceId] = useState<string | null>(null);
 
   // New state for tabs, dropdowns, toast notifications, and disconnect modals
-  const [activeTab, setActiveTab] = useState<"all" | "synced" | "syncing">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "synced" | "syncing" | "error">("all");
   const [activeDropdownSourceId, setActiveDropdownSourceId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterType, setFilterType] = useState<string | "all">("all");
@@ -806,27 +460,46 @@ export default function SourcesMain() {
     }
   };
 
+  // ── Duplicate a Google Drive connection (add another folder) ───
+  // Same logic the Add-source popup used; now also reachable from the row menu.
+  const handleDuplicate = async (id: string) => {
+    try {
+      const res = await fetch(`/api/sources/${id}/duplicate`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        fetchSources();
+        setShowModal(false);
+        if (data.data?.id) {
+          setConfiguringSourceId(data.data.id);
+          showToast("Google Drive connection added! Please select a folder.", "success");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // ── Manual Upload ──────────────────────────────────────────────
   const handleManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Reset the input so the same file can be uploaded again if needed
     e.target.value = '';
-    
+
     showToast(`Uploading ${file.name}...`, "info");
-    
+
     try {
       const formData = new FormData();
       formData.append("file", file);
-      
+
       const res = await fetch("/api/sources/upload", {
         method: "POST",
         body: formData,
       });
-      
+
       if (!res.ok) throw new Error("Upload failed");
-      
+
       showToast(`${file.name} uploaded successfully!`, "success");
       fetchSources(); // Refresh sources list
     } catch (err) {
@@ -840,6 +513,7 @@ export default function SourcesMain() {
     .filter((s) => {
       if (activeTab === "synced") return s.status === "synced";
       if (activeTab === "syncing") return s.status === "syncing";
+      if (activeTab === "error") return s.status === "error";
       return true;
     })
     .filter((s) => filterType === "all" || s.type === filterType)
@@ -848,9 +522,207 @@ export default function SourcesMain() {
   const totalIndexed = sources.reduce((sum, s) => sum + s.itemsIndexed, 0);
   const syncedCount = sources.filter((s) => s.status === "synced").length;
   const syncingCount = sources.filter((s) => s.status === "syncing").length;
+  const errorCount = sources.filter((s) => s.status === "error").length;
+  // Most recent sync across all sources, for the "Last sync" tile.
+  const lastSyncedAt = sources.reduce<string | null>((latest, s) => {
+    if (!s.lastSyncedAt) return latest;
+    if (!latest || new Date(s.lastSyncedAt).getTime() > new Date(latest).getTime()) return s.lastSyncedAt;
+    return latest;
+  }, null);
+
+  const tabs: { id: "all" | "synced" | "syncing" | "error"; label: string; count: number }[] = [
+    { id: "all", label: "All", count: sources.length },
+    { id: "synced", label: "Synced", count: syncedCount },
+    { id: "syncing", label: "Syncing", count: syncingCount },
+    { id: "error", label: "Error", count: errorCount },
+  ];
+
+  const kpis: { label: string; value: ReactNode; icon: ReactNode; hint: string; hintTone?: "success" | "warning" | "error"; accent?: boolean }[] = [
+    {
+      label: "Connected sources",
+      value: sources.length,
+      icon: <Database />,
+      hint: syncingCount > 0 ? `${syncingCount} syncing` : "All systems operational",
+      hintTone: syncingCount > 0 ? "warning" : "success",
+      accent: true,
+    },
+    { label: "Documents indexed", value: formatCount(totalIndexed), icon: <FileText />, hint: "Across all sources" },
+    {
+      label: "Last sync",
+      value: formatRelative(lastSyncedAt),
+      icon: <Clock />,
+      hint: `${syncedCount} of ${sources.length} synced`,
+    },
+    {
+      label: "Needs attention",
+      value: errorCount,
+      icon: <AlertTriangle />,
+      hint: errorCount > 0 ? "Sources with sync errors" : "No sync errors",
+      hintTone: errorCount > 0 ? "error" : undefined,
+    },
+  ];
+
+  const rowMode = viewMode === "list";
+
+  const renderSource = (source: Source) => {
+    const access = accessFor(source);
+    const isSyncing = source.status === "syncing";
+    return (
+      <div
+        key={source.id}
+        className={`src-source ${rowMode ? "src-source--row" : "src-source--card"}`}
+      >
+        {/* Identity */}
+        <div className="src-source__id">
+          <SourceLogo type={source.type} />
+          <div className="src-source__text">
+            <div className="src-source__name" title={source.name}>{source.name}</div>
+            <div className="src-source__type">
+              {(source.config as { email?: string })?.email ??
+                (source.config as { ownerEmail?: string })?.ownerEmail ??
+                source.type.replace("_", " ")}
+            </div>
+          </div>
+        </div>
+
+        {/* More menu */}
+        <div className="src-menu-wrap src-source__more">
+          <button
+            type="button"
+            title="More options"
+            aria-label="More options"
+            className="ui-icon-btn ui-icon-btn--sm src-more-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDropdownSourceId(
+                activeDropdownSourceId === source.id ? null : source.id
+              );
+            }}
+          >
+            <MoreHorizontal />
+          </button>
+
+          {activeDropdownSourceId === source.id && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="ui-popover src-menu"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {source.type === "google_drive" && (
+                <button
+                  type="button"
+                  className="ui-menu-item"
+                  onClick={() => {
+                    setConfiguringSourceId(source.id);
+                    setActiveDropdownSourceId(null);
+                  }}
+                >
+                  <Folder />
+                  Configure scope
+                </button>
+              )}
+              <button
+                type="button"
+                className="ui-menu-item"
+                onClick={() => {
+                  setViewingHistorySourceId(source.id);
+                  setActiveDropdownSourceId(null);
+                }}
+              >
+                <History />
+                View sync history
+              </button>
+              <button
+                type="button"
+                className="ui-menu-item"
+                onClick={() => {
+                  setManagingSource(source);
+                  setActiveDropdownSourceId(null);
+                }}
+              >
+                <FileText />
+                Manage documents
+              </button>
+              {source.type === "google_drive" && (
+                <button
+                  type="button"
+                  className="ui-menu-item"
+                  onClick={() => {
+                    handleDuplicate(source.id);
+                    setActiveDropdownSourceId(null);
+                  }}
+                >
+                  <Copy />
+                  Add another folder
+                </button>
+              )}
+              <div className="src-menu__divider" />
+              <button
+                type="button"
+                className="ui-menu-item ui-menu-item--danger"
+                onClick={() => {
+                  setDisconnectingSource(source);
+                  setActiveDropdownSourceId(null);
+                }}
+              >
+                <X />
+                Disconnect
+              </button>
+            </motion.div>
+          )}
+        </div>
+
+        {source.errorMessage && (
+          <div className="src-source__error">
+            <AlertCircle />
+            <span>{source.errorMessage}</span>
+          </div>
+        )}
+
+        {/* Facts: status, items, last sync, access */}
+        <div className="src-source__meta">
+          <div className="src-source__cell src-source__status">
+            <span className="src-source__label">Status</span>
+            <SourceStatusBadge status={source.status} />
+          </div>
+          <div className="src-source__cell src-source__count">
+            <span className="src-source__label">Indexed</span>
+            <span className="src-source__value">{source.itemsIndexed.toLocaleString()}</span>
+          </div>
+          <div className="src-source__cell src-source__synced">
+            <span className="src-source__label">Last synced</span>
+            <span className="src-source__caption">
+              {source.lastSyncedAt ? new Date(source.lastSyncedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never"}
+            </span>
+          </div>
+          <div className="src-source__cell src-source__access">
+            <span className="src-source__label">Access</span>
+            <span className="ui-badge ui-badge--neutral" title={access.title}>{access.label}</span>
+          </div>
+        </div>
+
+        {/* Sync now */}
+        <div className="src-source__sync">
+          <button
+            type="button"
+            title="Sync now"
+            className="ui-btn ui-btn--secondary ui-btn--sm"
+            disabled={isSyncing}
+            onClick={() => handleSync(source.id)}
+          >
+            <RefreshCw className={isSyncing ? "animate-spin" : ""} />
+            {isSyncing ? "Syncing..." : "Sync now"}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
+    <div className="src-main">
       {/* Hidden file input for Manual Uploads */}
       <input
         type="file"
@@ -859,661 +731,210 @@ export default function SourcesMain() {
         onChange={handleManualUpload}
         accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
       />
-      {/* ── Dynamic Success/Info Toast ───────────────────────────────── */}
+      {/* ── In-page toast ───────────────────────────────── */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -40 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{
-              position: "fixed",
-              top: 24,
-              right: 24,
-              zIndex: 9999,
-              background: "var(--db-text)",
-              color: "#ffffff",
-              padding: "14px 20px",
-              borderRadius: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              fontSize: 13.5,
-              fontWeight: 600,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-            }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="src-toast"
+            role="status"
           >
-            {toastMessage.type === "success" ? (
-              <CheckCircle2 size={18} color="#4ade80" />
-            ) : (
-              <AlertCircle size={18} color="#60a5fa" />
-            )}
+            {toastMessage.type === "success" ? <CheckCircle2 /> : <Info />}
             {toastMessage.text}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ── Header ───────────────────────────────────────────────── */}
-      <motion.div
-        className="src-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div>
-          <h1 className="src-title">Sources</h1>
-          <p className="src-subtitle">Connect, manage, and monitor all your data sources.</p>
+      <div className="ui-page-header">
+        <div className="ui-page-header__text">
+          <h1 className="type-title">Sources</h1>
+          <p className="type-subtitle">Connect, manage, and monitor all your data sources.</p>
         </div>
-        <div className="src-header-actions">
+        <div className="ui-page-header__actions">
           <button
-            className="src-btn-primary"
-            onClick={() => setShowModal(true)}
-          >
-            <Plus size={16} strokeWidth={2.5} /> Add Source
-          </button>
-          <button
-            className="src-btn-secondary"
+            type="button"
+            className="ui-icon-btn"
             onClick={fetchSources}
             disabled={loading}
+            title="Refresh"
+            aria-label="Refresh"
           >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            Refresh
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            type="button"
+            className="ui-btn ui-btn--secondary"
+            onClick={() => document.getElementById("manual-upload-input")?.click()}
+          >
+            <Upload /> Upload file
+          </button>
+          <button
+            type="button"
+            className="ui-btn ui-btn--primary"
+            onClick={() => setShowModal(true)}
+          >
+            <Plus /> Add source
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── KPI Cards ─────────────────────────────────────────────── */}
-      <motion.div
-        className="src-kpi-grid"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div className="src-kpi-card">
-          <div className="src-kpi-icon-wrap">
-            <div className="src-kpi-icon-inner">
-              <Database size={16} style={{ color: "#ff6b00" }} />
+      {/* ── KPI tiles ─────────────────────────────────────────────── */}
+      <div className="src-kpi-grid">
+        {kpis.map((k) => (
+          <div key={k.label} className="ui-kpi src-kpi">
+            <span className={`ui-icon-well${k.accent ? " ui-icon-well--accent" : ""}`}>{k.icon}</span>
+            <div className="src-kpi__values">
+              <span className="type-metric">{k.value}</span>
+              <span className="type-caption" style={{ color: "var(--text-secondary)" }}>{k.label}</span>
+              <span className={`src-kpi__hint${k.hintTone ? ` src-kpi__hint--${k.hintTone}` : ""}`}>
+                {k.hintTone && <span className="ui-dot" aria-hidden="true" />}
+                {k.hint}
+              </span>
             </div>
           </div>
-          <div>
-            <div className="src-kpi-val">{sources.length}</div>
-            <div className="src-kpi-label">Connected Sources</div>
-            <div className="src-kpi-trend src-trend-good">
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: syncingCount > 0 ? "#2563eb" : "#16a34a" }} />
-              {syncingCount > 0 ? `${syncingCount} syncing` : "All systems operational"}
-            </div>
-          </div>
-        </div>
-        <div className="src-kpi-card">
-          <div className="src-kpi-icon-wrap">
-            <div className="src-kpi-icon-inner">
-              <FileText size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="src-kpi-val">
-              {totalIndexed > 1000
-                ? `${(totalIndexed / 1000).toFixed(1)}K`
-                : totalIndexed}
-            </div>
-            <div className="src-kpi-label">Documents Indexed</div>
-            <div className="src-kpi-trend src-trend-good">
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
-              Across all sources
-            </div>
-          </div>
-        </div>
-        <div className="src-kpi-card">
-          <div className="src-kpi-icon-wrap">
-            <div className="src-kpi-icon-inner">
-              <Clock size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="src-kpi-val">
-              {sources.length > 0
-                ? `${Math.round((syncedCount / sources.length) * 100)}%`
-                : "—"}
-            </div>
-            <div className="src-kpi-label">Sync Success Rate</div>
-            <div className="src-kpi-trend src-trend-good">
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
-              {syncedCount}/{sources.length} synced
-            </div>
-          </div>
-        </div>
-        <div className="src-kpi-card">
-          <div className="src-kpi-icon-wrap">
-            <div className="src-kpi-icon-inner">
-              <Activity size={16} style={{ color: "#ff6b00" }} />
-            </div>
-          </div>
-          <div>
-            <div className="src-kpi-val">{syncingCount > 0 ? syncingCount : 0}</div>
-            <div className="src-kpi-label">Active Syncs</div>
-            <div className="src-kpi-trend src-trend-good">
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: syncingCount > 0 ? "#2563eb" : "#16a34a" }} />
-              {syncingCount > 0 ? "In progress" : "All idle"}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+        ))}
+      </div>
 
-      {/* ── Table ─────────────────────────────────────────────────── */}
-      <motion.div
-        className="src-table-card"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <div className="src-table-header">
-          <div className="src-tabs">
+      {/* ── Filter bar ────────────────────────────────────────────── */}
+      <div className="src-filter-bar">
+        <div className="src-seg" role="group" aria-label="Filter by status">
+          {tabs.map((t) => (
             <button
-              onClick={() => setActiveTab("all")}
-              className={`src-tab ${activeTab === "all" ? "active" : ""}`}
-              style={{ background: "transparent", border: "none", font: "inherit", cursor: "pointer" }}
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id)}
+              className={`src-seg__item ${activeTab === t.id ? "is-active" : ""}`}
+              aria-pressed={activeTab === t.id}
             >
-              All Sources <span className="src-tab-count">{sources.length}</span>
+              {t.label} <span className="src-seg__count">{t.count}</span>
             </button>
-            <button
-              onClick={() => setActiveTab("synced")}
-              className={`src-tab ${activeTab === "synced" ? "active" : ""}`}
-              style={{ background: "transparent", border: "none", font: "inherit", cursor: "pointer" }}
-            >
-              Synced <span className="src-tab-count">{syncedCount}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("syncing")}
-              className={`src-tab ${activeTab === "syncing" ? "active" : ""}`}
-              style={{ background: "transparent", border: "none", font: "inherit", cursor: "pointer" }}
-            >
-              Syncing <span className="src-tab-count">{syncingCount}</span>
-            </button>
-          </div>
-          <div className="src-table-actions">
-            <div className="src-search">
-              <Search size={14} style={{ color: "var(--db-text-muted)" }} />
-              <input
-                type="text"
-                className="src-search-input"
-                placeholder="Search sources..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div style={{ position: "relative" }} className="src-filter-container">
-              <button 
-                className={`src-filter-btn ${filterType !== "all" ? "active-filter" : ""}`}
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                style={filterType !== "all" ? { background: "#eff6ff", color: "#2563eb", borderColor: "#bfdbfe" } : {}}
-              >
-                <Filter size={14} /> {filterType === "all" ? "Filter" : filterType.replace("_", " ")}
-              </button>
-              
-              {showFilterDropdown && (
-                <div style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  marginTop: 6,
-                  background: "var(--db-panel)",
-                  border: "1px solid #e4e4e7",
-                  borderRadius: 8,
-                  padding: 4,
-                  minWidth: 140,
-                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                  zIndex: 50,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2
-                }}>
-                  <button 
-                    onClick={() => { setFilterType("all"); setShowFilterDropdown(false); }}
-                    style={{ padding: "6px 12px", textAlign: "left", fontSize: 13, background: filterType === "all" ? "#f4f4f5" : "transparent", border: "none", borderRadius: 6, cursor: "pointer" }}
-                  >
-                    All Types
-                  </button>
-                  {Array.from(new Set(sources.map(s => s.type))).map(type => (
-                    <button 
-                      key={type}
-                      onClick={() => { setFilterType(type); setShowFilterDropdown(false); }}
-                      style={{ padding: "6px 12px", textAlign: "left", fontSize: 13, background: filterType === type ? "#f4f4f5" : "transparent", border: "none", borderRadius: 6, cursor: "pointer", textTransform: "capitalize" }}
-                    >
-                      {type.replace("_", " ")}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button 
-              className="src-list-btn"
-              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
-            >
-              {viewMode === "grid" ? <List size={14} /> : <LayoutGrid size={14} />}
-            </button>
-          </div>
+          ))}
         </div>
-
-        {/* Empty state */}
-        {!loading && sources.length === 0 && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "60px 20px",
-              gap: 16,
-            }}
-          >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                background: "#fff3ee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+        <div className="src-filter-bar__right">
+          <div className="src-search">
+            <Search />
+            <input
+              type="text"
+              className="ui-input"
+              placeholder="Search sources..."
+              aria-label="Search sources"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="src-filter-container">
+            <button
+              type="button"
+              className={`ui-btn ui-btn--secondary src-filter-btn ${filterType !== "all" ? "active-filter" : ""}`}
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              style={{ textTransform: "capitalize" }}
             >
-              <Database size={28} color="#ff6b00" />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--db-text)", marginBottom: 6 }}>
-                No sources connected yet
-              </div>
-              <div style={{ fontSize: 13.5, color: "var(--db-text-muted)", marginBottom: 20 }}>
-                Connect Google Drive to start indexing your company data.
-              </div>
-              <div style={{ display: "flex", justifyContent: "center" }}>
+              <Filter /> {filterType === "all" ? "Filter" : filterType.replace("_", " ")}
+            </button>
+
+            {showFilterDropdown && (
+              <div className="ui-popover src-menu" style={{ minWidth: 160 }}>
                 <button
-                  className="src-btn-primary"
-                  onClick={() => setShowModal(true)}
+                  type="button"
+                  className={`ui-menu-item ${filterType === "all" ? "is-selected" : ""}`}
+                  onClick={() => { setFilterType("all"); setShowFilterDropdown(false); }}
                 >
-                  <Plus size={16} strokeWidth={2.5} /> Add your first source
+                  All types
+                  {filterType === "all" && <Check className="src-menu__check" />}
                 </button>
+                {Array.from(new Set(sources.map(s => s.type))).map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    className={`ui-menu-item ${filterType === type ? "is-selected" : ""}`}
+                    style={{ textTransform: "capitalize" }}
+                    onClick={() => { setFilterType(type); setShowFilterDropdown(false); }}
+                  >
+                    {type.replace("_", " ")}
+                    {filterType === type && <Check className="src-menu__check" />}
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Loading skeleton */}
-        {loading && (
-          <div style={{ padding: "24px 20px" }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  height: 56,
-                  background: "#f4f4f5",
-                  borderRadius: 8,
-                  marginBottom: 8,
-                  animation: "pulse 1.5s ease-in-out infinite",
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Data table */}
-        {!loading && filtered.length > 0 && (
-          <motion.div 
-            layout
-            style={{ 
-              display: "grid", 
-              gridTemplateColumns: viewMode === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr", 
-              gap: 20, 
-              width: "100%" 
-            }}
+          <button
+            type="button"
+            className="ui-icon-btn"
+            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+            title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+            aria-label={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
           >
-            <AnimatePresence mode="popLayout">
-            {filtered.map((source) => (
-              <motion.div
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                key={source.id}
-                style={{
-                  border: "1px solid #e4e4e7",
-                  borderRadius: 16,
-                  padding: 20,
-                  background: "var(--db-panel)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 16,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                  transition: "box-shadow 0.2s, border-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.borderColor = "#ff6b00";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px rgba(255, 107, 0, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.borderColor = "var(--db-border)";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
-                }}
-              >
-                {/* Header */}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #e2e8f0" }}>
-                      {source.type === "google_drive" && <GoogleDriveIcon size={24} />}
-                      {source.type === "notion" && <NotionIcon size={24} />}
-                      {source.type === "gmail" && <GmailIcon size={24} />}
-                      {source.type === "slack" && <SlackIcon size={24} />}
-                      {source.type === "linear" && <LinearIcon size={24} />}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--db-text)" }}>{source.name}</div>
-                      <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2, textTransform: "capitalize" }}>
-                        {(source.config as { email?: string })?.email ??
-                          (source.config as { ownerEmail?: string })?.ownerEmail ??
-                          source.type.replace("_", " ")}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ position: "relative" }}>
-                    <button
-                      title="More options"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDropdownSourceId(
-                          activeDropdownSourceId === source.id ? null : source.id
-                        );
-                      }}
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        padding: 4,
-                        color: "#a1a1aa",
-                      }}
-                    >
-                      <MoreHorizontal size={18} />
-                    </button>
+            {viewMode === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}
+          </button>
+        </div>
+      </div>
 
-                    {/* Dropdown Menu */}
-                    {activeDropdownSourceId === source.id && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                        transition={{ duration: 0.15 }}
-                        style={{
-                          position: "absolute",
-                          right: 0,
-                          top: "100%",
-                          marginTop: 6,
-                          background: "var(--db-panel)",
-                          border: "1px solid #e4e4e7",
-                          borderRadius: 8,
-                          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                          zIndex: 50,
-                          minWidth: 160,
-                          padding: 4,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 2,
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => {
-                            handleSync(source.id);
-                            setActiveDropdownSourceId(null);
-                          }}
-                          disabled={source.status === "syncing"}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "8px 12px",
-                            background: "none",
-                            border: "none",
-                            borderRadius: 6,
-                            width: "100%",
-                            textAlign: "left",
-                            fontSize: 12.5,
-                            fontWeight: 500,
-                            color: source.status === "syncing" ? "#a1a1aa" : "#3f3f46",
-                            cursor: source.status === "syncing" ? "not-allowed" : "pointer",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (source.status !== "syncing") e.currentTarget.style.background = "#f4f4f5";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "none";
-                          }}
-                        >
-                          <RefreshCw size={13} className={source.status === "syncing" ? "animate-spin" : ""} />
-                          Sync Now
-                        </button>
-                        <button
-                          onClick={() => {
-                            setViewingHistorySourceId(source.id);
-                            setActiveDropdownSourceId(null);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "8px 12px",
-                            background: "none",
-                            border: "none",
-                            borderRadius: 6,
-                            width: "100%",
-                            textAlign: "left",
-                            fontSize: 12.5,
-                            fontWeight: 500,
-                            color: "#3f3f46",
-                            cursor: "pointer",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#f4f4f5";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "none";
-                          }}
-                        >
-                          <History size={13} style={{ color: "#ff6b00" }} />
-                          View Sync History
-                        </button>
-                        {source.type === "google_drive" && (
-                          <button
-                            onClick={() => {
-                              setConfiguringSourceId(source.id);
-                              setActiveDropdownSourceId(null);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              padding: "8px 12px",
-                              background: "none",
-                              border: "none",
-                              borderRadius: 6,
-                              width: "100%",
-                              textAlign: "left",
-                              fontSize: 12.5,
-                              fontWeight: 500,
-                              color: "#3f3f46",
-                              cursor: "pointer",
-                              transition: "background 0.15s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "#f4f4f5";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "none";
-                            }}
-                          >
-                            <Folder size={13} style={{ color: "#ff6b00" }} />
-                            Configure Scope
-                          </button>
-                        )}
-                        <div style={{ height: 1, background: "var(--db-border)", margin: "4px 0" }} />
-                        <button
-                          onClick={() => {
-                            setDisconnectingSource(source);
-                            setActiveDropdownSourceId(null);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "8px 12px",
-                            background: "none",
-                            border: "none",
-                            borderRadius: 6,
-                            width: "100%",
-                            textAlign: "left",
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            color: "#ef4444",
-                            cursor: "pointer",
-                            transition: "background 0.15s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#fee2e2";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "none";
-                          }}
-                        >
-                          <X size={13} />
-                          Disconnect
-                        </button>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
+      {/* ── Source list ───────────────────────────────────────────── */}
+      {!loading && sources.length === 0 && (
+        <div className="src-empty-box">
+          <EmptyState
+            icon={<Link2 />}
+            title="Connect your first source"
+            description="Connect a tool or upload a file to start indexing your company data."
+            action={
+              <button type="button" className="ui-btn ui-btn--primary" onClick={() => setShowModal(true)}>
+                <Plus /> Add source
+              </button>
+            }
+          />
+        </div>
+      )}
 
-                {/* Sync Status & Stats */}
-                <div style={{ background: "var(--db-bg)", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 12, border: "1px solid #f4f4f5" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#52525b" }}>Status</span>
-                    <StatusBadge status={source.status} />
-                  </div>
-                  
-                  {source.errorMessage && (
-                    <div style={{ fontSize: 11.5, color: "#dc2626", background: "#fee2e2", padding: "6px 10px", borderRadius: 6 }}>
-                      {source.errorMessage}
-                    </div>
-                  )}
+      {loading && (
+        <div className="src-skeleton-list" aria-hidden="true">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="ui-skeleton src-skeleton-row" />
+          ))}
+        </div>
+      )}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#52525b" }}>Indexed Docs</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#18181b" }}>{source.itemsIndexed.toLocaleString()}</span>
-                  </div>
+      {!loading && sources.length > 0 && filtered.length === 0 && (
+        <div className="src-empty-box">
+          <EmptyState compact icon={<Search />} title="No sources match these filters" description="Try another status, type or search term." />
+        </div>
+      )}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#52525b" }}>Last Sync</span>
-                    <span style={{ fontSize: 12, color: "var(--db-text-muted)" }}>
-                      {source.lastSyncedAt ? new Date(source.lastSyncedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions Footer */}
-                <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-                  <button
-                    title="Manage indexed documents"
-                    onClick={() => setManagingSource(source)}
-                    style={{
-                      flex: 1,
-                      border: "1px solid #ff6b00",
-                      background: "#fff3ee",
-                      borderRadius: 8,
-                      padding: "8px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: "#ff6b00",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#ffd7c7")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#fff3ee")}
-                  >
-                    <FileText size={14} />
-                    Manage
-                  </button>
-
-                  <button
-                    title="Sync now"
-                    disabled={source.status === "syncing"}
-                    onClick={() => handleSync(source.id)}
-                    style={{
-                      flex: 1,
-                      border: "1px solid #e4e4e7",
-                      background: "var(--db-panel)",
-                      borderRadius: 8,
-                      padding: "8px",
-                      cursor: source.status === "syncing" ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      color: "#52525b",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => { if (source.status !== "syncing") e.currentTarget.style.background = "#f4f4f5"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--db-panel)"; }}
-                  >
-                    <RefreshCw
-                      size={14}
-                      className={source.status === "syncing" ? "animate-spin" : ""}
-                    />
-                    {source.status === "syncing" ? "Syncing..." : "Sync"}
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {filtered.length > 0 && (
-          <div className="src-table-footer">
-            Showing {filtered.length} of {sources.length} source
-            {sources.length !== 1 ? "s" : ""}
+      {!loading && filtered.length > 0 && (
+        rowMode ? (
+          <div className="src-list">
+            <div className="src-list-head" aria-hidden="true">
+              <span className="type-label">Source</span>
+              <span className="type-label">Status</span>
+              <span className="type-label">Indexed</span>
+              <span className="type-label">Last synced</span>
+              <span className="type-label">Access</span>
+              <span style={{ gridColumn: "6 / 8" }} />
+            </div>
+            {filtered.map(renderSource)}
           </div>
-        )}
-      </motion.div>
+        ) : (
+          <div className="src-grid">{filtered.map(renderSource)}</div>
+        )
+      )}
+
+      {filtered.length > 0 && (
+        <div className="src-list-footer">
+          Showing {filtered.length} of {sources.length} source
+          {sources.length !== 1 ? "s" : ""}
+        </div>
+      )}
 
       {/* ── Connect Modal ─────────────────────────────────────────── */}
       {showModal && (
-        <ConnectModal 
-          onClose={() => setShowModal(false)} 
+        <ConnectModal
+          onClose={() => setShowModal(false)}
           existingDriveSource={sources.find((s: Source) => s.type === "google_drive")}
-          onDuplicate={async (id) => {
-            try {
-              const res = await fetch(`/api/sources/${id}/duplicate`, { method: "POST" });
-              if (res.ok) {
-                const data = await res.json();
-                fetchSources();
-                setShowModal(false);
-                if (data.data?.id) {
-                  setConfiguringSourceId(data.data.id);
-                  showToast("Google Drive connection added! Please select a folder.", "success");
-                }
-              }
-            } catch (e) {
-              console.error(e);
-            }
-          }}
+          connectedTypes={Array.from(new Set(sources.map((s) => s.type)))}
+          onDuplicate={handleDuplicate}
         />
       )}
 
@@ -1530,110 +951,69 @@ export default function SourcesMain() {
       <AnimatePresence>
         {disconnectingSource && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10000,
-              backdropFilter: "blur(4px)",
-            }}
+            {...modalFade}
+            className="src-modal-overlay"
+            style={{ zIndex: 10000 }}
             onClick={() => setDisconnectingSource(null)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              {...modalSlide}
+              className="ui-popover src-modal"
+              style={{ width: "min(480px, calc(100vw - 32px))" }}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="src-disconnect-title"
               onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "var(--db-panel)",
-                borderRadius: 16,
-                padding: "28px",
-                width: "100%",
-                maxWidth: 480,
-                boxShadow: "0 24px 64px rgba(0,0,0,0.15)",
-              }}
             >
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "start", gap: 14, marginBottom: 20 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    background: "#fee2e2",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
+              <div className="src-modal__header">
+                <div className="src-modal__heading">
+                  <span className="src-danger-tile"><AlertCircle size={20} /></span>
+                  <div className="src-modal__titles">
+                    <h3 id="src-disconnect-title" className="type-heading">Disconnect data source?</h3>
+                    <p className="type-body" style={{ color: "var(--text-secondary)" }}>
+                      Are you sure you want to disconnect <strong className="src-strong">{disconnectingSource.name}</strong>?
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="ui-icon-btn ui-icon-btn--sm"
+                  onClick={() => setDisconnectingSource(null)}
+                  disabled={deleting}
+                  aria-label="Close"
+                  title="Close"
                 >
-                  <AlertCircle size={20} color="#dc2626" />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 17.5, fontWeight: 800, color: "var(--db-text)" }}>
-                    Disconnect Data Source?
-                  </h3>
-                  <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4 }}>
-                    Are you sure you want to disconnect <strong style={{ color: "#18181b" }}>{disconnectingSource.name}</strong>?
-                  </p>
-                </div>
+                  <X size={16} />
+                </button>
               </div>
 
               {/* Consequence Box */}
-              <div
-                style={{
-                  background: "var(--db-bg)",
-                  border: "1.5px dashed #f3f4f6",
-                  borderRadius: 10,
-                  padding: 14,
-                  marginBottom: 24,
-                }}
-              >
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#ef4444", marginBottom: 6 }}>
-                  This action is permanent and will:
+              <div className="src-modal__body">
+                <div className="src-consequences">
+                  <div className="src-consequences__title">This action is permanent and will:</div>
+                  <ul>
+                    <li>Revoke access tokens and stop all background syncing.</li>
+                    <li>Permanently erase all {disconnectingSource.itemsIndexed.toLocaleString()} indexed documents.</li>
+                    <li>Wipe out all database text chunks and search vectors.</li>
+                    <li>Remove it from workspace memory and chat history references.</li>
+                  </ul>
                 </div>
-                <ul
-                  style={{
-                    fontSize: 12,
-                    color: "#52525b",
-                    margin: 0,
-                    paddingLeft: 18,
-                    lineHeight: "1.6",
-                  }}
-                >
-                  <li>Revoke access tokens and stop all background syncing.</li>
-                  <li>Permanently erase all {disconnectingSource.itemsIndexed.toLocaleString()} indexed documents.</li>
-                  <li>Wipe out all database text chunks and search vectors.</li>
-                  <li>Remove it from workspace memory and chat history references.</li>
-                </ul>
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", justifyContent: "end", gap: 10 }}>
+              <div className="src-modal__footer">
                 <button
+                  type="button"
+                  className="ui-btn ui-btn--secondary"
                   onClick={() => setDisconnectingSource(null)}
                   disabled={deleting}
-                  style={{
-                    padding: "8px 16px",
-                    background: "var(--db-panel)",
-                    border: "1px solid #e4e4e7",
-                    color: "#52525b",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: deleting ? "not-allowed" : "pointer",
-                  }}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
+                  className="ui-btn ui-btn--destructive"
                   onClick={async () => {
                     setDeleting(true);
                     try {
@@ -1654,26 +1034,13 @@ export default function SourcesMain() {
                     }
                   }}
                   disabled={deleting}
-                  style={{
-                    padding: "8px 18px",
-                    background: deleting ? "#fca5a5" : "#ef4444",
-                    border: "none",
-                    color: "#ffffff",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: deleting ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
                 >
                   {deleting ? (
                     <>
-                      <Loader2 size={13} className="animate-spin" /> Disconnecting...
+                      <Loader2 className="animate-spin" /> Disconnecting...
                     </>
                   ) : (
-                    "Yes, Disconnect"
+                    "Yes, disconnect"
                   )}
                 </button>
               </div>
@@ -1868,118 +1235,69 @@ function ConfigureSourceModal({
     }
   };
 
+
+  const saveDisabled = saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0);
+
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000,
-          backdropFilter: "blur(4px)",
-        }}
+        {...modalFade}
+        className="src-modal-overlay"
+        style={{ zIndex: 1000 }}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          {...modalSlide}
+          className="ui-popover src-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="src-config-title"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: "var(--db-panel)",
-            borderRadius: 16,
-            padding: "28px",
-            width: "100%",
-            maxWidth: 540,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.15)",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "90vh",
-          }}
         >
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", marginBottom: 20 }}>
-            <div>
-              <h2 style={{ fontSize: 18.5, fontWeight: 800, color: "var(--db-text)" }}>Configure Source Settings</h2>
-              <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4 }}>
-                Manage settings for <strong style={{ color: "#18181b" }}>{sourceName}</strong>.
+          <div className="src-modal__header">
+            <div className="src-modal__titles">
+              <h2 id="src-config-title" className="type-heading">Configure source settings</h2>
+              <p className="type-body" style={{ color: "var(--text-secondary)" }}>
+                Manage settings for <strong className="src-strong">{sourceName}</strong>.
               </p>
             </div>
-            <button
-              onClick={onClose}
-              style={{
-                border: "none",
-                background: "#f4f4f5",
-                borderRadius: 8,
-                padding: 6,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <X size={15} color="#52525b" />
+            <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
+              <X size={16} />
             </button>
           </div>
 
           {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 12 }}>
-              <Loader2 size={24} className="animate-spin" style={{ color: "#ff6b00" }} />
-              <span style={{ fontSize: 13.5, color: "var(--db-text-muted)", fontWeight: 500 }}>Fetching source configuration...</span>
+            <div className="src-modal-loading">
+              <Loader2 size={24} className="animate-spin src-spinner" />
+              <span className="type-caption">Fetching source configuration...</span>
             </div>
           ) : (
             <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
-              
+            <div className="src-modal__body">
+
               {(sourceType === "google_drive" || sourceType === "github") && (
-                <div style={{ display: "flex", borderBottom: "1px solid #e4e4e7" }}>
+                <div className="src-seg" role="group" aria-label="Settings section" style={{ alignSelf: "flex-start" }}>
                   <button
-                    style={{
-                      padding: "8px 16px",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: activeConfigTab === "sync" ? "2px solid #18181b" : "2px solid transparent",
-                      color: activeConfigTab === "sync" ? "#18181b" : "var(--db-text-muted)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer"
-                    }}
+                    type="button"
+                    className={`src-seg__item ${activeConfigTab === "sync" ? "is-active" : ""}`}
+                    aria-pressed={activeConfigTab === "sync"}
                     onClick={() => setActiveConfigTab("sync")}
                   >
                     Scope
                   </button>
                   <button
-                    style={{
-                      padding: "8px 16px",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: activeConfigTab === "schedule" ? "2px solid #18181b" : "2px solid transparent",
-                      color: activeConfigTab === "schedule" ? "#18181b" : "var(--db-text-muted)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer"
-                    }}
+                    type="button"
+                    className={`src-seg__item ${activeConfigTab === "schedule" ? "is-active" : ""}`}
+                    aria-pressed={activeConfigTab === "schedule"}
                     onClick={() => setActiveConfigTab("schedule")}
                   >
                     Schedule
                   </button>
                   <button
-                    style={{
-                      padding: "8px 16px",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: activeConfigTab === "permissions" ? "2px solid #18181b" : "2px solid transparent",
-                      color: activeConfigTab === "permissions" ? "#18181b" : "var(--db-text-muted)",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer"
-                    }}
+                    type="button"
+                    className={`src-seg__item ${activeConfigTab === "permissions" ? "is-active" : ""}`}
+                    aria-pressed={activeConfigTab === "permissions"}
                     onClick={() => setActiveConfigTab("permissions")}
                   >
                     Permissions
@@ -1989,62 +1307,36 @@ function ConfigureSourceModal({
 
               {activeConfigTab === "sync" && (sourceType === "google_drive" || sourceType === "github") && (
                 <>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="src-option-list">
                 {/* Option 1: Sync Everything */}
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    border: syncOption === "all" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    background: syncOption === "all" ? "#fff3ee" : "var(--db-panel)",
-                    transition: "all 0.15s",
-                  }}
-                >
+                <label className={`src-option ${syncOption === "all" ? "is-selected" : ""}`}>
                   <input
                     type="radio"
                     name="syncOption"
                     value="all"
                     checked={syncOption === "all"}
                     onChange={() => setSyncOption("all")}
-                    style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                   />
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)" }}>Ingest all {sourceType === "github" ? "repositories" : "files and items"}</div>
-                    <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                  <div className="src-option__text">
+                    <div className="type-body" style={{ fontWeight: 600 }}>Ingest all {sourceType === "github" ? "repositories" : "files and items"}</div>
+                    <div className="type-caption">
                       {sourceType === "github" ? "Sync all repositories you have access to." : "Sync all supported documents across the entire Google Drive space."}
                     </div>
                   </div>
                 </label>
 
                 {/* Option 2: Sync Specific Folder/Repo */}
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    border: (syncOption === "folder" || syncOption === "repo") ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    background: (syncOption === "folder" || syncOption === "repo") ? "#fff3ee" : "var(--db-panel)",
-                    transition: "all 0.15s",
-                  }}
-                >
+                <label className={`src-option ${(syncOption === "folder" || syncOption === "repo") ? "is-selected" : ""}`}>
                   <input
                     type="radio"
                     name="syncOption"
                     value={sourceType === "github" ? "repo" : "folder"}
                     checked={syncOption === "folder" || syncOption === "repo"}
                     onChange={() => setSyncOption(sourceType === "github" ? "repo" : "folder")}
-                    style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                   />
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)" }}>Sync specific {sourceType === "github" ? "repositories" : "folders"}</div>
-                    <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                  <div className="src-option__text">
+                    <div className="type-body" style={{ fontWeight: 600 }}>Sync specific {sourceType === "github" ? "repositories" : "folders"}</div>
+                    <div className="type-caption">
                       {sourceType === "github" ? "Restrict sync scope strictly to specific repositories." : "Restrict sync scope strictly to specific folders and their nested subfolders."}
                     </div>
                   </div>
@@ -2060,44 +1352,21 @@ function ConfigureSourceModal({
                   style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minHeight: 0 }}
                 >
                   {/* Search bar */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    border: "1px solid #e4e4e7",
-                    borderRadius: 8,
-                    padding: "6px 12px",
-                    background: "#f9f9fb"
-                  }}>
-                    <Search size={13.5} style={{ color: "var(--db-text-muted)" }} />
+                  <div className="src-search src-search--sm" style={{ width: "100%" }}>
+                    <Search />
                     <input
                       type="text"
+                      className="ui-input"
                       placeholder={`Search ${sourceType === "github" ? "repositories" : "folders"}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        outline: "none",
-                        fontSize: 12.5,
-                        width: "100%",
-                        color: "#18181b"
-                      }}
                     />
                   </div>
 
                   {/* Folder List Scroll Pane */}
-                  <div style={{
-                    border: "1.5px solid #e4e4e7",
-                    borderRadius: 10,
-                    flex: 1,
-                    minHeight: 0,
-                    maxHeight: 300,
-                    overflowY: "auto",
-                    background: "var(--db-panel)"
-                  }}>
+                  <div className="src-picker">
                     {(sourceType === "github" ? filteredRepos : filteredFolders).length === 0 ? (
-                      <div style={{ padding: "30px 16px", color: "var(--db-text-muted)", fontSize: 12.5, textAlign: "center" }}>
+                      <div className="src-picker__empty type-caption">
                         No items found matching &quot;{searchQuery}&quot;
                       </div>
                     ) : (
@@ -2109,51 +1378,23 @@ function ConfigureSourceModal({
                             key={sourceType === "github" ? f.fullName : f.id}
                             onClick={() => {
                               if (sourceType === "github") {
-                                setSelectedRepoIds(prev => 
+                                setSelectedRepoIds(prev =>
                                   prev.includes(f.fullName) ? prev.filter((id: string) => id !== f.fullName) : [...prev, f.fullName]
                                 );
                               } else {
-                                setSelectedFolderIds(prev => 
+                                setSelectedFolderIds(prev =>
                                   prev.includes(f.id) ? prev.filter((id: string) => id !== f.id) : [...prev, f.id]
                                 );
                               }
                             }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "10px 14px",
-                              borderBottom: "1px solid #f4f4f5",
-                              cursor: "pointer",
-                              background: isSelected ? "#fff8f6" : "transparent",
-                              transition: "background 0.15s"
-                            }}
+                            className={`src-picker__row ${isSelected ? "is-selected" : ""}`}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                              <Folder size={15} style={{ color: isSelected ? "#ff6b00" : "#a1a1aa", flexShrink: 0 }} />
-                              <span style={{
-                                fontSize: 13,
-                                fontWeight: isSelected ? 700 : 500,
-                                color: isSelected ? "#ff6b00" : "#18181b",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                              }}>
-                                {sourceType === "github" ? f.fullName : f.name}
-                              </span>
+                            <div className="src-picker__name">
+                              <Folder size={16} />
+                              <span>{sourceType === "github" ? f.fullName : f.name}</span>
                             </div>
-                            <div style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: 4,
-                              border: isSelected ? "none" : "1.5px solid #d4d4d8",
-                              background: isSelected ? "#ff6b00" : "transparent",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0
-                            }}>
-                              {isSelected && <Check size={12} color="var(--db-panel)" strokeWidth={3} />}
+                            <div className={`src-check ${isSelected ? "is-on" : ""}`}>
+                              {isSelected && <Check size={12} strokeWidth={3} />}
                             </div>
                           </div>
                         );
@@ -2166,28 +1407,18 @@ function ConfigureSourceModal({
               )}
 
               {activeConfigTab === "schedule" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)", marginBottom: 4 }}>Sync Schedule</div>
-                  
+                <div className="src-option-list">
+                  <div className="type-label" style={{ marginBottom: 2 }}>Sync schedule</div>
+
                   {[
                     { id: "hourly", label: "Hourly", desc: "Sync updates every hour for real-time relevance." },
-                    { id: "daily", label: "Daily (Midnight)", desc: "Sync once per day during off-hours." },
+                    { id: "daily", label: "Daily (midnight)", desc: "Sync once per day during off-hours." },
                     { id: "weekly", label: "Weekly", desc: "Sync once a week (Sundays)." },
-                    { id: "manual", label: "Manual Only", desc: "Never sync automatically. Only sync when triggered manually." }
+                    { id: "manual", label: "Manual only", desc: "Never sync automatically. Only sync when triggered manually." }
                   ].map((option) => (
                     <label
                       key={option.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "14px 16px",
-                        border: syncSchedule === option.id ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
-                        borderRadius: 10,
-                        cursor: "pointer",
-                        background: syncSchedule === option.id ? "#fff3ee" : "var(--db-panel)",
-                        transition: "all 0.15s",
-                      }}
+                      className={`src-option ${syncSchedule === option.id ? "is-selected" : ""}`}
                     >
                       <input
                         type="radio"
@@ -2195,11 +1426,10 @@ function ConfigureSourceModal({
                         value={option.id}
                         checked={syncSchedule === option.id}
                         onChange={() => setSyncSchedule(option.id as "hourly" | "daily" | "weekly" | "manual")}
-                        style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                       />
-                      <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)" }}>{option.label}</div>
-                        <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                      <div className="src-option__text">
+                        <div className="type-body" style={{ fontWeight: 600 }}>{option.label}</div>
+                        <div className="type-caption">
                           {option.desc}
                         </div>
                       </div>
@@ -2209,61 +1439,35 @@ function ConfigureSourceModal({
               )}
 
               {activeConfigTab === "permissions" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)", marginBottom: 4 }}>Access Control</div>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "14px 16px",
-                      border: permissions === "everyone" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      background: permissions === "everyone" ? "#fff3ee" : "var(--db-panel)",
-                      transition: "all 0.15s",
-                    }}
-                  >
+                <div className="src-option-list">
+                  <div className="type-label" style={{ marginBottom: 2 }}>Access control</div>
+                  <label className={`src-option ${permissions === "everyone" ? "is-selected" : ""}`}>
                     <input
                       type="radio"
                       name="permissions"
                       value="everyone"
                       checked={permissions === "everyone"}
                       onChange={() => setPermissions("everyone")}
-                      style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                     />
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)" }}>Everyone in Workspace</div>
-                      <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                    <div className="src-option__text">
+                      <div className="type-body" style={{ fontWeight: 600 }}>Everyone in workspace</div>
+                      <div className="type-caption">
                         All members of this workspace can query this source.
                       </div>
                     </div>
                   </label>
-                  
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "14px 16px",
-                      border: permissions === "admins" ? "1.5px solid #ff6b00" : "1.5px solid #e4e4e7",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      background: permissions === "admins" ? "#fff3ee" : "var(--db-panel)",
-                      transition: "all 0.15s",
-                    }}
-                  >
+
+                  <label className={`src-option ${permissions === "admins" ? "is-selected" : ""}`}>
                     <input
                       type="radio"
                       name="permissions"
                       value="admins"
                       checked={permissions === "admins"}
                       onChange={() => setPermissions("admins")}
-                      style={{ accentColor: "#ff6b00", width: 15, height: 15 }}
                     />
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--db-text)" }}>Admins Only</div>
-                      <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                    <div className="src-option__text">
+                      <div className="type-body" style={{ fontWeight: 600 }}>Admins only</div>
+                      <div className="type-caption">
                         Only workspace administrators can query this source.
                       </div>
                     </div>
@@ -2273,46 +1477,27 @@ function ConfigureSourceModal({
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", justifyContent: "end", gap: 10, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f4f4f5", flexShrink: 0 }}>
+              <div className="src-modal__footer">
                 <button
+                  type="button"
+                  className="ui-btn ui-btn--secondary"
                   onClick={onClose}
                   disabled={saving}
-                  style={{
-                    padding: "8px 16px",
-                    background: "var(--db-panel)",
-                    border: "1px solid #e4e4e7",
-                    color: "#52525b",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
+                  className="ui-btn ui-btn--primary"
                   onClick={handleSave}
-                  disabled={saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0)}
-                  style={{
-                    padding: "8px 18px",
-                    background: saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0) ? "var(--db-border)" : "#ff6b00",
-                    border: "none",
-                    color: "#ffffff",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: saving || (sourceType === "google_drive" && syncOption === "folder" && selectedFolderIds.length === 0) ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6
-                  }}
+                  disabled={saveDisabled}
                 >
                   {saving ? (
                     <>
-                      <Loader2 size={13} className="animate-spin" /> Saving...
+                      <Loader2 className="animate-spin" /> Saving...
                     </>
                   ) : (
-                    "Save & Ingest"
+                    "Save & ingest"
                   )}
                 </button>
               </div>
@@ -2461,254 +1646,103 @@ function ManageDocumentsModal({
     d.title.toLowerCase().includes(searchDocQuery.toLowerCase())
   );
 
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-        backdropFilter: "blur(5px)",
-      }}
+      {...modalFade}
+      className="src-modal-overlay"
+      style={{ zIndex: 10000 }}
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 25 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+        {...modalSlide}
+        className="ui-popover src-modal src-modal--xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="src-docs-title"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--db-panel)",
-          borderRadius: 20,
-          width: "90%",
-          maxWidth: 1000,
-          height: "80vh",
-          maxHeight: 700,
-          boxShadow: "0 28px 75px rgba(0,0,0,0.2)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "24px 32px",
-            borderBottom: "1px solid #f4f4f5",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "linear-gradient(to right, #fafafa, #ffffff)",
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 19, fontWeight: 800, color: "#18181b" }}>
-                Manage Source Documents
+        <div className="src-modal__header">
+          <div className="src-modal__titles">
+            <div className="src-modal__title-row">
+              <h2 id="src-docs-title" className="type-heading">
+                Manage source documents
               </h2>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#ff6b00",
-                  background: "#fff3ee",
-                  padding: "3px 10px",
-                  borderRadius: 12,
-                }}
-              >
-                {source.name}
-              </span>
+              <span className="ui-badge ui-badge--neutral">{source.name}</span>
             </div>
-            <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4 }}>
+            <p className="type-caption">
               View, add manual contents, or purge documents currently indexed under this connector.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: "#f4f4f5",
-              borderRadius: 10,
-              padding: 10,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--db-border)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#f4f4f5")}
-          >
-            <X size={16} color="#52525b" />
+          <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
+            <X size={16} />
           </button>
         </div>
 
         {/* Content Body */}
-        <div style={{ flex: 1, display: "flex", minHeight: 0, background: "var(--db-panel)" }}>
+        <div className="src-docs">
           {/* Left Column: Documents List */}
-          <div
-            style={{
-              flex: 1.3,
-              borderRight: "1px solid #f4f4f5",
-              display: "flex",
-              flexDirection: "column",
-              padding: "24px 32px",
-              minWidth: 0,
-            }}
-          >
+          <div className="src-docs__list">
             {/* Table Header and Search */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-                gap: 16,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#f4f4f5",
-                  borderRadius: 10,
-                  padding: "8px 14px",
-                  flex: 1,
-                  border: "1.5px solid transparent",
-                  transition: "border-color 0.15s",
-                }}
-                onFocusCapture={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
-                onBlurCapture={(e) => (e.currentTarget.style.borderColor = "transparent")}
-              >
-                <Search size={14} color="var(--db-text-muted)" style={{ marginRight: 8 }} />
+            <div className="src-docs__toolbar">
+              <div className="src-search">
+                <Search />
                 <input
                   type="text"
+                  className="ui-input"
                   placeholder="Search indexed files by title..."
+                  aria-label="Search indexed files by title"
                   value={searchDocQuery}
                   onChange={(e) => setSearchDocQuery(e.target.value)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: 13,
-                    color: "#18181b",
-                  }}
                 />
               </div>
               <button
+                type="button"
+                className={`ui-btn ${showAddForm ? "ui-btn--secondary" : "ui-btn--primary"}`}
                 onClick={() => setShowAddForm(!showAddForm)}
-                style={{
-                  border: "none",
-                  background: showAddForm ? "#f4f4f5" : "#ff6b00",
-                  color: showAddForm ? "#52525b" : "var(--db-panel)",
-                  borderRadius: 10,
-                  padding: "10px 16px",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "background 0.15s, transform 0.1s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = showAddForm ? "var(--db-border)" : "#e05e00";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = showAddForm ? "#f4f4f5" : "#ff6b00";
-                }}
               >
                 {showAddForm ? (
-                  <>View Document List</>
+                  <>View document list</>
                 ) : (
                   <>
-                    <Plus size={14} strokeWidth={2.5} /> Add Document
+                    <Plus /> Add document
                   </>
                 )}
               </button>
             </div>
 
             {/* Main view container */}
-            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <div className="src-docs__scroll">
               {loadingDocs ? (
                 // Loading State
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "20px 0" }}>
+                <div className="src-skeleton-list">
                   {[1, 2, 3].map((n) => (
-                    <div
-                      key={n}
-                      style={{
-                        height: 52,
-                        background: "var(--db-bg)",
-                        borderRadius: 10,
-                        border: "1px solid #f4f4f5",
-                        animation: "pulse 1.5s ease-in-out infinite",
-                      }}
-                    />
+                    <div key={n} className="ui-skeleton" style={{ height: 52, borderRadius: 8 }} />
                   ))}
                 </div>
               ) : filteredDocs.length === 0 ? (
                 // Empty State
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "100%",
-                    padding: 40,
-                    textAlign: "center",
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: "50%",
-                      background: "#fff3ee",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <FileText size={24} color="#ff6b00" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "#18181b" }}>
-                      No documents found
-                    </div>
-                    <div style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 4, maxWidth: 280 }}>
-                      {searchDocQuery
-                        ? "We couldn't find any documents matching your search term."
-                        : "There are no files indexed under this source. Add a manual document to get started."}
-                    </div>
-                  </div>
-                </div>
+                <EmptyState
+                  compact
+                  icon={<FileText />}
+                  title="No documents found"
+                  description={
+                    searchDocQuery
+                      ? "We couldn't find any documents matching your search term."
+                      : "There are no files indexed under this source. Add a manual document to get started."
+                  }
+                />
               ) : (
                 // Documents List
-                <div className="table-responsive-wrapper">
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="ui-table-wrap">
+                  <table className="ui-table src-doc-table">
                   <thead>
-                    <tr style={{ borderBottom: "1.5px solid #f4f4f5" }}>
-                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "var(--db-text-muted)", padding: "10px 8px" }}>
-                        Title
-                      </th>
-                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "var(--db-text-muted)", padding: "10px 8px" }}>
-                        Type
-                      </th>
-                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "var(--db-text-muted)", padding: "10px 8px" }}>
-                        Indexed Date
-                      </th>
-                      <th style={{ fontSize: 11.5, fontWeight: 700, color: "var(--db-text-muted)", padding: "10px 8px", textAlign: "center" }}>
-                        Action
-                      </th>
+                    <tr>
+                      <th>Title</th>
+                      <th>Type</th>
+                      <th>Indexed date</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2717,38 +1751,15 @@ function ManageDocumentsModal({
                       return (
                         <tr
                           key={doc.id}
-                          style={{
-                            borderBottom: "1px solid #f4f4f5",
-                            opacity: isDeleting ? 0.5 : 1,
-                            background: isDeleting ? "var(--db-bg)" : "transparent",
-                          }}
+                          style={{ opacity: isDeleting ? 0.5 : 1 }}
                         >
-                          <td style={{ padding: "12px 8px", maxWidth: 220 }}>
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: "#18181b",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                              title={doc.title}
-                            >
+                          <td>
+                            <div className="src-doc-title" title={doc.title}>
                               {doc.title}
                             </div>
                           </td>
-                          <td style={{ padding: "12px 8px" }}>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 700,
-                                padding: "2px 8px",
-                                borderRadius: 12,
-                                background: doc.fileType === "manual_upload" ? "#fff3ee" : "#f4f4f5",
-                                color: doc.fileType === "manual_upload" ? "#ff6b00" : "#52525b",
-                              }}
-                            >
+                          <td>
+                            <span className="ui-badge ui-badge--neutral">
                               {doc.fileType === "manual_upload"
                                 ? "Manual"
                                 : doc.fileType
@@ -2756,34 +1767,24 @@ function ManageDocumentsModal({
                                 : "FILE"}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 8px", fontSize: 12, color: "var(--db-text-muted)" }}>
+                          <td className="type-caption" style={{ whiteSpace: "nowrap" }}>
                             {doc.indexedAt
                               ? new Date(doc.indexedAt).toLocaleDateString()
                               : new Date(doc.updatedAt).toLocaleDateString()}
                           </td>
-                          <td style={{ padding: "12px 8px", textAlign: "center" }}>
+                          <td style={{ textAlign: "center" }}>
                             <button
+                              type="button"
+                              className="src-danger-icon-btn"
                               onClick={() => handleDeleteDoc(doc.id, doc.title)}
                               disabled={isDeleting}
-                              style={{
-                                border: "none",
-                                background: "transparent",
-                                padding: 6,
-                                cursor: isDeleting ? "not-allowed" : "pointer",
-                                borderRadius: 6,
-                                color: "#ef4444",
-                                transition: "background 0.15s",
-                                display: "inline-flex",
-                                alignItems: "center",
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                               title="Delete document"
+                              aria-label="Delete document"
                             >
                               {isDeleting ? (
-                                <Loader2 size={13} className="animate-spin" />
+                                <Loader2 size={16} className="animate-spin" />
                               ) : (
-                                <Trash2 size={13} />
+                                <Trash2 size={16} />
                               )}
                             </button>
                           </td>
@@ -2798,69 +1799,42 @@ function ManageDocumentsModal({
           </div>
 
           {/* Right Column: Statistics or Form Panel */}
-          <div
-            style={{
-              flex: 0.8,
-              padding: "24px 32px",
-              background: "var(--db-bg)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-              overflowY: "auto",
-            }}
-          >
+          <div className="src-docs__side">
             {showAddForm ? (
               // Manual Document Form
-              <form onSubmit={handleAddDocSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "#18181b", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Plus size={16} strokeWidth={2.5} style={{ color: "#ff6b00" }} />
-                    Add Manual Document
+              <form onSubmit={handleAddDocSubmit} className="src-form">
+                <div className="src-section-head">
+                  <h3 className="type-heading src-section-head__title">
+                    <Plus size={16} />
+                    Add manual document
                   </h3>
-                  <p style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                  <p className="type-caption">
                     Paste plain text content to index it manually under this source container.
                   </p>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>Document Title</label>
+                <div className="src-field">
+                  <label className="type-label" htmlFor="src-doc-title">Document title</label>
                   <input
+                    id="src-doc-title"
                     type="text"
+                    className="ui-input"
                     required
                     placeholder="e.g. Q3 Strategic Budget Ingestion"
                     value={newDocTitle}
                     onChange={(e) => setNewDocTitle(e.target.value)}
                     disabled={submittingDoc}
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1.5px solid #e4e4e7",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 13,
-                      color: "#18181b",
-                      outline: "none",
-                      transition: "border-color 0.15s",
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "var(--db-border)")}
                   />
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>File Type Label</label>
+                <div className="src-field">
+                  <label className="type-label" htmlFor="src-doc-type">File type label</label>
                   <select
+                    id="src-doc-type"
+                    className="ui-input"
                     value={newDocType}
                     onChange={(e) => setNewDocType(e.target.value)}
                     disabled={submittingDoc}
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1.5px solid #e4e4e7",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 13,
-                      color: "#18181b",
-                      outline: "none",
-                    }}
                   >
                     <option value="manual_upload">Manual Upload</option>
                     <option value="pdf">PDF Document</option>
@@ -2869,48 +1843,27 @@ function ManageDocumentsModal({
                   </select>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#52525b" }}>Raw Content</label>
+                <div className="src-field" style={{ flex: 1 }}>
+                  <label className="type-label" htmlFor="src-doc-content">Raw content</label>
                   <textarea
+                    id="src-doc-content"
+                    className="ui-input"
                     required
                     rows={8}
                     placeholder="Paste plain text content here. We will automatically chunk and embed it..."
                     value={newDocContent}
                     onChange={(e) => setNewDocContent(e.target.value)}
                     disabled={submittingDoc}
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1.5px solid #e4e4e7",
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                      fontSize: 13,
-                      color: "#18181b",
-                      fontFamily: "inherit",
-                      resize: "none",
-                      outline: "none",
-                      transition: "border-color 0.15s",
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#ff6b00")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "var(--db-border)")}
+                    style={{ resize: "none" }}
                   />
                 </div>
 
                 {submittingDoc ? (
-                  // Premium Embedding Progress Stepper
-                  <div
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1px solid #e4e4e7",
-                      borderRadius: 10,
-                      padding: 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#18181b" }}>
+                  // Embedding progress
+                  <div className="src-progress">
+                    <div className="src-progress__row">
+                      <Loader2 size={16} className="animate-spin src-spinner" />
+                      <div className="type-body" style={{ fontWeight: 600 }}>
                         {submitStep === 1
                           ? "Analyzing & chunking text..."
                           : submitStep === 2
@@ -2918,100 +1871,44 @@ function ManageDocumentsModal({
                           : "Indexing document chunks..."}
                       </div>
                     </div>
-                    {/* Pulsing Progress Bar */}
-                    <div style={{ height: 4, width: "100%", background: "#f4f4f5", borderRadius: 2, overflow: "hidden" }}>
+                    <div className="src-progress__track">
                       <motion.div
-                        animate={{ x: ["-100%", "100%"] }}
+                        animate={{ x: ["-100%", "200%"] }}
                         transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                        style={{ height: "100%", width: "50%", background: "#ff6b00", borderRadius: 2 }}
+                        className="src-progress__bar"
                       />
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="submit"
-                    style={{
-                      background: "#ff6b00",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: 10,
-                      padding: "10px 18px",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "background 0.15s",
-                      textAlign: "center",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#e05e00")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#ff6b00")}
-                  >
-                    Embedding & Index Document
+                  <button type="submit" className="ui-btn ui-btn--primary ui-btn--block">
+                    Embed & index document
                   </button>
                 )}
               </form>
             ) : (
               // Source General Statistics
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <h3 style={{ fontSize: 14.5, fontWeight: 800, color: "#18181b", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Database size={15} style={{ color: "#ff6b00" }} />
-                    Connector Overview
+              <div className="src-form">
+                <div className="src-section-head">
+                  <h3 className="type-heading src-section-head__title">
+                    <Database size={16} />
+                    Connector overview
                   </h3>
-                  <p style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>
+                  <p className="type-caption">
                     Status overview and index stats for this data source integration.
                   </p>
                 </div>
 
                 {/* Metrics list */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1px solid #f4f4f5",
-                      borderRadius: 10,
-                      padding: 12,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "var(--db-text-muted)", fontWeight: 500 }}>Index Count</span>
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: "#18181b" }}>
+                <div className="src-kv-list">
+                  <div className="src-kv">
+                    <span className="type-caption">Index count</span>
+                    <span className="type-body" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                       {docs.length} documents
                     </span>
                   </div>
-                  <div
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1px solid #f4f4f5",
-                      borderRadius: 10,
-                      padding: 12,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "var(--db-text-muted)", fontWeight: 500 }}>Connector Type</span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 8px",
-                        borderRadius: 12,
-                        background:
-                          source.type === "google_drive"
-                            ? "#dcfce7"
-                            : source.type === "gmail"
-                            ? "#fee2e2"
-                            : "#f5f3ff",
-                        color:
-                          source.type === "google_drive"
-                            ? "#16a34a"
-                            : source.type === "gmail"
-                            ? "#dc2626"
-                            : "#8b5cf6",
-                      }}
-                    >
+                  <div className="src-kv">
+                    <span className="type-caption">Connector type</span>
+                    <span className="ui-badge ui-badge--neutral">
                       {source.type === "google_drive"
                         ? "Storage (Drive)"
                         : source.type === "gmail"
@@ -3019,43 +1916,18 @@ function ManageDocumentsModal({
                         : "Workspace (Notion)"}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      background: "var(--db-panel)",
-                      border: "1px solid #f4f4f5",
-                      borderRadius: 10,
-                      padding: 12,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "var(--db-text-muted)", fontWeight: 500 }}>Sync Status</span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: source.status === "synced" ? "#16a34a" : "#2563eb",
-                      }}
-                    >
-                      {source.status.toUpperCase()}
-                    </span>
+                  <div className="src-kv">
+                    <span className="type-caption">Sync status</span>
+                    <SourceStatusBadge status={source.status} />
                   </div>
                 </div>
 
                 {/* Info Note */}
-                <div
-                  style={{
-                    background: "#fffbeb",
-                    border: "1px solid #fde68a",
-                    borderRadius: 10,
-                    padding: 12,
-                    fontSize: 12,
-                    color: "#b45309",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  <strong>💡 Dynamic RAG Search Context:</strong> Manually added documents are split into semantic word blocks, embedded via OpenAI, and made instantly searchable inside the Ask Corely conversational Q&A lane.
+                <div className="src-note">
+                  <Info />
+                  <p>
+                    <strong className="src-strong">Dynamic RAG search context:</strong> Manually added documents are split into semantic word blocks, embedded via OpenAI, and made instantly searchable inside the Ask Corely conversational Q&amp;A lane.
+                  </p>
                 </div>
               </div>
             )}

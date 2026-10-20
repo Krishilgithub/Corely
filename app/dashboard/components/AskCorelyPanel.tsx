@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
   Sparkles,
   MoreHorizontal,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import CorelyLogo from "@/components/icons/corely-logo";
 
 const prompts = [
   "What changed across product teams this week?",
@@ -29,24 +29,19 @@ export default function AskCorelyPanel() {
   };
 
   return (
-    <motion.div
-      className="db-panel"
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.25, duration: 0.45, ease: "easeOut" }}
-    >
+    <div className="db-panel">
       {/* Header */}
       <div className="db-panel-header">
-        <span className="db-panel-title">
-          <Sparkles size={13} style={{ color: "#ff6b00" }} />
+        <span className="db-panel-title type-heading">
+          <Sparkles />
           Ask Corely
         </span>
-        <div style={{ display: "flex", gap: 4 }}>
+        <div className="db-panel-actions">
           <button className="db-panel-icon-btn" aria-label="More options">
-            <MoreHorizontal size={14} />
+            <MoreHorizontal size={16} />
           </button>
           <button className="db-panel-icon-btn" aria-label="Close panel">
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
       </div>
@@ -54,45 +49,37 @@ export default function AskCorelyPanel() {
       {/* Chat Body */}
       <div className="db-panel-body">
         {/* AI greeting */}
-        <motion.div
-          className="db-chat-ai-row"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-        >
-          <div className="db-chat-ai-icon">C</div>
+        <div className="db-chat-ai-row">
+          <div className="db-chat-ai-icon">
+            <CorelyLogo size={16} />
+          </div>
           <div className="db-chat-bubble">
-            Hi! I&apos;m Corely.
+            Hi, I&apos;m Corely.
             <br />
             Your enterprise intelligence layer.
             <br />
             How can I help you today?
           </div>
-        </motion.div>
+        </div>
 
         {/* Suggested prompts */}
-        <motion.div
-          className="db-chat-prompts"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.65 }}
-        >
+        <div className="db-chat-prompts">
           {prompts.map((prompt) => (
             <button
               key={prompt}
               className="db-prompt-btn"
               onClick={() => handleSend(prompt)}
             >
-              <Search size={11} style={{ color: "#a1a1aa", flexShrink: 0 }} />
+              <Search />
               <span>{prompt}</span>
             </button>
           ))}
-        </motion.div>
+        </div>
       </div>
 
       {/* Input Footer */}
       <div className="db-chat-footer">
-        <Paperclip size={13} style={{ color: "#d4d4d4", flexShrink: 0 }} />
+        <Paperclip />
         <input
           className="db-chat-input"
           placeholder="Ask a question to start..."
@@ -102,9 +89,9 @@ export default function AskCorelyPanel() {
           aria-label="Ask Corely a question"
         />
         <button className="db-chat-send-btn" onClick={() => handleSend()} aria-label="Send message">
-          <SendHorizontal size={13} />
+          <SendHorizontal />
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

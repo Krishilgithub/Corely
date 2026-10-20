@@ -25,12 +25,6 @@
     color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2; --accent:#818cf8;
-  --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
-  --accent-soft:rgba(129,140,248,.14); --critical-soft:rgba(248,113,113,.10);
-  color-scheme:dark;
-}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 var(--sans);overflow-x:hidden}
@@ -133,39 +127,44 @@ svg .ah{fill:var(--muted)} svg .aha{fill:var(--accent)} svg .ahc{fill:var(--crit
 footer{border-top:1px solid var(--border);color:var(--muted);font-size:13px;padding:16px;text-align:center;margin-top:30px}
 @media (max-width:600px){h1{font-size:25px}h2{font-size:19px}.toc ol{columns:1}}
 </style>
+
+<style>
+/* Single column: the sidebar is gone, topics live in the top navbar */
+.layout{display:block !important;max-width:900px;margin:0 auto;padding:0 16px}
+main{max-width:900px;margin:0 auto}
+[id]{scroll-margin-top:72px}
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:nowrap;align-items:center;gap:1rem;padding:0 16px;height:56px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;white-space:nowrap;flex:none}
+.topbar .topics{display:flex;flex-wrap:nowrap;gap:.25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-ms-overflow-style:none;flex:1;min-width:0}
+.topbar .topics::-webkit-scrollbar{display:none}
+.topbar .topics a{flex:none;text-decoration:none;color:var(--muted);padding:.35rem .65rem;border-radius:6px;font-size:.9rem}
+.topbar .topics a:hover{background:var(--surface);color:var(--text)}
+.topbar .topics a.active{background:var(--accent);color:#fff}
+@media (max-width:640px){.topbar .brand{display:none}}
+</style>
 </head>
 <body>
 
 <header class="topbar">
-  <span class="brand">Corely docs</span>
-  <nav class="docnav" aria-label="Sibling documents">
-    <a href="corely-findings.html">Gap Analysis</a>
-    <a href="corely-adr.html">Architecture Decisions</a>
-    <a href="corely-ai-pipelines.html">AI Pipelines</a>
-    <a href="corely-system-design.html" aria-current="page">System Design</a>
+  <span class="brand">Corely &middot; System Design</span>
+  <nav class="topics" aria-label="On this page">
+    <a href="#overview">Overview</a>
+    <a href="#architecture">High-level architecture</a>
+    <a href="#stack">Tech stack</a>
+    <a href="#request-flow">Request flow</a>
+    <a href="#data-model">Data model</a>
+    <a href="#api">API surface</a>
+    <a href="#security">Auth and security</a>
+    <a href="#ingestion">Ingestion and retrieval</a>
+    <a href="#deployment">Deployment</a>
+    <a href="#nfr">Non-functional review</a>
+    <a href="#target">Target architecture (proposed)</a>
+    <a href="#glossary">Glossary</a>
   </nav>
-  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
 </header>
 
 <div class="layout">
-<nav class="toc" aria-label="Table of contents">
-  <h2>On this page</h2>
-  <ol>
-    <li><a href="#overview">Overview</a></li>
-    <li><a href="#architecture">High-level architecture</a></li>
-    <li><a href="#stack">Tech stack</a></li>
-    <li><a href="#request-flow">Request flow</a></li>
-    <li><a href="#data-model">Data model</a></li>
-    <li><a href="#api">API surface</a></li>
-    <li><a href="#security">Auth and security</a></li>
-    <li><a href="#ingestion">Ingestion and retrieval</a></li>
-    <li><a href="#deployment">Deployment</a></li>
-    <li><a href="#nfr">Non-functional review</a></li>
-    <li><a href="#target">Target architecture (proposed)</a></li>
-    <li><a href="#glossary">Glossary</a></li>
-  </ol>
-</nav>
-
 <main>
 <h1>Corely System Design</h1>
 <p class="lede">How Corely is built today, which tools it uses, where the weak spots are, and where it could go next.</p>
@@ -1327,22 +1326,18 @@ docker run --rm --env-file .env corely npx tsx scripts/init-pgvector.ts</code></
 
 <script>
 (function(){
-  var root = document.documentElement;
-  var btn = document.getElementById('themeBtn');
-  try { var saved = localStorage.getItem('corely-docs-theme'); if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved); } catch (e) {}
-  function current(){
-    var t = root.getAttribute('data-theme');
-    if (t === 'light' || t === 'dark') return t;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  var links=[].slice.call(document.querySelectorAll('.topbar .topics a'));
+  var targets=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function update(){
+    var y=window.scrollY+90, cur=0;
+    targets.forEach(function(t,i){ if(t&&t.getBoundingClientRect().top+window.scrollY<=y) cur=i; });
+    links.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+    var a=links[cur]; if(a&&a.scrollIntoView&&a.parentNode.scrollWidth>a.parentNode.clientWidth){
+      var n=a.parentNode; n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2; }
   }
-  function label(){ btn.textContent = current() === 'dark' ? 'Light mode' : 'Dark mode'; }
-  btn.addEventListener('click', function(){
-    var next = current() === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('corely-docs-theme', next); } catch (e) {}
-    label();
-  });
-  label();
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  update();
 })();
 </script>
 </body>

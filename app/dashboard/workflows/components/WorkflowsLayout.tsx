@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import WorkflowsMain from "./WorkflowsMain";
 import WorkflowsRightSidebar from "./WorkflowsRightSidebar";
-import { Skeleton } from "../../components/Skeleton";
 import "../workflows.css";
 
 // ── Types and Interfaces ────────────────────────────────────────────────────
@@ -207,18 +206,18 @@ export default function WorkflowsLayout() {
   };
 
   return (
-    <div className="wf-page-grid" style={{ width: "100%" }}>
+    <div className="wf-page-grid">
       {isLoading ? (
-        <div style={{ display: 'flex', gap: 24, padding: 32, width: '100%' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <Skeleton height={100} borderRadius={16} />
-            <Skeleton height={100} borderRadius={16} />
-            <Skeleton height={100} borderRadius={16} />
-            <Skeleton height={100} borderRadius={16} />
+        <div className="wf-loading" style={{ gridColumn: "1 / -1" }}>
+          <div className="wf-loading__col">
+            <div className="ui-skeleton" style={{ height: 100, borderRadius: 16 }} />
+            <div className="ui-skeleton" style={{ height: 100, borderRadius: 16 }} />
+            <div className="ui-skeleton" style={{ height: 100, borderRadius: 16 }} />
+            <div className="ui-skeleton" style={{ height: 100, borderRadius: 16 }} />
           </div>
-          <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <Skeleton height={200} borderRadius={16} />
-            <Skeleton height={300} borderRadius={16} />
+          <div className="wf-loading__col">
+            <div className="ui-skeleton" style={{ height: 200, borderRadius: 16 }} />
+            <div className="ui-skeleton" style={{ height: 300, borderRadius: 16 }} />
           </div>
         </div>
       ) : (
@@ -245,12 +244,12 @@ export default function WorkflowsLayout() {
           <div className="wf-toast-container">
             <motion.div
               className="wf-toast"
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              exit={{ y: 16, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <CheckCircle2 size={16} style={{ color: "#ff6b00" }} />
+              <CheckCircle2 size={16} />
               <span>{toastMessage}</span>
             </motion.div>
           </div>

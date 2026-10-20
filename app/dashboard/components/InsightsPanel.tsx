@@ -1,23 +1,35 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
   ChevronRight,
   TrendingDown,
+  TrendingUp,
   Code2,
   DollarSign,
   Users,
+  UserPlus,
   CheckCircle2,
   RefreshCw,
+  Database,
+  AlertTriangle,
+  Clock,
+  FileText,
+  Activity,
+  MessageSquare,
+  Sparkles,
+  ThumbsDown,
+  Zap,
+  Plug,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-  
+
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h ago`;
@@ -26,19 +38,36 @@ function formatTimeAgo(dateString: string) {
 }
 import * as React from "react";
 
+// Icon names come from the insights generator. All tiles are neutral.
 const iconMap: Record<string, LucideIcon> = {
   TrendingDown,
+  TrendingUp,
   Code2,
   DollarSign,
   Users,
+  UserPlus,
+  Database,
+  AlertTriangle,
+  Clock,
+  RefreshCw,
+  CheckCircle2,
+  FileText,
+  Activity,
+  MessageSquare,
+  Sparkles,
+  ThumbsDown,
+  Zap,
+  Plug,
 };
 
-const iconConfigMap: Record<string, { bg: string; color: string }> = {
-  TrendingDown: { bg: "#fef2f2", color: "#ef4444" },
-  Code2: { bg: "#f0f9ff", color: "#0ea5e9" },
-  DollarSign: { bg: "#fffbeb", color: "#d97706" },
-  Users: { bg: "#f0fdf4", color: "#16a34a" },
-};
+// Badge colour for a priority word. The generator sends "Critical" / "High" /
+// "Medium" / "Low", so compare without case.
+function priorityTone(priority?: string): StatusTone {
+  const p = (priority || "").toLowerCase();
+  if (p === "critical" || p === "high") return "error";
+  if (p === "medium") return "warning";
+  return "neutral";
+}
 
 interface Insight {
   id: string;
@@ -53,73 +82,46 @@ interface Insight {
 export default function InsightsPanel({ data, systemHealth }: { data?: Insight[], systemHealth?: string }) {
   const insights = data || [];
   const loading = !data;
+  const healthy = systemHealth === "Operational";
+  const healthColor = healthy ? "var(--success)" : "var(--error)";
 
   return (
-    <motion.div
-      className="db-panel"
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.35, duration: 0.45, ease: "easeOut" }}
-    >
+    <div className="db-panel">
       {/* Header */}
       <div className="db-panel-header">
-        <span className="db-panel-title">Insights</span>
-        <Link
-          href="/dashboard/insights"
-          style={{
-            fontSize: "12.5px",
-            fontWeight: 600,
-            color: "#ff6b00",
-            textDecoration: "none",
-          }}
-        >
+        <span className="db-panel-title type-heading">Insights</span>
+        <Link href="/dashboard/insights" className="db-panel-link">
           View all
+          <ChevronRight />
         </Link>
       </div>
 
       {/* Insights List */}
-      <div className="db-panel-body">
+      <div className="db-panel-body db-panel-body--flush">
         {loading ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>Loading insights...</div>
+          <div className="db-panel-empty">Loading insights...</div>
         ) : insights.length === 0 ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>No insights found.</div>
+          <div className="db-panel-empty">No insights found.</div>
         ) : (
           insights.map((ins, i) => {
             const Icon = iconMap[ins.iconType] || TrendingDown;
-            const config = iconConfigMap[ins.iconType] || { bg: "#fef2f2", color: "#ef4444" };
             return (
-              <motion.div
-                key={ins.id || i}
-                className="db-insight-card"
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.45 + i * 0.07, duration: 0.3 }}
-              >
-                <div
-                  className="db-insight-icon"
-                  style={{ backgroundColor: config.bg }}
-                >
-                  <Icon size={15} color={config.color} strokeWidth={2.2} />
+              <div key={ins.id || i} className="db-insight-card">
+                <div className="db-insight-icon db-row-icon">
+                  <Icon strokeWidth={2} />
                 </div>
                 <div className="db-insight-body">
-                  <span
-                    className={`db-priority db-priority-${ins.priority === "HIGH" ? "high" : ins.priority === "MEDIUM" ? "medium" : "low"}`}
-                  >
-                    {ins.priority}
-                  </span>
                   <div className="db-insight-title">{ins.title}</div>
                   <div className="db-insight-desc">{ins.description}</div>
-                  <div className="db-insight-meta">
+                  <div className="db-insight-meta type-caption">
+                    <StatusBadge tone={priorityTone(ins.priority)}>{ins.priority}</StatusBadge>
                     <span>{ins.source}</span>
-                    <span>•</span>
+                    <span aria-hidden="true">·</span>
                     <span>{formatTimeAgo(ins.createdAt)}</span>
                   </div>
                 </div>
-                <ChevronRight
-                  size={13}
-                  style={{ color: "#d4d4d4", flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}
-                />
-              </motion.div>
+                <ChevronRight size={16} className="db-insight-chevron" aria-hidden="true" />
+              </div>
             );
           })
         )}
@@ -127,18 +129,20 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
 
       {/* System Status */}
       <div className="db-system-status">
-        <div className="db-status-title">System Status</div>
-        <div className="db-status-row">
-          <CheckCircle2 size={13} style={{ color: systemHealth === "Operational" ? "#16a34a" : "#ef4444" }} />
-          <span style={{ color: systemHealth === "Operational" ? "#16a34a" : "#ef4444", fontSize: "13px" }}>
-            {systemHealth === "Operational" ? "All systems operational" : "System degraded"}
-          </span>
-        </div>
-        <div className="db-status-row">
-          <RefreshCw size={12} style={{ color: "#a1a1aa" }} />
-          <span style={{ color: "var(--db-text-muted)", fontSize: "12px" }}>Data synced just now</span>
+        <div className="db-status-title type-label">System status</div>
+        <div className="db-status-rows">
+          <div className="db-status-row">
+            <CheckCircle2 style={{ color: healthColor }} />
+            <span className="db-status-text" style={{ color: healthColor }}>
+              {healthy ? "All systems operational" : "System degraded"}
+            </span>
+          </div>
+          <div className="db-status-row">
+            <RefreshCw style={{ color: "var(--icon-secondary)" }} />
+            <span className="type-caption">Data synced just now</span>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,0 +1,654 @@
+/* Settings and Profile page styles. Loaded after dashboard-responsive.css.
+   Imported from app/dashboard/layout.tsx. The Profile page reuses these classes.
+   Every colour is a token from app/globals.css, so light and dark mode both work. */
+
+/* ── PAGE LAYOUT ───────────────────────────────────────────── */
+/* Header on top, then the mini-nav on the left and the form cards on the right.
+   The sidebar wrappers use display: contents so the header and the nav can sit
+   in different grid areas while staying inside SettingsSidebar. */
+.settings-outer {
+  padding: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-areas:
+    "head head"
+    "nav  main";
+  column-gap: 24px;
+  row-gap: 24px;
+  align-items: start;
+}
+
+.settings-sidebar-col,
+.settings-sidebar-nav {
+  display: contents;
+}
+
+.settings-sidebar-header {
+  grid-area: head;
+  min-width: 0;
+}
+
+.settings-main-col {
+  grid-area: main;
+  min-width: 0;
+  max-width: 960px;
+}
+
+/* ── MINI-NAV ──────────────────────────────────────────────── */
+.settings-nav-list {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  position: sticky;
+  top: calc(var(--db-topbar-h) + 24px);
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.settings-nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.settings-nav-icon {
+  flex-shrink: 0;
+  color: var(--icon-secondary);
+  transition: color 150ms ease-out;
+}
+.settings-nav-item:hover .settings-nav-icon { color: var(--icon-primary); }
+
+/* Active item: soft orange tint with orange text */
+.settings-nav-item.active,
+.settings-nav-item.active:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.settings-nav-item.active .settings-nav-icon { color: var(--accent-text); }
+
+/* Sign out on the Profile page */
+.settings-nav-item--danger,
+.settings-nav-item--danger:hover { color: var(--error); }
+.settings-nav-item--danger .settings-nav-icon,
+.settings-nav-item--danger:hover .settings-nav-icon { color: var(--error); }
+
+.settings-nav-divider {
+  height: 1px;
+  background: var(--hairline);
+  margin: 8px 0;
+  flex-shrink: 0;
+}
+
+/* ── CONTENT STACK ─────────────────────────────────────────── */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Tab title + one-line description above the cards */
+.settings-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: -8px;
+}
+
+/* ── FORM CARDS ────────────────────────────────────────────── */
+.settings-card {
+  overflow: hidden;
+  min-width: 0;
+}
+.settings-card > .ui-card-header:last-child { border-bottom: none; }
+
+.settings-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-card-body { padding: 20px; }
+
+.settings-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* A sub-section title inside one card (for example "Preferences") */
+.settings-card-subhead {
+  padding: 16px 20px 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* New API key panel: stronger hairline so it stands out without colour */
+.settings-card--highlight { border-color: var(--border-strong); }
+
+/* ── ROWS: label + description left, control right ─────────── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+.settings-row:last-child { border-bottom: none; }
+
+label.settings-row { cursor: pointer; }
+
+.settings-row-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.settings-row-left > div:not(.settings-row-icon) { min-width: 0; }
+
+/* Neutral icon tile */
+.settings-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  color: var(--icon-primary);
+}
+.settings-row-icon--danger {
+  background: var(--error-soft);
+  border-color: transparent;
+  color: var(--error);
+}
+
+.settings-row-label {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-row-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.settings-row-desc strong { font-weight: 600; color: var(--text-secondary); }
+
+.settings-row-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.settings-text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.settings-text strong { font-weight: 600; color: var(--text-primary); }
+
+/* ── CONTROLS ──────────────────────────────────────────────── */
+.settings-control-input { width: 320px; max-width: 100%; }
+
+.settings-input-wrap {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+}
+.settings-input-wrap .ui-input { width: 100%; }
+.settings-input-wrap .ui-input:disabled {
+  background: var(--surface-secondary);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+.settings-input-wrap--lead .ui-input { padding-left: 36px; }
+
+/* Icon at the start of an input or select */
+.settings-input-lead-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--icon-secondary);
+  pointer-events: none;
+}
+
+/* Show / hide password button inside an input */
+.settings-input-icon-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--icon-secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.settings-input-icon-btn:hover { background: var(--surface-hover); color: var(--icon-primary); }
+
+/* Native select styled as .ui-input with a chevron */
+.settings-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 240px;
+  max-width: 100%;
+}
+.settings-select-wrapper.settings-input-wrap { width: 320px; }
+.settings-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.settings-select option { background: var(--surface); color: var(--text-primary); }
+.settings-select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--icon-secondary);
+}
+
+/* Neutral switch: 36x20 track, orange when on */
+.settings-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--border-strong);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 200ms ease-out;
+}
+.settings-toggle.on { background: var(--accent-fill); }
+.settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--accent-fg); /* white thumb in both themes */
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 200ms ease-out;
+}
+.settings-toggle.on .settings-toggle-knob { transform: translateX(16px); background: var(--accent-fg); }
+
+/* A real checkbox drawn as the same switch (Profile notifications) */
+.settings-switch-input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 9999px;
+  background: var(--border-strong);
+  cursor: inherit;
+  flex-shrink: 0;
+  transition: background-color 200ms ease-out;
+}
+.settings-switch-input::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--accent-fg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 200ms ease-out;
+}
+.settings-switch-input:checked { background: var(--accent-fill); }
+.settings-switch-input:checked::before { transform: translateX(16px); background: var(--accent-fg); }
+
+/* Ghost button that turns red on hover (Remove, Revoke) */
+.settings-danger-ghost:hover {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+/* ── MEMBERS / AUDIT TABLES INSIDE A CARD ──────────────────── */
+.settings-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.settings-table { min-width: 640px; }
+.settings-table th:last-child,
+.settings-table td.settings-table-actions { text-align: right; }
+.settings-table td.settings-table-muted {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.settings-table td.settings-table-empty {
+  padding: 48px 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.settings-table tbody tr:has(.settings-table-empty):hover { background: transparent; }
+
+.settings-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.settings-member-name {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 8px squircle initials avatar */
+.settings-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.settings-avatar--invited {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  color: var(--text-tertiary);
+}
+
+/* ── API KEYS ──────────────────────────────────────────────── */
+.settings-key-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  max-width: 220px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-code-block {
+  display: block;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.settings-code-block--key {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+  white-space: normal;
+  word-break: break-all;
+}
+.settings-key-reveal {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── DANGER ZONE ───────────────────────────────────────────── */
+.settings-danger-card {
+  border-color: color-mix(in srgb, var(--error) 35%, var(--hairline));
+}
+.settings-danger-card .ui-card-header,
+.settings-danger-card .settings-row {
+  border-color: color-mix(in srgb, var(--error) 18%, var(--hairline));
+}
+.settings-danger-title { color: var(--error); }
+
+.settings-danger-notice {
+  margin: 0 20px 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--error-soft);
+  border: 1px solid color-mix(in srgb, var(--error) 25%, transparent);
+}
+.settings-danger-notice p {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--error);
+  margin-bottom: 12px;
+}
+
+/* ── PROFILE ───────────────────────────────────────────────── */
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.profile-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.profile-identity-text .type-title,
+.profile-identity-text .type-caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Initials tile: 80px in the header, 48px next to the picture row */
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+}
+.profile-avatar-edit { position: relative; flex-shrink: 0; }
+.profile-avatar--sm {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+  line-height: 22px;
+}
+.profile-avatar-btn {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  color: var(--icon-secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+.profile-avatar-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Small toast shown after a profile save */
+.settings-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-popover);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.settings-toast svg { color: var(--success); flex-shrink: 0; }
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+/* Below 1024px: one column. The mini-nav becomes a horizontal tab strip
+   that scrolls inside its own box. */
+@media (max-width: 1024px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "nav"
+      "main";
+  }
+  .settings-main-col { max-width: none; }
+  .settings-nav-list {
+    position: static;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .settings-nav-list::-webkit-scrollbar { display: none; }
+  .settings-nav-item { width: auto; flex-shrink: 0; min-height: 40px; }
+  .settings-nav-divider {
+    width: 1px;
+    height: auto;
+    margin: 6px 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-outer { padding: 16px; }
+  .settings-toast { top: 16px; right: 16px; }
+}
+
+/* Phones: each row puts its label above its control */
+@media (max-width: 640px) {
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+  .settings-row-control {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .settings-row-control > .settings-control-input,
+  .settings-row-control > .settings-input-wrap,
+  .settings-row-control > .settings-select-wrapper {
+    width: 100%;
+  }
+  .settings-row-control > .settings-toggle,
+  .settings-row-control > .settings-switch-input { align-self: flex-start; }
+  .settings-card .ui-card-header {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+  .settings-card-body { padding: 16px; }
+  .settings-card-footer { padding: 12px 16px; }
+  .settings-card-footer .ui-btn { flex: 1 1 auto; }
+  .settings-card-subhead { padding: 16px 16px 12px; }
+  .settings-danger-notice { margin: 0 16px 16px; }
+  .settings-key-chip { max-width: 100%; }
+  .settings-key-reveal { flex-direction: column; align-items: stretch; }
+  .profile-identity { gap: 16px; }
+  .profile-identity .profile-avatar:not(.profile-avatar--sm) {
+    width: 64px;
+    height: 64px;
+  }
+}

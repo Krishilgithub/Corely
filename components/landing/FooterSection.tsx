@@ -3,80 +3,80 @@
 import React from "react";
 import { Globe, MessageSquare, Hash } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import CorelyLogo from "@/components/icons/corely-logo";
+
+const linkClass = "text-sm text-text-secondary hover:text-text-primary transition-colors duration-150";
+const socialClass =
+  "inline-flex items-center justify-center size-10 rounded-lg border border-hairline bg-surface text-icon-secondary hover:text-text-primary hover:border-border-strong transition-colors duration-150";
 
 export default function FooterSection() {
   return (
-    <footer className="relative bg-zinc-50 pt-20 pb-10 border-t border-black/10 overflow-hidden">
-      {/* Decorative background glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[200px] bg-[#ff6b00] opacity-[0.03] blur-[120px] rounded-full pointer-events-none" />
-      
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
-          
-          {/* Brand Column */}
+    <footer className="relative bg-canvas border-t border-hairline pt-16 pb-10">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-14">
+          {/* Brand column */}
           <div className="col-span-2">
-            <div className="flex items-center gap-2 mb-6">
-              <Image src="/logo.png" alt="Corely" width={32} height={32} className="rounded-lg shadow-[0_0_15px_rgba(255,107,0,0.4)]" />
-              <span className="text-zinc-900 font-bold text-xl tracking-tight">Corely</span>
+            <div className="flex items-center gap-2.5 mb-5 text-text-primary">
+              <CorelyLogo size={24} />
+              <span className="text-lg font-bold tracking-tight">Corely</span>
             </div>
-            <p className="text-zinc-600 text-sm max-w-sm font-light leading-relaxed mb-6">
+            <p className="text-sm leading-relaxed text-text-secondary max-w-sm mb-6">
               The Intelligence Layer for modern organizations. Connect your entire ecosystem and never lose institutional knowledge again.
             </p>
-            <div className="flex items-center gap-4 text-zinc-500">
-              <Link href="https://twitter.com/corely" className="hover:text-zinc-900 transition-colors">
-                <MessageSquare size={20} />
+            <div className="flex items-center gap-2">
+              <Link href="https://twitter.com/corely" className={socialClass} aria-label="Twitter">
+                <MessageSquare size={16} />
               </Link>
-              <Link href="https://github.com/corely" className="hover:text-zinc-900 transition-colors">
-                <Hash size={20} />
+              <Link href="https://github.com/corely" className={socialClass} aria-label="GitHub">
+                <Hash size={16} />
               </Link>
-              <Link href="https://corely.ai" className="hover:text-zinc-900 transition-colors">
-                <Globe size={20} />
+              <Link href="https://corely.ai" className={socialClass} aria-label="Website">
+                <Globe size={16} />
               </Link>
             </div>
           </div>
-          
-          {/* Links Columns */}
+
+          {/* Link columns */}
           <div>
-            <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Product</h3>
-            <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><Link href="/#features" className="hover:text-zinc-900 transition-colors">Features</Link></li>
-              <li><Link href="/#how-it-works" className="hover:text-zinc-900 transition-colors">Integrations</Link></li>
-              <li><Link href="/pricing" className="hover:text-zinc-900 transition-colors">Pricing</Link></li>
-              <li><Link href="/changelog" className="hover:text-zinc-900 transition-colors">Changelog</Link></li>
-              <li><Link href="/#security" className="hover:text-zinc-900 transition-colors">Security</Link></li>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary mb-4">Product</h3>
+            <ul className="flex flex-col gap-3">
+              <li><Link href="/#features" className={linkClass}>Features</Link></li>
+              <li><Link href="/#how-it-works" className={linkClass}>Integrations</Link></li>
+              <li><Link href="/pricing" className={linkClass}>Pricing</Link></li>
+              <li><Link href="/changelog" className={linkClass}>Changelog</Link></li>
+              <li><Link href="/#security" className={linkClass}>Security</Link></li>
             </ul>
           </div>
-          
+
           <div>
-            <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Company</h3>
-            <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><Link href="/about" className="hover:text-zinc-900 transition-colors">About Us</Link></li>
-              <li><Link href="/careers" className="hover:text-zinc-900 transition-colors">Careers</Link></li>
-              <li><Link href="/blog" className="hover:text-zinc-900 transition-colors">Blog</Link></li>
-              <li><Link href="/contact" className="hover:text-zinc-900 transition-colors">Contact</Link></li>
-              <li><Link href="/#how-it-works" className="hover:text-zinc-900 transition-colors">Manifesto</Link></li>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary mb-4">Company</h3>
+            <ul className="flex flex-col gap-3">
+              <li><Link href="/about" className={linkClass}>About Us</Link></li>
+              <li><Link href="/careers" className={linkClass}>Careers</Link></li>
+              <li><Link href="/blog" className={linkClass}>Blog</Link></li>
+              <li><Link href="/contact" className={linkClass}>Contact</Link></li>
+              <li><Link href="/#how-it-works" className={linkClass}>Manifesto</Link></li>
             </ul>
           </div>
-          
+
           <div>
-            <h3 className="text-zinc-900 font-semibold mb-4 text-sm">Legal</h3>
-            <ul className="flex flex-col gap-3 text-sm text-zinc-600 font-light">
-              <li><Link href="/privacy" className="hover:text-zinc-900 transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="hover:text-zinc-900 transition-colors">Terms of Service</Link></li>
-              <li><Link href="/cookie" className="hover:text-zinc-900 transition-colors">Cookie Policy</Link></li>
-              <li><Link href="/dpa" className="hover:text-zinc-900 transition-colors">DPA</Link></li>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-text-tertiary mb-4">Legal</h3>
+            <ul className="flex flex-col gap-3">
+              <li><Link href="/privacy" className={linkClass}>Privacy Policy</Link></li>
+              <li><Link href="/terms" className={linkClass}>Terms of Service</Link></li>
+              <li><Link href="/cookie" className={linkClass}>Cookie Policy</Link></li>
+              <li><Link href="/dpa" className={linkClass}>DPA</Link></li>
             </ul>
           </div>
         </div>
-        
-        <div className="pt-8 border-t border-black/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-zinc-500 text-sm font-light">
+
+        <div className="pt-8 border-t border-hairline flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <p className="text-sm text-text-tertiary">
             © {new Date().getFullYear()} Corely Enterprise. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span className="text-zinc-500 text-sm font-light">All systems operational</span>
+            <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+            <span className="text-sm text-text-tertiary">All systems operational</span>
           </div>
         </div>
       </div>

@@ -3,13 +3,14 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
-import { Loader2, ArrowLeft, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import CorelyLogo from "@/components/icons/corely-logo";
 import "../login/login.css";
 
+// Colours are status tokens, so the meter works in light and dark mode.
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
-  if (!password) return { score: 0, label: "", color: "#e4e4e7" };
+  if (!password) return { score: 0, label: "", color: "var(--hairline)" };
   let score = 0;
   if (password.length >= 8) score++;
   if (password.length >= 12) score++;
@@ -17,10 +18,10 @@ function getPasswordStrength(password: string): { score: number; label: string; 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 1) return { score: 1, label: "Weak", color: "#ef4444" };
-  if (score <= 2) return { score: 2, label: "Fair", color: "#f59e0b" };
-  if (score <= 3) return { score: 3, label: "Good", color: "#3b82f6" };
-  return { score: 4, label: "Strong", color: "#10b981" };
+  if (score <= 1) return { score: 1, label: "Weak", color: "var(--error)" };
+  if (score <= 2) return { score: 2, label: "Fair", color: "var(--warning)" };
+  if (score <= 3) return { score: 3, label: "Good", color: "var(--success)" };
+  return { score: 4, label: "Strong", color: "var(--success)" };
 }
 
 export default function SignupPage() {
@@ -54,155 +55,156 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="login-page">
-      <Link href="/" className="login-back-btn">
+    <div className="auth-page">
+      <div className="auth-glow" aria-hidden="true" />
+      <Link href="/" className="auth-back-link">
         <ArrowLeft size={16} /> Back to Home
       </Link>
-      <div className="login-bg-blob blob-1" />
-      <div className="login-bg-blob blob-2" />
 
-      <motion.div
-        className="login-card"
-        style={{ marginTop: 40, marginBottom: 40 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <div className="login-header">
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <div className="login-logo cursor-pointer">
-              <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
-              <div className="login-logo-text">Corely</div>
-            </div>
-          </Link>
-          <h1 className="login-title">Create your workspace</h1>
-          <p className="login-subtitle">Join teams that never lose institutional knowledge</p>
+      <div className="auth-shell">
+        <Link href="/" className="auth-brand">
+          <span className="auth-logo-tile">
+            <CorelyLogo size={32} />
+          </span>
+          <span className="auth-wordmark">Corely</span>
+        </Link>
+
+        <div className="auth-heading">
+          <h1 className="auth-title">Create your workspace</h1>
+          <p className="auth-subtitle">Join teams that never lose institutional knowledge</p>
         </div>
 
-        {/* Value Reminder */}
-        <div style={{ display: "flex", gap: 20, background: "#fff3ee", borderRadius: 10, padding: "12px 16px", marginBottom: 24 }}>
-          {[
-            { stat: "14-day", desc: "Free trial" },
-            { stat: "∞", desc: "Documents" },
-            { stat: "SOC 2", desc: "Compliant" },
-          ].map((item) => (
-            <div key={item.stat} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#ff6b00" }}>{item.stat}</div>
-              <div style={{ fontSize: 11, color: "#92400e", fontWeight: 500 }}>{item.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Error Banner */}
-        <AnimatePresence>
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="login-error-banner" style={{ marginBottom: 16 }}>
-              <AlertCircle size={15} /><span>{error}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <form className="login-form" onSubmit={handleSubmit}>
-          {/* Name + Company side by side */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div className="form-group">
-              <label htmlFor="name" className="form-label">Full Name</label>
-              <input id="name" type="text" className="form-input" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
-            </div>
-            <div className="form-group">
-              <label htmlFor="company" className="form-label">Company</label>
-              <input id="company" type="text" className="form-input" placeholder="Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)} required autoComplete="organization" />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Work Email</label>
-            <input id="email" type="email" className="form-input" placeholder="jane@acme.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} required autoComplete="email" />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
-            <div className="login-password-wrapper">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                className="form-input"
-                placeholder="Min. 8 characters"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                required
-                minLength={8}
-                autoComplete="new-password"
-              />
-              <button type="button" className="login-eye-btn" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password visibility">
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-
-            {/* Password strength bar */}
-            {password.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-                  {[1, 2, 3, 4].map((level) => (
-                    <div
-                      key={level}
-                      style={{
-                        flex: 1, height: 4, borderRadius: 100,
-                        background: level <= strength.score ? strength.color : "#e4e4e7",
-                        transition: "background 0.25s ease",
-                      }}
-                    />
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {strength.score >= 3 && <CheckCircle2 size={11} color={strength.color} />}
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: strength.color }}>{strength.label}</span>
-                  {strength.score < 3 && <span style={{ fontSize: 11.5, color: "#a1a1aa" }}>— use uppercase, numbers, symbols</span>}
-                </div>
+        <div className="auth-card">
+          {/* Value Reminder */}
+          <div className="auth-perks">
+            {[
+              { stat: "14-day", desc: "Free trial" },
+              { stat: "∞", desc: "Documents" },
+              { stat: "SOC 2", desc: "Compliant" },
+            ].map((item) => (
+              <div key={item.stat} className="auth-perk">
+                <div className="auth-perk__stat">{item.stat}</div>
+                <div className="auth-perk__desc">{item.desc}</div>
               </div>
-            )}
+            ))}
           </div>
 
-          {/* ToS Checkbox */}
-          <div className="login-remember-row">
-            <label className="login-remember-label" style={{ alignItems: "flex-start", gap: 10 }}>
+          {/* Error Banner */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="auth-banner auth-banner--error"
+              >
+                <span className="auth-banner__icon">
+                  <AlertCircle size={14} />
+                </span>
+                <span className="auth-banner__text">{error}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {/* Name + Company side by side */}
+            <div className="auth-grid-2">
+              <div className="auth-field">
+                <label htmlFor="name" className="auth-label">Full Name</label>
+                <input id="name" type="text" className="auth-input" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+              </div>
+              <div className="auth-field">
+                <label htmlFor="company" className="auth-label">Company</label>
+                <input id="company" type="text" className="auth-input" placeholder="Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)} required autoComplete="organization" />
+              </div>
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="email" className="auth-label">Work Email</label>
+              <input id="email" type="email" className="auth-input" placeholder="jane@acme.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} required autoComplete="email" />
+            </div>
+
+            <div className="auth-field">
+              <label htmlFor="password" className="auth-label">Password</label>
+              <div className="auth-input-wrap">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  className="auth-input auth-input--with-toggle"
+                  placeholder="Min. 8 characters"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password visibility">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Password strength bar */}
+              {password.length > 0 && (
+                <div className="auth-strength">
+                  <div className="auth-strength__bars">
+                    {[1, 2, 3, 4].map((level) => (
+                      <div
+                        key={level}
+                        className="auth-strength__bar"
+                        style={level <= strength.score ? { background: strength.color } : undefined}
+                      />
+                    ))}
+                  </div>
+                  <div className="auth-strength__meta">
+                    {strength.score >= 3 && <CheckCircle2 size={12} style={{ color: strength.color }} />}
+                    <span className="auth-strength__label" style={{ color: strength.color }}>{strength.label}</span>
+                    {strength.score < 3 && <span className="auth-strength__hint">— use uppercase, numbers, symbols</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ToS Checkbox */}
+            <label className="auth-check auth-check--top">
               <input
                 type="checkbox"
                 checked={tosAccepted}
                 onChange={(e) => { setTosAccepted(e.target.checked); setError(null); }}
-                className="login-checkbox"
-                style={{ marginTop: 2 }}
+                className="auth-checkbox"
               />
-              <span style={{ fontSize: 13, lineHeight: 1.5 }}>
+              <span>
                 I agree to Corely&apos;s{" "}
-                <Link href="/terms" style={{ color: "#ff6b00", textDecoration: "none", fontWeight: 600 }}>Terms of Service</Link>
+                <Link href="/terms" className="auth-inline-link">Terms of Service</Link>
                 {" "}and{" "}
-                <Link href="/privacy" style={{ color: "#ff6b00", textDecoration: "none", fontWeight: 600 }}>Privacy Policy</Link>
+                <Link href="/privacy" className="auth-inline-link">Privacy Policy</Link>
               </span>
             </label>
-          </div>
 
-          <button
-            type="submit"
-            className="login-btn"
-            disabled={isSubmitting || isLoading || !tosAccepted}
-            style={{ background: !tosAccepted ? "#d4d4d8" : "#ff6b00", marginTop: 4 }}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={18} className="login-spinner" />
-                Creating workspace…
-              </>
-            ) : (
-              "Start 14-Day Free Trial →"
-            )}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          Already have an account? <Link href="/login">Sign in</Link>
+            <button
+              type="submit"
+              className="auth-btn"
+              disabled={isSubmitting || isLoading || !tosAccepted}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="auth-spinner" />
+                  <span>Creating workspace…</span>
+                </>
+              ) : (
+                <>
+                  <span>Start 14-day free trial</span>
+                  <ArrowRight size={16} className="auth-btn__arrow" />
+                </>
+              )}
+            </button>
+          </form>
         </div>
-      </motion.div>
+
+        <p className="auth-footer">
+          Already have an account? <Link href="/login">Sign in</Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -3,10 +3,26 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/auth-context";
-import { Loader2, ArrowLeft, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import CorelyLogo from "@/components/icons/corely-logo";
 import "./login.css";
+
+// Short fade when switching between the sign-in and reset views.
+// AnimatePresence uses initial={false}, so nothing animates on first page load.
+const viewMotion = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.2, ease: "easeOut" as const },
+};
+
+const bannerMotion = {
+  initial: { opacity: 0, y: -4 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.15 },
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -53,141 +69,130 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <Link href="/" className="login-back-btn">
+    <div className="auth-page">
+      <div className="auth-glow" aria-hidden="true" />
+      <Link href="/" className="auth-back-link">
         <ArrowLeft size={16} /> Back to Home
       </Link>
-      <div className="login-bg-blob blob-1" />
-      <div className="login-bg-blob blob-2" />
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {!isForgotPassword ? (
-          <motion.div
-            key="login"
-            className="login-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <div className="login-header">
-              <Link href="/" style={{ textDecoration: "none" }}>
-                <div className="login-logo cursor-pointer">
-                  <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
-                  <div className="login-logo-text">Corely</div>
-                </div>
-              </Link>
-              <h1 className="login-title">Welcome back</h1>
-              <p className="login-subtitle">Sign in to your enterprise workspace</p>
+          <motion.div key="login" className="auth-shell" {...viewMotion}>
+            <Link href="/" className="auth-brand">
+              <span className="auth-logo-tile">
+                <CorelyLogo size={32} />
+              </span>
+              <span className="auth-wordmark">Corely</span>
+            </Link>
+
+            <div className="auth-heading">
+              <h1 className="auth-title">Welcome back</h1>
+              <p className="auth-subtitle">Sign in to your enterprise workspace</p>
             </div>
 
-            {/* Error Banner */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="login-error-banner"
-                >
-                  <AlertCircle size={15} />
-                  <span>{error}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="auth-card">
+              {/* Error Banner */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div {...bannerMotion} className="auth-banner auth-banner--error">
+                    <span className="auth-banner__icon">
+                      <AlertCircle size={14} />
+                    </span>
+                    <span className="auth-banner__text">{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <form className="login-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="email" className="form-label">Work Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  className="form-input"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="form-group">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <button type="button" className="login-forgot-btn" onClick={() => setIsForgotPassword(true)}>
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="login-password-wrapper">
+              <form className="auth-form" onSubmit={handleSubmit}>
+                <div className="auth-field">
+                  <label htmlFor="email" className="auth-label">Work Email</label>
                   <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className="form-input"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                    id="email"
+                    type="email"
+                    className="auth-input"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
                     required
-                    autoComplete="current-password"
+                    autoComplete="email"
                   />
-                  <button
-                    type="button"
-                    className="login-eye-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
-              </div>
 
-              <div className="login-remember-row">
-                <label className="login-remember-label">
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label htmlFor="password" className="auth-label">Password</label>
+                    <button type="button" className="auth-link-btn" onClick={() => setIsForgotPassword(true)}>
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="auth-input-wrap">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      className="auth-input auth-input--with-toggle"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="auth-eye-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <label className="auth-check">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="login-checkbox"
+                    className="auth-checkbox"
                   />
                   <span>Remember me for 30 days</span>
                 </label>
-              </div>
 
-              <button
-                type="submit"
-                className="login-btn"
-                disabled={isSubmitting || isLoading}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="login-spinner" />
-                    Signing in…
-                  </>
-                ) : (
-                  "Sign in to workspace"
-                )}
-              </button>
-            </form>
-
-            <div className="login-footer">
-              Don&apos;t have an account? <Link href="/signup">Create account</Link>
+                <button
+                  type="submit"
+                  className="auth-btn"
+                  disabled={isSubmitting || isLoading}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="auth-spinner" />
+                      <span>Signing in…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign in to workspace</span>
+                      <ArrowRight size={16} className="auth-btn__arrow" />
+                    </>
+                  )}
+                </button>
+              </form>
             </div>
+
+            <p className="auth-footer">
+              Don&apos;t have an account? <Link href="/signup">Create account</Link>
+            </p>
           </motion.div>
         ) : (
-          <motion.div
-            key="forgot"
-            className="login-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <div className="login-header">
-              <div className="login-logo cursor-pointer" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
-                <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
-                <div className="login-logo-text">Corely</div>
-              </div>
-              <h1 className="login-title">Reset password</h1>
-              <p className="login-subtitle">
+          <motion.div key="forgot" className="auth-shell" {...viewMotion}>
+            <div className="auth-brand" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
+              <span className="auth-logo-tile">
+                <CorelyLogo size={32} />
+              </span>
+              <span className="auth-wordmark">Corely</span>
+            </div>
+
+            <div className="auth-heading">
+              <h1 className="auth-title">Reset password</h1>
+              <p className="auth-subtitle">
                 {resetSent
                   ? "Check your inbox for a reset link."
                   : "Enter your work email and we'll send you a reset link."}
@@ -195,45 +200,64 @@ export default function LoginPage() {
             </div>
 
             {resetSent ? (
-              <div className="login-form">
-                <div className="login-success-banner">
-                  <CheckCircle size={15} />
-                  <span>Reset link sent to <strong>{email}</strong></span>
+              <div className="auth-card">
+                <div className="auth-banner auth-banner--success">
+                  <span className="auth-banner__icon">
+                    <CheckCircle size={14} />
+                  </span>
+                  <span className="auth-banner__text">Reset link sent to <strong>{email}</strong></span>
                 </div>
-                <button type="button" className="login-btn" onClick={() => { setIsForgotPassword(false); setResetSent(false); }}>
-                  Back to sign in
+                <button
+                  type="button"
+                  className="auth-btn auth-btn--back"
+                  onClick={() => { setIsForgotPassword(false); setResetSent(false); }}
+                >
+                  <ArrowLeft size={16} className="auth-btn__arrow" />
+                  <span>Back to sign in</span>
                 </button>
               </div>
             ) : (
               <>
-                <AnimatePresence>
-                  {error && (
-                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="login-error-banner">
-                      <AlertCircle size={15} /><span>{error}</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <form className="login-form" onSubmit={handleResetSubmit}>
-                  <div className="form-group">
-                    <label htmlFor="reset-email" className="form-label">Work Email</label>
-                    <input
-                      id="reset-email"
-                      type="email"
-                      className="form-input"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="login-btn" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 size={18} className="login-spinner animate-spin" /> : "Send reset link"}
-                  </button>
-                </form>
-                <div className="login-footer">
-                  Remember your password?{" "}
-                  <button type="button" className="login-text-btn" onClick={() => setIsForgotPassword(false)}>Sign in</button>
+                <div className="auth-card">
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div {...bannerMotion} className="auth-banner auth-banner--error">
+                        <span className="auth-banner__icon">
+                          <AlertCircle size={14} />
+                        </span>
+                        <span className="auth-banner__text">{error}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <form className="auth-form" onSubmit={handleResetSubmit}>
+                    <div className="auth-field">
+                      <label htmlFor="reset-email" className="auth-label">Work Email</label>
+                      <input
+                        id="reset-email"
+                        type="email"
+                        className="auth-input"
+                        placeholder="you@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="auth-btn" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <Loader2 size={16} className="auth-spinner" />
+                      ) : (
+                        <>
+                          <span>Send reset link</span>
+                          <ArrowRight size={16} className="auth-btn__arrow" />
+                        </>
+                      )}
+                    </button>
+                  </form>
                 </div>
+                <p className="auth-footer">
+                  Remember your password?{" "}
+                  <button type="button" className="auth-footer-btn" onClick={() => setIsForgotPassword(false)}>Sign in</button>
+                </p>
               </>
             )}
           </motion.div>

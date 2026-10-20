@@ -26,7 +26,13 @@ import {
   Download,
   X,
   Check,
+  Plus,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import CorelyLogo from "@/components/icons/corely-logo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,24 +59,56 @@ interface ChatMessage {
 
 const PRESET_PROMPTS = [
   {
-    icon: <TrendingUp size={15} style={{ color: "#ff6b00" }} />,
+    icon: <TrendingUp size={16} />,
     text: "What changed across product teams this week?",
   },
   {
-    icon: <AlertTriangle size={15} style={{ color: "#ff6b00" }} />,
+    icon: <AlertTriangle size={16} />,
     text: "Summarize key blockers",
   },
   {
-    icon: <Smile size={15} style={{ color: "#ff6b00" }} />,
+    icon: <Smile size={16} />,
     text: "Show customer sentiment trends",
   },
   {
-    icon: <Target size={15} style={{ color: "#ff6b00" }} />,
+    icon: <Target size={16} />,
     text: "How did we decide on the new API design?",
   },
 ];
 
+// ─── Display helpers (visual only) ────────────────────────────────────────────
+
+// Badge tone for a source's freshness label: Fresh → green, Aged → amber, Stale → red.
+function toneForConfidence(label?: SourceInfo["confidenceLabel"]): StatusTone {
+  if (label === "Fresh") return "success";
+  if (label === "Aged") return "warning";
+  if (label === "Stale") return "error";
+  return "neutral";
+}
+
+// Turns a source type such as "notion_page" into "Notion page".
+function formatSourceType(type?: string): string {
+  const words = (type || "document").replace(/[_-]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 // ─── Thinking State ───────────────────────────────────────────────────────────
+
+type StepState = "done" | "active" | "pending";
+
+function StepIcon({ state }: { state: StepState }) {
+  return (
+    <span className="ac-step-icon" aria-hidden="true">
+      {state === "done" ? (
+        <Check size={12} strokeWidth={3} />
+      ) : state === "active" ? (
+        <Loader2 size={16} className="animate-spin" />
+      ) : (
+        <span className="ac-step-dot" />
+      )}
+    </span>
+  );
+}
 
 function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
   const [step, setStep] = useState(0);
@@ -85,38 +123,30 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
 
   const hasSources = sources && sources.length > 0;
 
+  const step1: StepState = step >= 1 ? "done" : "active";
+  const step2: StepState = hasSources ? "done" : step >= 1 ? "active" : "pending";
+  const step3: StepState = hasSources ? "active" : "pending";
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", padding: "4px 0" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="ac-thinking">
+      <div className="ac-steps">
         <motion.div
-          initial={{ opacity: 0, x: -5 }}
-          animate={{ opacity: 1, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: step >= 1 ? "#16a34a" : "var(--db-text-muted)", fontWeight: 600 }}
+          className={`ac-step is-${step1}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
         >
-          {step >= 1 ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#dcfce7" }}>
-              <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 800 }}>✓</span>
-            </div>
-          ) : (
-            <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
-          )}
+          <StepIcon state={step1} />
           <span>Analyzing query scope...</span>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: -5 }}
-          animate={{ opacity: step >= 1 ? 1 : 0.5, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#16a34a" : step >= 1 ? "#ff6b00" : "var(--db-text-muted)", fontWeight: 600 }}
+          className={`ac-step is-${step2}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: step >= 1 ? 1 : 0.5 }}
+          transition={{ duration: 0.15 }}
         >
-          {hasSources ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#dcfce7" }}>
-              <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 800 }}>✓</span>
-            </div>
-          ) : step >= 1 ? (
-            <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
-          ) : (
-            <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid #e4e4e7" }} />
-          )}
+          <StepIcon state={step2} />
           <span>
             {hasSources
               ? `Retrieved ${sources.length} document references`
@@ -125,30 +155,20 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: -5 }}
-          animate={{ opacity: hasSources ? 1 : 0.5, x: 0 }}
-          style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "13px", color: hasSources ? "#ff6b00" : "var(--db-text-muted)", fontWeight: 600 }}
+          className={`ac-step is-${step3}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: hasSources ? 1 : 0.5 }}
+          transition={{ duration: 0.15 }}
         >
-          {hasSources ? (
-            <Loader2 size={14} className="animate-spin" style={{ color: "#ff6b00" }} />
-          ) : (
-            <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid #e4e4e7" }} />
-          )}
+          <StepIcon state={step3} />
           <span>Synthesizing intelligence response...</span>
         </motion.div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-        <div style={{ height: 12, width: "90%", borderRadius: 4, background: "linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%)", backgroundSize: "200% 100%", animation: "pulse-shimmer 1.5s infinite linear" }} />
-        <div style={{ height: 12, width: "75%", borderRadius: 4, background: "linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%)", backgroundSize: "200% 100%", animation: "pulse-shimmer 1.5s infinite linear" }} />
+      <div className="ac-thinking-lines" aria-hidden="true">
+        <div className="ui-skeleton" style={{ width: "90%" }} />
+        <div className="ui-skeleton" style={{ width: "75%" }} />
       </div>
-
-      <style>{`
-        @keyframes pulse-shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -161,6 +181,9 @@ interface AskMainProps {
   onNewMessage: () => void;
   sharedPrompt: string | null;
   setSharedPrompt: (prompt: string | null) => void;
+  /** Whether the right context panel is showing (the chat widens when it is hidden). */
+  contextOpen?: boolean;
+  onToggleContext?: () => void;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -171,6 +194,8 @@ export default function AskMain({
   onNewMessage,
   sharedPrompt,
   setSharedPrompt,
+  contextOpen = true,
+  onToggleContext,
 }: AskMainProps) {
   const { workspaceId } = useAuth();
   const [query, setQuery] = useState("");
@@ -306,7 +331,7 @@ export default function AskMain({
   const handleShare = () => {
     if (typeof window !== "undefined") {
       void navigator.clipboard.writeText(window.location.href);
-      toast("Conversation link copied to clipboard!");
+      toast("Conversation link copied to clipboard.");
     }
   };
 
@@ -349,7 +374,7 @@ export default function AskMain({
     a.download = `corely-conversation-${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    toast("Conversation exported as Markdown!");
+    toast("Conversation exported as Markdown.");
   };
 
   // ─── Save to Memory ──────────────────────────────────────────────────────────
@@ -372,7 +397,7 @@ export default function AskMain({
       });
 
       if (!res.ok) throw new Error("Failed to save to memory");
-      toast("✅ Saved to workspace memory!");
+      toast("Saved to workspace memory.");
     } catch (err) {
       console.error("Save to memory failed:", err);
       toast("Failed to save to memory. Try again.");
@@ -409,8 +434,8 @@ export default function AskMain({
 
       if (!res.ok) throw new Error("Failed to record feedback");
 
-      if (newFeedback === "positive") toast("👍 Thanks for the positive feedback!");
-      else if (newFeedback === "negative") toast("👎 Thanks — we'll keep improving!");
+      if (newFeedback === "positive") toast("Thanks for the positive feedback.");
+      else if (newFeedback === "negative") toast("Thanks. We'll keep improving.");
     } catch (err) {
       console.error("Error recording feedback:", err);
       toast("Could not save feedback. Try again.");
@@ -555,7 +580,7 @@ export default function AskMain({
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === corelyMsgId
-            ? { ...msg, text: `⚠️ Corely was unable to answer your query. Reason: ${errMsg}`, isStreaming: false }
+            ? { ...msg, text: `Corely was unable to answer your query. Reason: ${errMsg}`, isStreaming: false }
             : msg
         )
       );
@@ -576,7 +601,9 @@ export default function AskMain({
   // ─── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minHeight: "0", position: "relative", overflow: "hidden" }}>
+    // "ac-main" uses display: contents, so the header, thread and composer
+    // below sit straight in the page grid set up in ask-corely.css.
+    <div className="ac-main">
 
       {/* Hidden file input */}
       <input
@@ -591,146 +618,100 @@ export default function AskMain({
       <AnimatePresence>
         {showToast && (
           <motion.div
-            initial={{ opacity: 0, y: -40 }}
+            className="ac-toast"
+            role="status"
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{
-              position: "fixed",
-              top: 24,
-              right: 24,
-              zIndex: 9999,
-              background: "#111",
-              color: "#fff",
-              padding: "12px 20px",
-              borderRadius: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.15 }}
           >
-            <CheckCircle2 size={16} color="#4ade80" />
+            <CheckCircle2 size={16} />
             {showToast}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Header */}
-      <motion.div
+      <PageHeader
         className="ac-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{ flexShrink: 0, marginBottom: 16 }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <h1 className="ac-title">
-              <Sparkles size={24} style={{ color: "#ff6b00" }} fill="#ff6b00" />
-              Ask Corely
-            </h1>
-            <p className="ac-subtitle">Your AI partner for company intelligence.</p>
-          </div>
-          {/* Export conversation button */}
-          {messages.length > 0 && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={handleExport}
-              title="Export conversation as Markdown"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "7px 14px",
-                borderRadius: 8,
-                border: "1px solid #e4e4e7",
-                background: "var(--db-panel)",
-                color: "var(--db-text-muted)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "#ff6b00";
-                (e.currentTarget as HTMLButtonElement).style.color = "#ff6b00";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--db-border)";
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--db-text-muted)";
-              }}
+        title="Ask Corely"
+        subtitle="Your AI partner for company intelligence."
+        actions={
+          <>
+            {/* Export conversation button */}
+            {messages.length > 0 && (
+              <button
+                type="button"
+                className="ui-btn ui-btn--secondary"
+                onClick={handleExport}
+                title="Export conversation as Markdown"
+              >
+                <Download size={16} />
+                Export
+              </button>
+            )}
+            {/* Show or hide the context panel so the chat can use the full width */}
+            {onToggleContext && (
+              <button
+                type="button"
+                className="ui-icon-btn ac-context-toggle"
+                onClick={onToggleContext}
+                aria-pressed={!contextOpen}
+                aria-label={contextOpen ? "Hide context panel" : "Show context panel"}
+                title={contextOpen ? "Hide context panel" : "Show context panel"}
+              >
+                {contextOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+              </button>
+            )}
+            {/* New conversation: clears the active session, same as before */}
+            <button
+              type="button"
+              className="ui-btn ui-btn--primary"
+              onClick={() => setActiveSessionId(null)}
             >
-              <Download size={13} />
-              Export
-            </motion.button>
-          )}
-        </div>
-      </motion.div>
+              <Plus size={16} />
+              New conversation
+            </button>
+          </>
+        }
+      />
 
       {/* Chat Thread & Scroll Lane */}
-      <div style={{ flex: 1, position: "relative", minHeight: 0, marginBottom: 16 }}>
+      <div className="ac-thread">
         <div
+          className="ac-thread-scroll"
           data-lenis-prevent
           onWheel={(e) => e.stopPropagation()}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflowY: "auto", paddingRight: "6px", scrollbarWidth: "thin" }}
         >
-          <AnimatePresence initial={false}>
+          <div className="ac-thread-inner">
             {messages.map((msg) => {
               if (msg.sender === "user") {
                 return (
-                  <div key={msg.id} style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: 8 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      style={{
-                        maxWidth: "75%",
-                        background: "linear-gradient(135deg, #ff6b00, #ff8533)",
-                        color: "#fff",
-                        padding: "12px 18px",
-                        borderRadius: "16px 16px 4px 16px",
-                        boxShadow: "0 4px 12px rgba(255, 107, 0, 0.15)",
-                      }}
-                    >
-                      <div style={{ fontSize: "14px", fontWeight: 500, lineHeight: 1.5, wordBreak: "break-word" }}>
-                        {msg.text}
-                      </div>
-                      <div style={{ fontSize: "10.5px", color: "rgba(255, 255, 255, 0.8)", textAlign: "right", marginTop: 6, fontWeight: 500 }}>
-                        {msg.timestamp}
-                      </div>
-                    </motion.div>
+                  <div key={msg.id} className="ac-msg-user">
+                    <div className="ac-user-bubble">{msg.text}</div>
+                    <span className="type-caption ac-msg-time">{msg.timestamp}</span>
                   </div>
                 );
               }
 
-              // Corely Response Card
+              // Corely Response
               return (
-                <motion.div
-                  key={msg.id}
-                  className="ac-response-card"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35 }}
-                  style={{ marginBottom: 20 }}
-                >
-                  {/* Response Header */}
-                  <div className="ac-response-header">
-                    <div className="ac-response-title">
-                      <Sparkles size={15} style={{ color: "#ff6b00" }} fill="#ff6b00" />
-                      Corely Response
-                    </div>
-                    <div className="ac-response-time">{msg.timestamp}</div>
-                  </div>
+                <div key={msg.id} className="ac-response-card">
+                  <span className="ac-avatar" aria-hidden="true">
+                    <CorelyLogo size={18} />
+                  </span>
 
-                  {/* Response Body */}
                   <div className="ac-response-body">
-                    <div className="ac-response-context" style={{ lineHeight: "1.6", margin: 0 }}>
+                    {/* Response Header */}
+                    <div className="ac-response-header">
+                      <span className="ac-response-title">Corely</span>
+                      <span className="type-caption">{msg.timestamp}</span>
+                    </div>
+
+                    {/* Response Body */}
+                    <div className="ac-response-context">
                       {msg.text ? (
-                        <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-100 prose-pre:text-zinc-900 prose-a:text-orange-600">
+                        <div className="ac-md">
                           <ReactMarkdown
                             components={{
                               // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -741,31 +722,14 @@ export default function AskMain({
                                   return (
                                     <a
                                       href={`#ref-${msg.id}-${sourceId}`}
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        minWidth: "16px",
-                                        height: "16px",
-                                        borderRadius: "50%",
-                                        background: "#ffefd6",
-                                        color: "#ff6b00",
-                                        fontSize: "10px",
-                                        fontWeight: 800,
-                                        textDecoration: "none",
-                                        marginLeft: "4px",
-                                        verticalAlign: "super",
-                                        cursor: "pointer",
-                                        border: "1px solid #ffcc99",
-                                        lineHeight: 1
-                                      }}
+                                      className="ac-cite"
                                       title="Jump to source"
                                       onClick={(e) => {
                                         e.preventDefault();
                                         const el = document.getElementById(`ref-${msg.id}-${sourceId}`);
                                         if (el) {
                                           el.scrollIntoView({ behavior: "smooth", block: "center" });
-                                          el.style.boxShadow = "0 0 0 2px #ff6b00, 0 0 20px rgba(255, 107, 0, 0.3)";
+                                          el.style.boxShadow = "0 0 0 2px var(--accent-fill), 0 0 0 6px var(--accent-wash)";
                                           setTimeout(() => { el.style.boxShadow = "none"; }, 1500);
                                         }
                                       }}
@@ -788,229 +752,217 @@ export default function AskMain({
 
                     {/* Sources */}
                     {msg.sources && msg.sources.length > 0 && (
-                      <div className="ac-r-source-wrap" style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <span className="ac-r-source-label">Sources &amp; Temporal Confidence:</span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                          {msg.sources.map((src, i) => {
-                            let badgeColor = "var(--db-text-muted)";
-                            let badgeBg = "#f4f4f5";
-                            if (src.confidenceLabel === "Fresh") { badgeColor = "#16a34a"; badgeBg = "#dcfce7"; }
-                            else if (src.confidenceLabel === "Aged") { badgeColor = "#ca8a04"; badgeBg = "#fef08a"; }
-                            else if (src.confidenceLabel === "Stale") { badgeColor = "#dc2626"; badgeBg = "#fee2e2"; }
-
-                            return (
-                              <a
-                                key={i}
-                                id={`ref-${msg.id}-${i + 1}`}
-                                href={src.url || "#"}
-                                target={src.url ? "_blank" : "_self"}
-                                rel="noopener noreferrer"
-                                className="ac-r-source-badge"
-                                style={{
-                                  textDecoration: "none",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  padding: "4px 8px",
-                                  background: "var(--db-panel)",
-                                  border: "1px solid #e4e4e7",
-                                  borderRadius: "6px",
-                                  fontSize: "12px",
-                                  color: "var(--db-text)",
-                                  transition: "all 0.3s ease",
-                                }}
-                              >
-                                <span style={{
-                                  background: "#f4f4f5", color: "#a1a1aa", fontSize: "10px", 
-                                  fontWeight: 800, padding: "1px 5px", borderRadius: "4px", marginRight: "4px"
-                                }}>
-                                  {i + 1}
-                                </span>
-                                <FileText size={11} style={{ marginRight: 2 }} />
-                                <span style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {src.title}
-                                </span>
-                                {src.confidenceLabel && (
-                                  <span style={{
-                                    marginLeft: "6px",
-                                    padding: "2px 6px",
-                                    borderRadius: "4px",
-                                    fontSize: "9px",
-                                    fontWeight: 700,
-                                    color: badgeColor,
-                                    backgroundColor: badgeBg,
-                                    letterSpacing: "0.5px",
-                                    textTransform: "uppercase",
-                                  }}>
-                                    {src.confidenceLabel} ({src.confidenceScore}%)
+                      <div className="ac-r-source-wrap">
+                        <span className="ac-r-source-label">
+                          Sources &amp; temporal confidence
+                          <span className="ui-badge">{msg.sources.length}</span>
+                        </span>
+                        <div className="ac-source-grid">
+                          {msg.sources.map((src, i) => (
+                            <a
+                              key={i}
+                              id={`ref-${msg.id}-${i + 1}`}
+                              href={src.url || "#"}
+                              target={src.url ? "_blank" : "_self"}
+                              rel="noopener noreferrer"
+                              className="ac-r-source-badge"
+                              title={src.title}
+                            >
+                              <span className="ac-source-num">{i + 1}</span>
+                              <span className="ac-source-main">
+                                <span className="ac-source-title">{src.title}</span>
+                                <span className="ac-source-meta">
+                                  <span className="ac-source-type">
+                                    <FileText size={12} />
+                                    {formatSourceType(src.type)}
                                   </span>
-                                )}
-                                <ExternalLink size={10} style={{ marginLeft: 2, opacity: 0.7 }} />
-                              </a>
-                            );
-                          })}
+                                  {src.confidenceLabel && (
+                                    <StatusBadge tone={toneForConfidence(src.confidenceLabel)}>
+                                      {src.confidenceLabel} · {src.confidenceScore}%
+                                    </StatusBadge>
+                                  )}
+                                </span>
+                              </span>
+                              {src.url && <ExternalLink size={14} className="ac-source-ext" />}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Response Actions */}
+                    {!msg.isStreaming && msg.text && (
+                      <div className="ac-response-footer">
+                        <div className="ac-footer-actions">
+                          {/* Copy with success flash */}
+                          <button
+                            type="button"
+                            className={`ui-btn ui-btn--ghost ui-btn--sm ac-action-btn${copiedMessageId === msg.id ? " is-copied" : ""}`}
+                            onClick={() => handleCopy(msg.text, msg.id)}
+                          >
+                            {copiedMessageId === msg.id ? (
+                              <><Check size={16} /> Copied</>
+                            ) : (
+                              <><Copy size={16} /> Copy</>
+                            )}
+                          </button>
+
+                          {/* Share */}
+                          <button
+                            type="button"
+                            className="ui-btn ui-btn--ghost ui-btn--sm ac-action-btn"
+                            onClick={handleShare}
+                          >
+                            <Share2 size={16} /> Share
+                          </button>
+
+                          {/* Save to memory — real API */}
+                          <button
+                            type="button"
+                            className="ui-btn ui-btn--ghost ui-btn--sm ac-action-btn"
+                            onClick={() => void handleSaveToMemory(msg)}
+                          >
+                            <BookmarkPlus size={16} /> Save to memory
+                          </button>
+
+                          {/* Export this message */}
+                          <button
+                            type="button"
+                            className="ui-btn ui-btn--ghost ui-btn--sm ac-action-btn"
+                            onClick={handleExport}
+                          >
+                            <Download size={16} /> Export
+                          </button>
+                        </div>
+
+                        <div className="ac-feedback">
+                          <span className="type-caption ac-feedback-label">Was this helpful?</span>
+                          <button
+                            type="button"
+                            className="ui-icon-btn ui-icon-btn--sm ac-feedback-btn"
+                            aria-label="Thumbs up"
+                            aria-pressed={msg.feedback === "positive"}
+                            onClick={() => void handleFeedback(msg.id, "positive")}
+                          >
+                            <ThumbsUp size={16} fill={msg.feedback === "positive" ? "currentColor" : "none"} />
+                          </button>
+                          <button
+                            type="button"
+                            className="ui-icon-btn ui-icon-btn--sm ac-feedback-btn"
+                            aria-label="Thumbs down"
+                            aria-pressed={msg.feedback === "negative"}
+                            onClick={() => void handleFeedback(msg.id, "negative")}
+                          >
+                            <ThumbsDown size={16} fill={msg.feedback === "negative" ? "currentColor" : "none"} />
+                          </button>
                         </div>
                       </div>
                     )}
                   </div>
-
-                  {/* Response Actions */}
-                  {!msg.isStreaming && msg.text && (
-                    <div className="ac-response-footer">
-                      <div className="ac-footer-actions">
-                        {/* Copy with success flash */}
-                        <button
-                          className="ac-action-btn"
-                          onClick={() => handleCopy(msg.text, msg.id)}
-                          style={{ color: copiedMessageId === msg.id ? "#16a34a" : undefined, transition: "color 0.2s" }}
-                        >
-                          {copiedMessageId === msg.id ? (
-                            <><Check size={13} /> Copied!</>
-                          ) : (
-                            <><Copy size={13} /> Copy</>
-                          )}
-                        </button>
-
-                        {/* Share */}
-                        <button className="ac-action-btn" onClick={handleShare}>
-                          <Share2 size={13} /> Share
-                        </button>
-
-                        {/* Save to memory — real API */}
-                        <button className="ac-action-btn" onClick={() => void handleSaveToMemory(msg)}>
-                          <BookmarkPlus size={13} /> Save to memory
-                        </button>
-
-                        {/* Export this message */}
-                        <button className="ac-action-btn" onClick={handleExport}>
-                          <Download size={13} /> Export
-                        </button>
-                      </div>
-
-                      <div className="ac-feedback">
-                        Was this helpful?
-                        <button
-                          className="ac-action-btn"
-                          aria-label="Thumbs up"
-                          onClick={() => void handleFeedback(msg.id, "positive")}
-                          style={{ color: msg.feedback === "positive" ? "#ff6b00" : undefined }}
-                        >
-                          <ThumbsUp size={14} fill={msg.feedback === "positive" ? "#ff6b00" : "none"} />
-                        </button>
-                        <button
-                          className="ac-action-btn"
-                          aria-label="Thumbs down"
-                          onClick={() => void handleFeedback(msg.id, "negative")}
-                          style={{ color: msg.feedback === "negative" ? "#ea3838" : undefined }}
-                        >
-                          <ThumbsDown size={14} fill={msg.feedback === "negative" ? "#ea3838" : "none"} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
+                </div>
               );
             })}
-          </AnimatePresence>
 
-          {/* Empty state with preset prompts */}
-          {messages.length === 0 && !loading && (
-            <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: "10vh" }}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                style={{ textAlign: "center", marginBottom: 32, width: "100%", maxWidth: 520 }}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fff3ee", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <Sparkles size={24} color="#ff6b00" />
-                </div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--db-text)", marginBottom: 6 }}>
-                  Ask anything about your company
-                </h3>
-                <p style={{ fontSize: 13.5, color: "var(--db-text-muted)", maxWidth: 360, lineHeight: 1.5, margin: "0 auto 28px" }}>
+            {/* Placeholder while an old conversation loads */}
+            {messages.length === 0 && loading && (
+              <div className="ac-history-loading" aria-hidden="true">
+                <div className="ui-skeleton ac-skel-bubble" />
+                <div className="ui-skeleton" style={{ width: "85%" }} />
+                <div className="ui-skeleton" style={{ width: "70%" }} />
+                <div className="ui-skeleton" style={{ width: "50%" }} />
+              </div>
+            )}
+
+            {/* Empty state with preset prompts */}
+            {messages.length === 0 && !loading && (
+              <div className="ui-empty ac-empty">
+                <span className="ui-icon-well ui-icon-well--lg ui-icon-well--accent">
+                  <Sparkles />
+                </span>
+                <h2 className="type-heading">Ask anything about your company</h2>
+                <p className="type-subtitle ui-empty__text">
                   Corely&#39;s semantic brain indexes all your connected sources and responds with citation-backed intelligence.
                 </p>
 
                 {/* Preset prompt grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, textAlign: "left" }}>
+                <div className="ac-prompts-grid">
                   {PRESET_PROMPTS.map((p) => (
-                    <motion.button
+                    <button
                       key={p.text}
-                      whileHover={{ y: -2, boxShadow: "0 4px 16px rgba(255,107,0,0.12)" }}
+                      type="button"
+                      className="ac-prompt-card"
                       onClick={() => void handleSubmit(undefined, p.text)}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        padding: "12px 14px",
-                        borderRadius: 10,
-                        border: "1px solid #e4e4e7",
-                        background: "var(--db-panel)",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "#374151",
-                        lineHeight: 1.4,
-                        transition: "all 0.2s",
-                        textAlign: "left",
-                      }}
                     >
-                      <span style={{ flexShrink: 0, marginTop: 1 }}>{p.icon}</span>
-                      {p.text}
-                    </motion.button>
+                      <span className="ac-prompt-icon">{p.icon}</span>
+                      <span className="ac-prompt-text">{p.text}</span>
+                    </button>
                   ))}
                 </div>
-              </motion.div>
-            </div>
-          )}
+              </div>
+            )}
 
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
       </div>
 
       {/* Input Box */}
-      <form onSubmit={handleSubmit} style={{ flexShrink: 0 }}>
-        <motion.div
-          className="ac-input-wrapper"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          style={{ marginBottom: 0 }}
-        >
+      <form onSubmit={handleSubmit} className="ac-composer-form">
+        <div className="ac-input-wrapper">
           {/* Active tool chips */}
           <AnimatePresence>
             {(webSearchEnabled || knowledgeOnlyEnabled || attachedFile) && (
               <motion.div
+                className="ac-input-chips"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "8px 12px 0", overflow: "hidden" }}
+                transition={{ duration: 0.15 }}
               >
-                {webSearchEnabled && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#eff6ff", color: "#2563eb", fontSize: 12, fontWeight: 600 }}>
-                    <Globe size={11} /> Web Search ON
-                    <button type="button" onClick={() => setWebSearchEnabled(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", padding: 0, display: "flex", alignItems: "center" }}>
-                      <X size={11} />
-                    </button>
-                  </span>
-                )}
-                {knowledgeOnlyEnabled && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#f0fdf4", color: "#16a34a", fontSize: 12, fontWeight: 600 }}>
-                    <BookOpen size={11} /> Knowledge Only
-                    <button type="button" onClick={() => setKnowledgeOnlyEnabled(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", padding: 0, display: "flex", alignItems: "center" }}>
-                      <X size={11} />
-                    </button>
-                  </span>
-                )}
-                {attachedFile && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, background: "#fff3ee", color: "#ff6b00", fontSize: 12, fontWeight: 600 }}>
-                    <FileText size={11} /> {attachedFile.name}
-                    <button type="button" onClick={handleRemoveFile} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff6b00", padding: 0, display: "flex", alignItems: "center" }}>
-                      <X size={11} />
-                    </button>
-                  </span>
-                )}
+                <div className="ac-input-chips-inner">
+                  {webSearchEnabled && (
+                    <span className="ac-chip">
+                      <Globe size={12} />
+                      <span className="ac-chip-label">Web search on</span>
+                      <button
+                        type="button"
+                        className="ac-chip-remove"
+                        aria-label="Turn off web search"
+                        onClick={() => setWebSearchEnabled(false)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                  {knowledgeOnlyEnabled && (
+                    <span className="ac-chip">
+                      <BookOpen size={12} />
+                      <span className="ac-chip-label">Knowledge only</span>
+                      <button
+                        type="button"
+                        className="ac-chip-remove"
+                        aria-label="Turn off knowledge-only mode"
+                        onClick={() => setKnowledgeOnlyEnabled(false)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                  {attachedFile && (
+                    <span className="ac-chip">
+                      <FileText size={12} />
+                      <span className="ac-chip-label">{attachedFile.name}</span>
+                      <button
+                        type="button"
+                        className="ac-chip-remove"
+                        aria-label="Remove attached file"
+                        onClick={handleRemoveFile}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1018,75 +970,61 @@ export default function AskMain({
           <textarea
             ref={textareaRef}
             className="ac-input-field"
+            aria-label="Ask Corely"
             placeholder="Ask anything about your company... (Shift+Enter for new line)"
             rows={1}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            style={{ resize: "none" }}
           />
           <div className="ac-input-actions">
             <div className="ac-input-tools">
               {/* File Attachment */}
               <button
                 type="button"
-                className="ac-tool-btn"
+                className={`ui-btn ui-btn--ghost ac-tool-btn${attachedFile ? " is-active" : ""}`}
                 aria-label="Attach file"
                 title="Attach a text file as context"
                 onClick={() => fileInputRef.current?.click()}
-                style={{ color: attachedFile ? "#ff6b00" : undefined }}
               >
-                <Paperclip size={18} />
+                <Paperclip size={16} />
               </button>
 
               {/* Web Search Toggle */}
               <button
                 type="button"
-                className="ac-tool-btn"
+                className="ui-btn ui-btn--ghost ac-tool-btn"
                 aria-label="Toggle web search"
-                title={webSearchEnabled ? "Web search ON — click to disable" : "Enable web search context"}
+                aria-pressed={webSearchEnabled}
+                title={webSearchEnabled ? "Web search on. Click to turn off" : "Enable web search context"}
                 onClick={() => setWebSearchEnabled((v) => !v)}
-                style={{
-                  color: webSearchEnabled ? "#2563eb" : undefined,
-                  background: webSearchEnabled ? "#eff6ff" : undefined,
-                  borderRadius: webSearchEnabled ? 8 : undefined,
-                }}
               >
-                <Globe size={18} />
+                <Globe size={16} />
               </button>
 
               {/* Knowledge Only Toggle */}
               <button
                 type="button"
-                className="ac-tool-btn"
+                className="ui-btn ui-btn--ghost ac-tool-btn"
                 aria-label="Toggle knowledge base only"
-                title={knowledgeOnlyEnabled ? "Knowledge-only mode ON — click to disable" : "Enable knowledge-base-only mode"}
+                aria-pressed={knowledgeOnlyEnabled}
+                title={knowledgeOnlyEnabled ? "Knowledge-only mode on. Click to turn off" : "Enable knowledge-base-only mode"}
                 onClick={() => setKnowledgeOnlyEnabled((v) => !v)}
-                style={{
-                  color: knowledgeOnlyEnabled ? "#16a34a" : undefined,
-                  background: knowledgeOnlyEnabled ? "#f0fdf4" : undefined,
-                  borderRadius: knowledgeOnlyEnabled ? 8 : undefined,
-                }}
               >
-                <BookOpen size={18} />
+                <BookOpen size={16} />
               </button>
             </div>
 
             <button
               type="submit"
-              className="ac-submit-btn"
+              className="ui-btn ui-btn--primary ac-submit-btn"
               aria-label="Submit prompt"
               disabled={!query.trim() || loading}
-              style={{
-                background: (!query.trim() || loading) ? "#f4f4f5" : "#ff6b00",
-                color: (!query.trim() || loading) ? "#a1a1aa" : "#fff",
-                cursor: (!query.trim() || loading) ? "not-allowed" : "pointer",
-              }}
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={3} />}
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={2.5} />}
             </button>
           </div>
-        </motion.div>
+        </div>
       </form>
     </div>
   );

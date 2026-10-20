@@ -9,6 +9,7 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import "./DataTable.css";
 
 interface DataTableProps<TData, TValue> {
@@ -34,8 +35,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="dt-container">
-      <table className="dt-table">
+    <div className="dt-container ui-table-wrap">
+      <table className="dt-table ui-table">
         <thead className="dt-header">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="dt-header-row">
@@ -58,8 +59,8 @@ export function DataTable<TData, TValue>({
                           header.getContext()
                         )}
                         {{
-                          asc: " 🔼",
-                          desc: " 🔽",
+                          asc: <ChevronUp size={14} className="dt-sort-icon" aria-hidden="true" />,
+                          desc: <ChevronDown size={14} className="dt-sort-icon" aria-hidden="true" />,
                         }[header.column.getIsSorted() as string] ?? null}
                       </div>
                     )}

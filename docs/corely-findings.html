@@ -23,11 +23,6 @@
     color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
-  --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
-  color-scheme:dark;
-}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;overflow-x:hidden}
@@ -68,7 +63,7 @@ header.hero h1{font-size:2.1rem;margin:1.6rem 0 .2rem}
 .tile .l{color:var(--muted);font-size:.9rem}
 
 /* filter */
-.filter{position:sticky;top:52px;z-index:10;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.6rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+.filter{position:sticky;top:56px;z-index:10;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.6rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
 .filter button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:.3rem .8rem;cursor:pointer;font:inherit;font-size:.88rem}
 .filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .filter input{flex:1;min-width:160px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:.4rem .6rem;font:inherit;font-size:.9rem}
@@ -85,7 +80,6 @@ header.hero h1{font-size:2.1rem;margin:1.6rem 0 .2rem}
 .item .refs{font-size:.88rem;color:var(--muted)}
 .badge{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:4px;padding:.1rem .45rem;margin-right:.4rem;color:#fff;background:var(--c);vertical-align:2px}
 .badge.Critical{--c:var(--critical)} .badge.High{--c:var(--high)} .badge.Medium{--c:var(--medium)}
-:root[data-theme="dark"] .badge{color:#111}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge{color:#111}}
 .hidden{display:none!important}
 .tag{font-size:.75rem;border:1px solid var(--border);border-radius:4px;padding:0 .35rem;color:var(--muted);margin-left:.3rem}
@@ -111,39 +105,36 @@ figcaption{color:var(--muted);font-size:.88rem;margin-top:.4rem}
 .callout.warn{border-left-color:var(--high)}
 footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.2rem 16px;color:var(--muted);font-size:.88rem;text-align:center}
 </style>
+
+<style>
+/* Single column: the sidebar is gone, topics live in the top navbar */
+.layout{display:block !important;max-width:900px;margin:0 auto;padding:0 16px}
+main{max-width:900px;margin:0 auto}
+[id]{scroll-margin-top:72px}
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:nowrap;align-items:center;gap:1rem;padding:0 16px;height:56px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;white-space:nowrap;flex:none}
+.topbar .topics{display:flex;flex-wrap:nowrap;gap:.25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;flex:1;min-width:0}
+.topbar .topics a{flex:none;text-decoration:none;color:var(--muted);padding:.35rem .65rem;border-radius:6px;font-size:.9rem}
+.topbar .topics a:hover{background:var(--surface);color:var(--text)}
+.topbar .topics a.active{background:var(--accent);color:#fff}
+@media (max-width:640px){.topbar .brand{display:none}}
+</style>
 </head>
 <body>
-<div class="topbar">
-  <span class="brand">Corely docs</span>
-  <nav aria-label="Corely documents">
-    <a href="corely-findings.html" class="current" aria-current="page">Gap Analysis</a>
-    <a href="corely-adr.html">Architecture Decisions</a>
-    <a href="corely-ai-pipelines.html">AI Pipelines</a>
-    <a href="corely-system-design.html">System Design</a>
+<header class="topbar">
+  <span class="brand">Corely &middot; Gap Analysis</span>
+  <nav class="topics" aria-label="On this page">
+    <a href="#summary">Summary</a>
+    <a href="#method">How this was checked</a>
+    <a href="#findings">Findings</a>
+    <a href="#plan">Implementation plan</a>
+    <a href="#order">Suggested order</a>
+    <a href="#claude-md">Wrong claims in CLAUDE.md</a>
   </nav>
-  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
-</div>
+</header>
 
 <div class="layout">
-<aside class="toc" aria-label="Table of contents">
-  <strong>On this page</strong>
-  <ol>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#method">How this was checked</a></li>
-    <li><a href="#findings">Findings</a>
-      <ol>
-        <li><a href="#sec-a">A. Security holes</a></li>
-        <li><a href="#sec-b">B. Broken</a></li>
-        <li><a href="#sec-c">C. Fake</a></li>
-        <li><a href="#sec-d">D. Missing</a></li>
-      </ol>
-    </li>
-    <li><a href="#plan">Implementation plan</a></li>
-    <li><a href="#order">Suggested order</a></li>
-    <li><a href="#claude-md">Wrong claims in CLAUDE.md</a></li>
-  </ol>
-</aside>
-
 <main>
 <header class="hero" id="summary">
   <h1>Corely Gap Analysis</h1>
@@ -932,12 +923,6 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.2rem 16px;co
 
 <script>
 (function(){
-  var root=document.documentElement, btn=document.getElementById('themeBtn');
-  try{var s=localStorage.getItem('corely-theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
-  function isDark(){var t=root.getAttribute('data-theme'); if(t) return t==='dark'; return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;}
-  function label(){btn.textContent=isDark()?'Light mode':'Dark mode';}
-  label();
-  btn.addEventListener('click',function(){var n=isDark()?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('corely-theme',n);}catch(e){} label();});
 
   var items=[].slice.call(document.querySelectorAll('#findings .item'));
   var sev='All', q=document.getElementById('q'), cnt=document.getElementById('fcount');
@@ -962,6 +947,22 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.2rem 16px;co
   buttons.forEach(function(b){b.addEventListener('click',function(){sev=b.getAttribute('data-f'); buttons.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');}); apply();});});
   q.addEventListener('input',apply);
   apply();
+})();
+</script>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('.topbar .topics a'));
+  var targets=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function update(){
+    var y=window.scrollY+90, cur=0;
+    targets.forEach(function(t,i){ if(t&&t.getBoundingClientRect().top+window.scrollY<=y) cur=i; });
+    links.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+    var a=links[cur]; if(a&&a.scrollIntoView&&a.parentNode.scrollWidth>a.parentNode.clientWidth){
+      var n=a.parentNode; n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2; }
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  update();
 })();
 </script>
 </body>

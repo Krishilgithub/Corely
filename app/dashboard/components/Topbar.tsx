@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle
+  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle, LogOut, User
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
 import { formatDistanceToNow } from "date-fns";
@@ -67,6 +67,38 @@ const QUICK_ACTIONS = [
   { id: "action-settings", label: "Workspace Settings", icon: <Settings size={14} />, href: "/dashboard/settings" },
 ];
 
+const sectionLabelStyle: React.CSSProperties = {
+  padding: "12px 20px 6px",
+};
+
+const rowStyle = (selected: boolean): React.CSSProperties => ({
+  padding: "10px 20px",
+  cursor: "pointer",
+  background: selected ? "var(--surface-hover)" : "transparent",
+  transition: "background-color 150ms ease-out",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+});
+
+const chipStyle = (selected: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
+  height: 24,
+  minWidth: 24,
+  padding: "0 6px",
+  borderRadius: 6,
+  border: "1px solid var(--hairline)",
+  background: selected ? "var(--surface)" : "var(--surface-secondary)",
+  color: selected ? "var(--icon-primary)" : "var(--icon-secondary)",
+  fontSize: 12,
+  fontWeight: 600,
+  textTransform: "capitalize",
+  flexShrink: 0,
+});
+
 export default function Topbar() {
   const { user, workspace } = useAuth();
   const router = useRouter();
@@ -78,12 +110,15 @@ export default function Topbar() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -103,7 +138,7 @@ export default function Topbar() {
       }
     };
     checkSyncStatus();
-    
+
     // Poll every 10s if syncing
     const interval = setInterval(() => {
       checkSyncStatus();
@@ -127,6 +162,18 @@ export default function Topbar() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Close popovers on an outside click.
+  useEffect(() => {
+    if (!showNotifs && !showUserMenu) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (showNotifs && notifRef.current && !notifRef.current.contains(t)) setShowNotifs(false);
+      if (showUserMenu && userRef.current && !userRef.current.contains(t)) setShowUserMenu(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [showNotifs, showUserMenu]);
 
   // Focus input when search modal opens
   useEffect(() => {
@@ -260,27 +307,14 @@ export default function Topbar() {
   };
 
   const renderNotifIcon = (type: string) => {
-    const props = { size: 14 };
     switch (type) {
-      case "Sparkles": return <Sparkles {...props} />;
-      case "CheckCircle2": return <CheckCircle2 {...props} />;
-      case "AlertTriangle": return <AlertTriangle {...props} />;
-      case "Cpu": return <Cpu {...props} />;
-      case "UserPlus": return <UserPlus {...props} />;
-      case "Database": return <Database {...props} />;
-      default: return <Bell {...props} />;
-    }
-  };
-
-  const getIconStyles = (type: string) => {
-    switch (type) {
-      case "Sparkles": return { bg: "#fef2f2", color: "#ef4444" };
-      case "CheckCircle2": return { bg: "#f0fdf4", color: "#16a34a" };
-      case "AlertTriangle": return { bg: "#fefce8", color: "#eab308" };
-      case "Cpu": return { bg: "#eff6ff", color: "#3b82f6" };
-      case "UserPlus": return { bg: "#f5f3ff", color: "#8b5cf6" };
-      case "Database": return { bg: "#fff7ed", color: "#f97316" };
-      default: return { bg: "#f4f4f5", color: "var(--db-text-muted)" };
+      case "Sparkles": return <Sparkles />;
+      case "CheckCircle2": return <CheckCircle2 />;
+      case "AlertTriangle": return <AlertTriangle />;
+      case "Cpu": return <Cpu />;
+      case "UserPlus": return <UserPlus />;
+      case "Database": return <Database />;
+      default: return <Bell />;
     }
   };
 
@@ -300,14 +334,12 @@ export default function Topbar() {
     return (start > 0 ? "..." : "") + snippet + (snippet.length >= maxLen ? "..." : "");
   };
 
+  const visibleNotifications = notifFilter === "unread" ? notifications.filter(n => !n.isRead) : notifications;
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U";
+
   return (
-    <motion.header
-      className="db-topbar"
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-    >
-      <div style={{ display: "flex", alignItems: "center" }}>
+    <header className="db-topbar">
+      <div className="db-topbar-left">
         <button
           className="db-hamburger-btn"
           aria-label="Toggle menu"
@@ -317,138 +349,124 @@ export default function Topbar() {
             }
           }}
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
 
         {/* Workspace Switcher */}
         <button className="db-ws-btn" aria-label="Switch workspace">
-          <Building2 size={13} style={{ color: "var(--db-text-muted)" }} />
+          <Building2 size={16} />
           <span>{workspace?.name || "Workspace"}</span>
-          <ChevronDown size={12} style={{ color: "#a1a1aa" }} />
+          <ChevronDown size={14} />
+        </button>
+
+        {/* Search */}
+        <button
+          className="db-search-bar"
+          onClick={() => setShowSearch(true)}
+          aria-label="Global search"
+        >
+          <span className="db-search-inner">
+            <Search size={16} />
+            <span className="db-search-text">Search your knowledge...</span>
+          </span>
+          <span className="db-search-kbd">
+            <Command size={10} />
+            <span>K</span>
+          </span>
         </button>
       </div>
 
-      {/* AI Search */}
-      <button
-        className="db-search-bar"
-        onClick={() => setShowSearch(true)}
-        aria-label="Global search"
-        style={{ border: "none", cursor: "pointer", background: "white", position: "relative", zIndex: 50, pointerEvents: "auto" }}
-      >
-        <div className="db-search-inner">
-          <Sparkles size={14} style={{ color: "#ff6b00", flexShrink: 0 }} />
-          <span className="db-search-text">Search or ask anything about your company...</span>
-        </div>
-        <div className="db-search-kbd">
-          <Command size={10} />
-          <span>K</span>
-        </div>
-      </button>
-
       {/* Right Actions */}
-      <div className="db-topbar-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        
+      <div className="db-topbar-right">
         {isSyncing && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#ff6b00", background: "var(--orange-light)", padding: "4px 10px", borderRadius: 100 }}>
-            <Loader2 size={12} className="animate-spin" /> Syncing...
-          </div>
+          <span className="db-sync-pill">
+            <Loader2 className="animate-spin" /> Syncing
+          </span>
         )}
 
         {/* Help Button */}
         <button
+          className="ui-icon-btn"
           onClick={() => setShowHelp(true)}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 32, height: 32, borderRadius: 8,
-            background: "var(--db-bg)", border: "1px solid var(--db-border)",
-            color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
-          }}
-          aria-label="Help & Shortcuts"
+          aria-label="Help and shortcuts"
         >
-          <HelpCircle size={15} />
+          <HelpCircle size={18} />
         </button>
 
         {/* Notifications */}
-        <div style={{ position: "relative", display: "flex" }}>
+        <div className="db-popover-anchor" ref={notifRef}>
           <button
-            aria-label="Notifications"
+            className="ui-icon-btn db-notif-btn"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            aria-expanded={showNotifs}
             onClick={() => setShowNotifs(!showNotifs)}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 32, height: 32, borderRadius: 8, position: "relative",
-              background: "var(--db-bg)", border: "1px solid var(--db-border)",
-              color: "var(--db-text-muted)", cursor: "pointer", transition: "all 0.2s"
-            }}
           >
-            <Bell size={15} />
-            {unreadCount > 0 && (
-              <span className="db-notif-badge" style={{ position: "absolute", top: -4, right: -4, background: "#ff6b00", color: "#ffffff", fontSize: 10, fontWeight: 700, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label={`${unreadCount} notifications`}>{unreadCount}</span>
-            )}
+            <Bell size={18} />
+            {unreadCount > 0 && <span className="db-notif-dot" aria-hidden="true" />}
           </button>
 
           <AnimatePresence>
             {showNotifs && (
               <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                style={{
-                  position: "absolute", top: "100%", right: 0, marginTop: 12,
-                  background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
-                  boxShadow: "0 10px 30px var(--db-shadow)", zIndex: 50, width: 320,
-                  display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: 400
-                }}
+                className="db-popover ui-popover"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ width: 360, display: "flex", flexDirection: "column" }}
               >
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid #e4e4e7", fontWeight: 600, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  Notifications
-                  {unreadCount > 0 && (
-                    <span style={{ fontSize: 11, background: "#fef2f2", color: "#ef4444", padding: "2px 6px", borderRadius: 100 }}>{unreadCount} new</span>
-                  )}
+                <div className="db-popover-head">
+                  <span className="type-heading">Notifications</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {(["all", "unread"] as const).map(f => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setNotifFilter(f)}
+                        className={`ui-badge ${notifFilter === f ? "ui-badge--solid" : "ui-badge--neutral"}`}
+                        style={{ cursor: "pointer", textTransform: "capitalize" }}
+                      >
+                        {f}{f === "unread" && unreadCount > 0 ? ` ${unreadCount}` : ""}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ overflowY: "auto", flex: 1 }}>
-                  {notifications.length === 0 ? (
-                    <div style={{ padding: 24, textAlign: "center", color: "#a1a1aa", fontSize: 13 }}>
-                      <Bell size={24} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
-                      No notifications yet
+                <div style={{ overflowY: "auto", maxHeight: 300 }}>
+                  {visibleNotifications.length === 0 ? (
+                    <div className="ui-empty" style={{ padding: "40px 24px", gap: 8 }}>
+                      <Bell size={20} style={{ color: "var(--icon-disabled)" }} />
+                      <span className="type-caption">
+                        {notifFilter === "unread" ? "No unread notifications" : "No notifications yet"}
+                      </span>
                     </div>
                   ) : (
-                    notifications.map(notif => {
-                      const style = getIconStyles(notif.iconType);
-                      return (
-                        <div
-                          key={notif.id}
-                          onClick={() => markAsRead(notif.id, notif.isRead)}
-                          style={{
-                            padding: "12px 16px", borderBottom: "1px solid #f4f4f5",
-                            display: "flex", gap: 12,
-                            background: notif.isRead ? "transparent" : "var(--db-bg)",
-                            cursor: "pointer", transition: "background 0.2s"
-                          }}
-                        >
-                          <div style={{ background: style.bg, color: style.color, width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {renderNotifIcon(notif.iconType)}
+                    visibleNotifications.map(notif => (
+                      <div
+                        key={notif.id}
+                        className="db-notif-row"
+                        data-unread={notif.isRead ? "false" : "true"}
+                        onClick={() => markAsRead(notif.id, notif.isRead)}
+                      >
+                        <span className="db-notif-icon">{renderNotifIcon(notif.iconType)}</span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="type-body" style={{ fontWeight: notif.isRead ? 500 : 700 }}>{notif.title}</div>
+                          <div className="type-caption" style={{ color: "var(--text-secondary)", marginTop: 2, fontWeight: 400 }}>{notif.message}</div>
+                          <div className="type-caption" style={{ marginTop: 4 }}>
+                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                           </div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: notif.isRead ? 500 : 600, color: "#18181b" }}>{notif.title}</div>
-                            <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2, lineHeight: 1.4 }}>{notif.message}</div>
-                            <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
-                              {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
-                            </div>
-                          </div>
-                          {!notif.isRead && (
-                            <div style={{ width: 6, height: 6, background: "#ff6b00", borderRadius: "50%", alignSelf: "center", marginLeft: "auto", flexShrink: 0 }} />
-                          )}
                         </div>
-                      );
-                    })
+                        {!notif.isRead && (
+                          <span style={{ width: 6, height: 6, background: "var(--accent-fill)", borderRadius: 9999, alignSelf: "center", flexShrink: 0 }} />
+                        )}
+                      </div>
+                    ))
                   )}
                 </div>
-                {notifications.length > 0 && unreadCount > 0 && (
-                  <div style={{ padding: "8px 16px", background: "var(--db-bg)", borderTop: "1px solid #e4e4e7", textAlign: "center" }}>
-                    <span style={{ fontSize: 12, color: "#ff6b00", fontWeight: 600, cursor: "pointer" }} onClick={markAllAsRead}>
+                {unreadCount > 0 && (
+                  <div style={{ padding: 8, borderTop: "1px solid var(--hairline)" }}>
+                    <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm ui-btn--block" onClick={markAllAsRead}>
                       Mark all as read
-                    </span>
+                    </button>
                   </div>
                 )}
               </motion.div>
@@ -456,57 +474,55 @@ export default function Topbar() {
           </AnimatePresence>
         </div>
 
-        {/* Avatar */}
-        <div style={{ position: "relative" }}>
-          <div
+        {/* Profile chip */}
+        <div className="db-popover-anchor" ref={userRef}>
+          <button
+            type="button"
+            className="db-profile-chip"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{
-              width: 34, height: 34, borderRadius: "50%",
-              background: "linear-gradient(135deg, #ff6b00, #ff9240)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 900, color: "#ffffff",
-              cursor: "pointer", border: "1px solid var(--db-border-light)",
-              boxShadow: "0 2px 4px var(--db-shadow)"
-            }}
-            aria-label="User profile"
+            aria-label="Account menu"
+            aria-expanded={showUserMenu}
           >
-            {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
-          </div>
+            <span className="db-user-avatar">{initial}</span>
+            <ChevronDown size={14} />
+          </button>
 
           <AnimatePresence>
             {showUserMenu && (
               <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                style={{
-                  position: "absolute", top: "100%", right: 0, marginTop: 12,
-                  background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 12,
-                  boxShadow: "0 10px 30px var(--db-shadow)", zIndex: 50, width: 220,
-                  display: "flex", flexDirection: "column", overflow: "hidden"
-                }}
+                className="db-popover ui-popover"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ width: 240 }}
               >
-                <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "var(--db-text)" }}>{user?.name || "User"}</div>
-                  <div style={{ fontSize: 12, color: "var(--db-text-muted)", marginTop: 2 }}>{user?.email}</div>
+                <div style={{ padding: 16, borderBottom: "1px solid var(--hairline)" }}>
+                  <div className="type-body" style={{ fontWeight: 600 }}>{user?.name || "User"}</div>
+                  <div className="type-caption" style={{ marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+                  {user?.roleName && (
+                    <span className="ui-badge ui-badge--neutral" style={{ marginTop: 10 }}>{user.roleName}</span>
+                  )}
                 </div>
-                <div style={{ padding: "8px" }}>
-                  <Link href="/dashboard/settings" onClick={() => setShowUserMenu(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, color: "#3f3f46", fontSize: 13, textDecoration: "none", fontWeight: 500 }} className="hover:bg-zinc-50">
-                    <Settings size={14} /> Settings
+                <div style={{ padding: 6 }}>
+                  <Link href="/dashboard/profile" onClick={() => setShowUserMenu(false)} className="ui-menu-item">
+                    <User /> Profile
+                  </Link>
+                  <Link href="/dashboard/settings" onClick={() => setShowUserMenu(false)} className="ui-menu-item">
+                    <Settings /> Settings
                   </Link>
                 </div>
-                <div style={{ padding: "8px", borderTop: "1px solid #f0f0f0" }}>
-                  <button 
+                <div style={{ padding: 6, borderTop: "1px solid var(--hairline)" }}>
+                  <button
+                    type="button"
+                    className="ui-menu-item ui-menu-item--danger"
                     onClick={async () => {
                       await fetch("/api/auth/logout", { method: "POST" });
                       router.push("/login");
                       router.refresh();
                     }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 12px", borderRadius: 6, color: "#ef4444", fontSize: 13, fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
-                    className="hover:bg-red-50"
                   >
-                    Log out
+                    <LogOut /> Log out
                   </button>
                 </div>
               </motion.div>
@@ -518,251 +534,193 @@ export default function Topbar() {
       {/* ── Global Search Modal ───────────────────────────────────────────────── */}
       {mounted && showSearch && createPortal(
         <div
-            className="global-search-overlay"
-            onClick={handleClose}
-            style={{
-              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
-              zIndex: 99999, display: "flex", alignItems: "flex-start",
-              justifyContent: "center", paddingTop: "10vh"
-            }}
+          className="global-search-overlay"
+          onClick={handleClose}
+          style={{
+            position: "fixed", inset: 0,
+            backgroundColor: "var(--overlay)", backdropFilter: "blur(4px)",
+            zIndex: 99999, display: "flex", alignItems: "flex-start",
+            justifyContent: "center", padding: "10vh 16px 0"
+          }}
+        >
+          <motion.div
+            className="global-search-modal ui-popover"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 640, display: "flex", flexDirection: "column" }}
           >
-            <motion.div
-              className="global-search-modal"
-              initial={{ scale: 0.96, opacity: 0, y: -10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: -10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "var(--db-panel)", borderRadius: 16, width: "100%", maxWidth: 660,
-                boxShadow: "0 30px 60px -12px rgba(0,0,0,0.3), 0 0 0 1px var(--db-shadow)",
-                overflow: "hidden", display: "flex", flexDirection: "column"
-              }}
-            >
-              {/* Search Input */}
-              <div style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid #f0f0f0" }}>
-                {isSearching
-                  ? <Loader2 size={20} color="#ff6b00" style={{ marginRight: 14, flexShrink: 0, animation: "spin 1s linear infinite" }} />
-                  : <Search size={20} color="#a1a1aa" style={{ marginRight: 14, flexShrink: 0 }} />
-                }
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Search documents, decisions, discussions..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearchKeyDown}
-                  style={{
-                    flex: 1, border: "none", outline: "none", fontSize: 16,
-                    background: "transparent", color: "#18181b", fontWeight: 500
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery(""); setSearchResults([]); inputRef.current?.focus(); }}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#a1a1aa" }}
-                  >
-                    <X size={16} />
-                  </button>
-                )}
+            {/* Search Input */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid var(--hairline)" }}>
+              {isSearching
+                ? <Loader2 size={18} className="animate-spin" style={{ color: "var(--icon-secondary)", flexShrink: 0 }} />
+                : <Search size={18} style={{ color: "var(--icon-secondary)", flexShrink: 0 }} />
+              }
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Search documents, decisions, discussions..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                style={{
+                  flex: 1, border: "none", outline: "none", fontSize: 16, lineHeight: "24px",
+                  background: "transparent", color: "var(--text-primary)", fontWeight: 500, fontFamily: "inherit", boxShadow: "none"
+                }}
+              />
+              {searchQuery && (
                 <button
-                  onClick={handleClose}
-                  style={{
-                    background: "#f4f4f5", border: "1px solid #e4e4e7", cursor: "pointer",
-                    padding: "3px 7px", display: "flex", alignItems: "center", justifyContent: "center",
-                    borderRadius: 6, fontSize: 11, fontWeight: 600, color: "var(--db-text-muted)", marginLeft: 8
-                  }}
+                  className="ui-icon-btn ui-icon-btn--sm"
+                  style={{ border: "none", boxShadow: "none", background: "transparent" }}
+                  onClick={() => { setSearchQuery(""); setSearchResults([]); inputRef.current?.focus(); }}
+                  aria-label="Clear search"
                 >
-                  ESC
+                  <X size={16} />
                 </button>
-              </div>
+              )}
+              <button type="button" className="ui-kbd" onClick={handleClose} style={{ cursor: "pointer" }}>
+                ESC
+              </button>
+            </div>
 
-              {/* Results Area */}
-              <div style={{ maxHeight: 420, overflowY: "auto", background: "var(--db-bg)" }}>
-                {searchError && (
-                  <div style={{ padding: "20px 24px", textAlign: "center", color: "#ef4444", fontSize: 14 }}>
-                    {searchError}
-                  </div>
-                )}
+            {/* Results Area */}
+            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              {searchError && (
+                <div className="type-body" style={{ padding: "20px 24px", textAlign: "center", color: "var(--error)" }}>
+                  {searchError}
+                </div>
+              )}
 
-                {!searchError && searchQuery.trim() && !isSearching && searchResults.length === 0 && currentActionResults.length === 0 && (
-                  <div style={{ padding: "32px 24px", textAlign: "center" }}>
-                    <Search size={32} color="#d4d4d8" style={{ margin: "0 auto 12px" }} />
-                    <p style={{ fontSize: 15, color: "var(--db-text-muted)", fontWeight: 500 }}>No results found for &ldquo;{searchQuery}&rdquo;</p>
-                    <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 6 }}>Try connecting more sources or rephrasing your query</p>
-                    <Link
-                      href={`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`}
-                      onClick={handleClose}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6, marginTop: 16,
-                        padding: "8px 16px", background: "#ff6b00", color: "#ffffff",
-                        borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none"
-                      }}
+              {!searchError && searchQuery.trim() && !isSearching && searchResults.length === 0 && currentActionResults.length === 0 && (
+                <div className="ui-empty" style={{ padding: "40px 24px" }}>
+                  <span className="ui-icon-well ui-icon-well--sm"><Search /></span>
+                  <p className="type-heading">No results for &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="type-subtitle ui-empty__text">Try connecting more sources or rephrasing your question.</p>
+                  <Link
+                    href={`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`}
+                    onClick={handleClose}
+                    className="ui-btn ui-btn--primary"
+                    style={{ marginTop: 4 }}
+                  >
+                    <Sparkles /> Ask Corely instead
+                  </Link>
+                </div>
+              )}
+
+              {!searchQuery.trim() && (
+                <div style={{ paddingBottom: 8 }}>
+                  <div className="type-label" style={sectionLabelStyle}>Suggested searches</div>
+                  {SUGGESTED_SEARCHES.map(q => (
+                    <div
+                      key={q}
+                      onClick={() => setSearchQuery(q)}
+                      style={rowStyle(false)}
+                      onMouseOver={e => { e.currentTarget.style.background = "var(--surface-hover)"; }}
+                      onMouseOut={e => { e.currentTarget.style.background = "transparent"; }}
                     >
-                      <Sparkles size={13} /> Ask Corely AI instead
-                    </Link>
-                  </div>
-                )}
-
-                {!searchQuery.trim() && (
-                  <div style={{ padding: "16px 20px" }}>
-                    <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 10, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                      Suggested Searches
+                      <Search size={14} style={{ color: "var(--icon-secondary)" }} />
+                      <span className="type-body">{q}</span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {SUGGESTED_SEARCHES.map(q => (
-                        <button
-                          key={q}
-                          onClick={() => setSearchQuery(q)}
-                          style={{
-                            textAlign: "left", padding: "10px 12px", background: "transparent",
-                            border: "1px solid transparent", borderRadius: 8, color: "#3f3f46",
-                            cursor: "pointer", transition: "all 0.12s", fontSize: 14,
-                            display: "flex", alignItems: "center", gap: 10
-                          }}
-                          onMouseOver={e => {
-                            e.currentTarget.style.background = "var(--db-panel)";
-                            e.currentTarget.style.borderColor = "var(--db-border)";
-                          }}
-                          onMouseOut={e => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.borderColor = "transparent";
-                          }}
-                        >
-                          <Search size={13} color="#a1a1aa" />
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
 
-                {(currentActionResults.length > 0 || searchResults.length > 0) && (
-                  <div style={{ padding: "8px 0" }}>
-                    {currentActionResults.length > 0 && (
-                      <>
-                        <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "8px 20px 4px" }}>
-                          Quick Actions
-                        </div>
-                        {currentActionResults.map((action, idx) => {
-                          const isSelected = idx === selectedIndex;
-                          return (
-                            <div
-                              key={action.id}
-                              onClick={() => {
+              {(currentActionResults.length > 0 || searchResults.length > 0) && (
+                <div style={{ paddingBottom: 8 }}>
+                  {currentActionResults.length > 0 && (
+                    <>
+                      <div className="type-label" style={sectionLabelStyle}>Quick actions</div>
+                      {currentActionResults.map((action, idx) => {
+                        const isSelected = idx === selectedIndex;
+                        return (
+                          <div
+                            key={action.id}
+                            onClick={() => {
+                              handleClose();
+                              router.push(action.href);
+                            }}
+                            onMouseEnter={() => setSelectedIndex(idx)}
+                            style={rowStyle(isSelected)}
+                          >
+                            <span style={chipStyle(isSelected)}>{action.icon}</span>
+                            <span className="type-body" style={{ fontWeight: 500 }}>{action.label}</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {searchResults.length > 0 && (
+                    <>
+                      <div className="type-label" style={sectionLabelStyle}>Knowledge results ({searchResults.length})</div>
+                      {searchResults.map((result, resIdx) => {
+                        const idx = currentActionResults.length + resIdx;
+                        const meta = result.metadata || {};
+                        const isSelected = idx === selectedIndex;
+                        const sourceType = meta.file_type || meta.source_type || "document";
+                        return (
+                          <div
+                            key={result.id}
+                            onClick={() => {
+                              if (meta.url) {
+                                window.open(meta.url, "_blank");
+                              } else {
+                                router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
                                 handleClose();
-                                router.push(action.href);
-                              }}
-                              onMouseEnter={() => setSelectedIndex(idx)}
-                              style={{
-                                padding: "10px 20px", cursor: "pointer",
-                                background: isSelected ? "#fff7ed" : "transparent",
-                                borderLeft: isSelected ? "3px solid #ff6b00" : "3px solid transparent",
-                                transition: "all 0.1s", display: "flex", alignItems: "center", gap: 12
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: isSelected ? "var(--db-panel)" : "#f4f4f5", color: isSelected ? "#ff6b00" : "var(--db-text-muted)", borderRadius: 6 }}>
-                                {action.icon}
+                              }
+                            }}
+                            onMouseEnter={() => setSelectedIndex(idx)}
+                            style={{ ...rowStyle(isSelected), flexDirection: "column", alignItems: "stretch", gap: 4, padding: "12px 20px" }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                <span style={chipStyle(isSelected)}>
+                                  {getSourceIcon(sourceType)}
+                                  {sourceType.replace(/_/g, " ")}
+                                </span>
+                                <span className="type-body" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {meta.document_title || "Untitled Document"}
+                                </span>
                               </div>
-                              <span style={{ fontSize: 13.5, fontWeight: 500, color: isSelected ? "#18181b" : "#3f3f46" }}>
-                                {action.label}
-                              </span>
+                              {meta.url && <ExternalLink size={12} style={{ color: "var(--icon-secondary)", flexShrink: 0 }} />}
                             </div>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {searchResults.length > 0 && (
-                      <>
-                        <div style={{ fontWeight: 600, color: "#a1a1aa", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "12px 20px 4px" }}>
-                          Knowledge Results ({searchResults.length})
-                        </div>
-                        {searchResults.map((result, resIdx) => {
-                          const idx = currentActionResults.length + resIdx;
-                          const meta = result.metadata || {};
-                          const isSelected = idx === selectedIndex;
-                          const sourceType = meta.file_type || meta.source_type || "document";
-                          return (
-                            <div
-                              key={result.id}
-                              onClick={() => {
-                                if (meta.url) {
-                                  window.open(meta.url, "_blank");
-                                } else {
-                                  router.push(`/dashboard/ask-corely?q=${encodeURIComponent(searchQuery)}`);
-                                  handleClose();
-                                }
-                              }}
-                              onMouseEnter={() => setSelectedIndex(idx)}
-                              style={{
-                                padding: "12px 20px", cursor: "pointer",
-                                background: isSelected ? "#fff7ed" : "transparent",
-                                borderLeft: isSelected ? "3px solid #ff6b00" : "3px solid transparent",
-                                transition: "all 0.1s",
-                                display: "flex", flexDirection: "column", gap: 4,
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                  <span style={{
-                                    display: "inline-flex", alignItems: "center", gap: 4,
-                                    background: isSelected ? "var(--db-panel)" : "#f4f4f5",
-                                    color: isSelected ? "#ff6b00" : "var(--db-text-muted)",
-                                    borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 600
-                                  }}>
-                                    {getSourceIcon(sourceType)}
-                                    {sourceType.replace(/_/g, " ")}
-                                  </span>
-                                  <span style={{ fontSize: 13, fontWeight: 600, color: "#18181b" }}>
-                                    {meta.document_title || "Untitled Document"}
-                                  </span>
-                                </div>
-                                {meta.url && <ExternalLink size={12} color="#a1a1aa" style={{ flexShrink: 0 }} />}
-                              </div>
-                              <p style={{ fontSize: 12, color: "var(--db-text-muted)", lineHeight: 1.5, margin: 0 }}>
-                                {highlightSnippet(result.content, searchQuery)}
-                              </p>
-                              <div style={{ fontSize: 11, color: "#a1a1aa" }}>
-                                Relevance: {Math.round(result.similarity * 100)}%
-                              </div>
+                            <p className="type-caption" style={{ color: "var(--text-secondary)", fontWeight: 400, lineHeight: "18px" }}>
+                              {highlightSnippet(result.content, searchQuery)}
+                            </p>
+                            <div className="type-caption">
+                              Relevance {Math.round(result.similarity * 100)}%
                             </div>
-                          );
-                        })}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
-              {/* Footer */}
-              <div style={{
-                padding: "10px 20px", borderTop: "1px solid #f0f0f0",
-                background: "var(--db-panel)", display: "flex", alignItems: "center",
-                justifyContent: "space-between", fontSize: 12, color: "#a1a1aa"
-              }}>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↵</kbd>
-                    to open
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↓</kbd>
-                    <kbd style={{ background: "#f4f4f5", padding: "2px 6px", borderRadius: 4, border: "1px solid #e4e4e7", fontFamily: "inherit", color: "var(--db-text-muted)" }}>↑</kbd>
-                    navigate
-                  </span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Sparkles size={11} color="#ff6b00" />
-                  Corely Knowledge Search
-                </div>
+            {/* Footer */}
+            <div className="type-caption" style={{
+              padding: "10px 20px", borderTop: "1px solid var(--hairline)",
+              background: "var(--surface-secondary)", display: "flex", alignItems: "center",
+              justifyContent: "space-between", gap: 12
+            }}>
+              <div style={{ display: "flex", gap: 14 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <kbd className="ui-kbd">↵</kbd> to open
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <kbd className="ui-kbd">↓</kbd><kbd className="ui-kbd">↑</kbd> to move
+                </span>
               </div>
-            </motion.div>
-          </div>,
-          document.body
+              <span>Corely knowledge search</span>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
       )}
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-    </motion.header>
+    </header>
   );
 }

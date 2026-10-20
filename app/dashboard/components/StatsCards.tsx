@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, TrendingUp, type LucideIcon } from "lucide-react";
+import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -53,38 +52,37 @@ export default function StatsCards({ data }: { data?: any }) {
   }, [data]);
 
   if (!data || statsData.length === 0) {
-    return <div className="db-stats-grid">Loading stats...</div>;
+    // Neutral placeholder tiles while the numbers load.
+    return (
+      <div className="db-stats-grid" role="status" aria-busy="true" aria-label="Loading stats...">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="ui-skeleton db-stat-skeleton" />
+        ))}
+      </div>
+    );
   }
 
   return (
     <div className="db-stats-grid">
-      {statsData.map((stat) => (
-        <Link href={stat.href || "#"} key={stat.label} style={{ textDecoration: 'none' }}>
-          <motion.div
-            className="db-stat-card"
-            style={{ cursor: "pointer" }}
-            initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: stat.delay, duration: 0.4, ease: "easeOut" }}
-          whileHover={{ y: -2 }}
-        >
-          <div className="db-stat-left">
-            <div className="db-stat-icon">
-              <stat.icon size={20} strokeWidth={2.2} />
-            </div>
-            <div>
-              <div className="db-stat-num">
-                <AnimatedNumber target={stat.value} suffix={stat.suffix} />
-              </div>
-              <div className="db-stat-label">{stat.label}</div>
-              <div className="db-stat-trend">
-                <TrendingUp size={11} />
-                {stat.trend}
-              </div>
-            </div>
+      {statsData.map((stat, i) => (
+        <Link href={stat.href || "#"} key={stat.label} className="ui-kpi db-stat-card">
+          <div className="db-stat-top">
+            {/* The first tile (indexed documents) is the main stat, so it gets the orange well. */}
+            <span className={i === 0 ? "ui-icon-well ui-icon-well--accent" : "ui-icon-well"} aria-hidden="true">
+              <stat.icon strokeWidth={2} />
+            </span>
+            <ChevronRight size={16} className="db-stat-chevron" aria-hidden="true" />
           </div>
-          <ChevronRight size={15} style={{ color: "#d4d4d4", flexShrink: 0 }} />
-          </motion.div>
+          <div className="db-stat-bottom">
+            <div className="db-stat-value-row">
+              <span className="type-metric">
+                <AnimatedNumber target={stat.value} suffix={stat.suffix} />
+              </span>
+              {/* The trend text is a fixed label, not a measured change, so it stays neutral. */}
+              <span className="type-caption">{stat.trend}</span>
+            </div>
+            <span className="db-stat-label">{stat.label}</span>
+          </div>
         </Link>
       ))}
     </div>

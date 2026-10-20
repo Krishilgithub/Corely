@@ -23,11 +23,6 @@
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #0f1115; --surface: #171a21; --border: #2a2f3a; --text: #e6e8ec; --muted: #9aa3b2;
-  --accent: #818cf8; --critical: #f87171; --high: #fb923c; --medium: #facc15; --ok: #4ade80;
-  color-scheme: dark;
-}
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 body {
@@ -164,65 +159,37 @@ figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
 
 footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
 </style>
+
+<style>
+/* Single column: the sidebar is gone, topics live in the top navbar */
+.layout{display:block !important;max-width:900px;margin:0 auto;padding:0 16px}
+main{max-width:900px;margin:0 auto}
+[id]{scroll-margin-top:72px}
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:nowrap;align-items:center;gap:1rem;padding:0 16px;height:56px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;white-space:nowrap;flex:none}
+.topbar .topics{display:flex;flex-wrap:nowrap;gap:.25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;flex:1;min-width:0}
+.topbar .topics a{flex:none;text-decoration:none;color:var(--muted);padding:.35rem .65rem;border-radius:6px;font-size:.9rem}
+.topbar .topics a:hover{background:var(--surface);color:var(--text)}
+.topbar .topics a.active{background:var(--accent);color:#fff}
+@media (max-width:640px){.topbar .brand{display:none}}
+</style>
 </head>
 <body>
 
-<nav class="topbar" aria-label="Corely audit documents">
-  <span class="brand">Corely audit</span>
-  <div class="siblings">
-    <a href="corely-findings.html">Gap Analysis</a>
-    <a href="corely-adr.html" aria-current="page">Architecture Decisions</a>
-    <a href="corely-ai-pipelines.html">AI Pipelines</a>
-    <a href="corely-system-design.html">System Design</a>
-  </div>
-  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme: auto</button>
-</nav>
+<header class="topbar">
+  <span class="brand">Corely &middot; Architecture Decisions</span>
+  <nav class="topics" aria-label="On this page">
+    <a href="#intro">About this log</a>
+    <a href="#how-to-add">How to add an ADR</a>
+    <a href="#summary">Summary table</a>
+    <a href="#map">Decision map</a>
+    <a href="#records">All records</a>
+  </nav>
+</header>
 
 <div class="layout">
-  <aside class="toc" aria-label="Table of contents">
-    <details id="tocDetails">
-      <summary>Contents</summary>
-      <ol>
-        <li><a href="#intro">About this log</a></li>
-        <li><a href="#how-to-add">How to add an ADR</a></li>
-        <li><a href="#summary">Summary table</a></li>
-        <li><a href="#map">Decision map</a></li>
-        <li><a href="#records">All records</a></li>
-        <li class="grp">Accepted</li>
-        <li><a href="#adr-001">001 Next.js monolith</a></li>
-        <li><a href="#adr-002">002 Postgres + pgvector</a></li>
-        <li><a href="#adr-003">003 Prisma + Supabase client</a></li>
-        <li><a href="#adr-004">004 db push, no migrations</a></li>
-        <li><a href="#adr-005">005 Custom JWT session</a></li>
-        <li><a href="#adr-006">006 RBAC JSON roles</a></li>
-        <li><a href="#adr-007">007 crypto-js token AES</a></li>
-        <li><a href="#adr-008">008 OpenAI embeddings</a></li>
-        <li><a href="#adr-009">009 Word chunking</a></li>
-        <li><a href="#adr-010">010 gpt-4o + SSE</a></li>
-        <li><a href="#adr-011">011 Threshold + refusal</a></li>
-        <li><a href="#adr-012">012 Permission-aware retrieval</a></li>
-        <li><a href="#adr-013">013 Freshness decay</a></li>
-        <li><a href="#adr-014">014 Connector per provider</a></li>
-        <li><a href="#adr-015">015 Fire-and-forget sync</a></li>
-        <li><a href="#adr-016">016 Env fallbacks</a></li>
-        <li><a href="#adr-017">017 Rate limiting</a></li>
-        <li><a href="#adr-018">018 Docker image</a></li>
-        <li><a href="#adr-019">019 Rule-based insights</a></li>
-        <li class="grp">Proposed</li>
-        <li><a href="#adr-020">020 BullMQ + schedules</a></li>
-        <li><a href="#adr-021">021 middleware.ts</a></li>
-        <li><a href="#adr-022">022 OAuth state key</a></li>
-        <li><a href="#adr-023">023 AES-256-GCM</a></li>
-        <li><a href="#adr-024">024 Migrations + zod env</a></li>
-        <li><a href="#adr-025">025 Hybrid search</a></li>
-        <li><a href="#adr-026">026 Invite tokens</a></li>
-        <li><a href="#adr-027">027 API-key auth</a></li>
-        <li><a href="#adr-028">028 No silent fallback</a></li>
-      </ol>
-    </details>
-  </aside>
-
-<main>
+  <main>
 <section id="intro">
   <h1>Corely Architecture Decisions</h1>
   <p class="lead">An Architecture Decision Record (ADR) is a short note that says what we chose, why we chose it, and what it costs us.</p>
@@ -1172,29 +1139,6 @@ path/to/file.ts, path/to/other.ts</code></pre>
 
 <script>
 (function () {
-  // Theme toggle: auto -> light -> dark -> auto
-  var root = document.documentElement;
-  var btn = document.getElementById("themeBtn");
-  var order = ["auto", "light", "dark"];
-  function apply(t) {
-    if (t === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
-    btn.textContent = "Theme: " + t;
-  }
-  var saved = "auto";
-  try { saved = localStorage.getItem("corely-doc-theme") || "auto"; } catch (e) {}
-  apply(saved);
-  btn.addEventListener("click", function () {
-    var cur = root.getAttribute("data-theme") || "auto";
-    var next = order[(order.indexOf(cur) + 1) % order.length];
-    apply(next);
-    try { localStorage.setItem("corely-doc-theme", next); } catch (e) {}
-  });
-
-  // Open the table of contents on wide screens
-  var det = document.getElementById("tocDetails");
-  function syncToc() { if (window.matchMedia("(min-width: 1000px)").matches) det.open = true; }
-  syncToc();
-  window.addEventListener("resize", syncToc);
 
   // Status filter
   var buttons = document.querySelectorAll(".filters button");
@@ -1230,6 +1174,22 @@ path/to/file.ts, path/to/other.ts</code></pre>
       } else { b.textContent = "Select and copy"; }
     });
   });
+})();
+</script>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('.topbar .topics a'));
+  var targets=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function update(){
+    var y=window.scrollY+90, cur=0;
+    targets.forEach(function(t,i){ if(t&&t.getBoundingClientRect().top+window.scrollY<=y) cur=i; });
+    links.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+    var a=links[cur]; if(a&&a.scrollIntoView&&a.parentNode.scrollWidth>a.parentNode.clientWidth){
+      var n=a.parentNode; n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2; }
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  update();
 })();
 </script>
 </body>

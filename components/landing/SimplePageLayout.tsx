@@ -1,32 +1,28 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import FooterSection from "./FooterSection";
+import LandingNavbar from "./LandingNavbar";
 
+/*
+ * Shell for the inner marketing pages (about, blog, legal, contact...).
+ * Floating navbar, a left-aligned title block, then long-form content.
+ */
 export default function SimplePageLayout({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="bg-zinc-50 min-h-screen selection:bg-[#ff6b00] selection:text-white flex flex-col">
-      <nav className="w-full border-b border-black/5 bg-white/70 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-            <ArrowLeft size={16} /> Back to Home
-          </Link>
-          <span className="text-zinc-900 font-bold tracking-tight">Corely</span>
-        </div>
-      </nav>
+    <div className="bg-canvas text-text-primary min-h-screen flex flex-col selection:bg-[var(--accent-soft)]">
+      <LandingNavbar variant="page" />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-24">
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-black tracking-tight mb-4">{title}</h1>
-          <p className="text-xl text-zinc-600 font-light">{description}</p>
+      <main className="flex-1 max-w-3xl mx-auto w-full px-6 pt-36 pb-24">
+        <div className="mb-10 pb-10 border-b border-hairline flex flex-col gap-4">
+          <h1 className="text-4xl sm:text-5xl font-medium tracking-tight leading-[1.1] text-text-primary">{title}</h1>
+          <p className="text-base sm:text-lg leading-relaxed text-text-secondary">{description}</p>
         </div>
-        <div className="prose prose-zinc max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[#ff6b00]">
+        <div className="prose prose-zinc dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-text-primary prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-3 prose-p:text-text-secondary prose-p:leading-7 prose-li:text-text-secondary prose-strong:text-text-primary prose-a:text-[var(--accent-text)] prose-a:font-medium prose-a:underline-offset-4">
           {children}
         </div>
       </main>
-      
+
       <FooterSection />
     </div>
   );

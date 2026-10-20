@@ -1,0 +1,852 @@
+/* Ask Corely page styles (ac-*).
+   Split out of app/dashboard/dashboard.css. Imported from app/dashboard/layout.tsx.
+   Colours, sizes and radii come from the tokens and roles in app/globals.css. */
+
+/* ── PAGE LAYOUT ──────────────────────────────────────────── */
+
+/* The page fills the page card exactly, so only the chat and the
+   conversation list scroll. 30px = wrapper padding (12 + 16) + card border (2). */
+.ac-page {
+  height: calc(100vh - var(--db-topbar-h) - 30px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Header on top across both columns, then the chat on the left
+   and the context sidebar on the right. */
+.ac-page-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "header   header"
+    "thread   side"
+    "composer side";
+  column-gap: 24px;
+  row-gap: 16px;
+}
+
+/* AskMain's root box is skipped, so its header, thread and composer
+   sit straight in the page grid above. */
+.ac-main { display: contents; }
+
+.ac-header {
+  grid-area: header;
+  margin-bottom: 8px; /* 16px row gap + 8px = 24px under the header */
+}
+
+/* ── CONVERSATION THREAD ──────────────────────────────────── */
+.ac-thread {
+  grid-area: thread;
+  position: relative;
+  min-height: 0;
+}
+.ac-thread-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.ac-thread-inner {
+  max-width: 1120px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 4px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* User message: neutral bubble on the right */
+.ac-msg-user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.ac-user-bubble {
+  max-width: 75%;
+  padding: 10px 16px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  border-radius: 16px 16px 4px 16px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ac-msg-time {
+  padding: 0 4px;
+}
+
+/* Corely answer: avatar tile on the left, answer on the page surface */
+.ac-response-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ac-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  user-select: none;
+}
+.ac-response-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ac-response-header {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ac-response-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ac-response-context {
+  margin-top: 2px;
+}
+
+/* Markdown answer text: 14px on 22px leading for easy reading */
+.ac-md {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.ac-md > * + * { margin-top: 12px; }
+.ac-md h1, .ac-md h2, .ac-md h3, .ac-md h4, .ac-md h5, .ac-md h6 {
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ac-md > * + h1, .ac-md > * + h2, .ac-md > * + h3,
+.ac-md > * + h4, .ac-md > * + h5, .ac-md > * + h6 { margin-top: 20px; }
+.ac-md strong { font-weight: 600; }
+.ac-md ul, .ac-md ol { padding-left: 20px; }
+.ac-md ul { list-style: disc; }
+.ac-md ol { list-style: decimal; }
+.ac-md li + li { margin-top: 4px; }
+.ac-md li > ul, .ac-md li > ol { margin-top: 4px; }
+.ac-md li::marker { color: var(--text-tertiary); }
+.ac-md a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 150ms ease-out;
+}
+.ac-md a:hover { text-decoration-color: var(--text-primary); }
+.ac-md code {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+}
+.ac-md pre {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  overflow-x: auto;
+}
+.ac-md pre code {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 20px;
+}
+.ac-md blockquote {
+  padding-left: 12px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.ac-md hr {
+  border: none;
+  border-top: 1px solid var(--hairline);
+}
+
+/* Inline citation number, like [2], that jumps to its source card */
+.ac-md a.ac-cite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 2px;
+  border-radius: 9999px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  vertical-align: 1px;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+.ac-md a.ac-cite:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* "Thinking" steps shown while the answer streams in */
+.ac-thinking {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+.ac-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ac-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.ac-step.is-done { color: var(--text-secondary); }
+.ac-step.is-active { color: var(--text-primary); }
+.ac-step-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon-secondary);
+}
+.ac-step.is-done .ac-step-icon {
+  border-radius: 9999px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.ac-step.is-active .ac-step-icon { color: var(--icon-primary); }
+.ac-step-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-strong);
+}
+.ac-thinking-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ac-thinking-lines .ui-skeleton { height: 12px; border-radius: 6px; }
+
+/* Sources under an answer */
+.ac-r-source-wrap {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ac-r-source-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ac-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+.ac-r-source-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 150ms ease-out, box-shadow 200ms ease-out;
+}
+.ac-r-source-badge:hover { border-color: var(--border-strong); }
+.ac-source-num {
+  min-width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.ac-source-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ac-source-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ac-source-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.ac-source-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.ac-source-type svg { flex-shrink: 0; color: var(--icon-secondary); }
+.ac-source-ext {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--icon-secondary);
+  transition: color 150ms ease-out;
+}
+.ac-r-source-badge:hover .ac-source-ext { color: var(--icon-primary); }
+
+/* Actions under an answer: copy, share, save, export, feedback */
+.ac-response-footer {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.ac-footer-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: -10px; /* lines the first label up with the answer text */
+}
+.ac-action-btn.is-copied,
+.ac-action-btn.is-copied:hover { color: var(--success); }
+.ac-feedback {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ac-feedback-label { margin-right: 4px; }
+.ac-feedback-btn {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.ac-feedback-btn[aria-pressed="true"],
+.ac-feedback-btn[aria-pressed="true"]:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+/* Loading placeholder while an old conversation loads */
+.ac-history-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ac-history-loading .ui-skeleton { height: 16px; border-radius: 8px; }
+.ac-history-loading .ac-skel-bubble { height: 44px; width: 40%; align-self: flex-end; border-radius: 16px; }
+
+/* ── EMPTY STATE + SUGGESTED PROMPTS ──────────────────────── */
+.ac-empty {
+  flex: 1;
+  justify-content: center;
+  padding: 48px 16px;
+}
+.ac-prompts-grid {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  text-align: left;
+}
+.ac-prompt-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, transform 150ms ease-out;
+}
+.ac-prompt-card:hover { border-color: var(--border-strong); }
+.ac-prompt-card:active { transform: scale(0.98); }
+.ac-prompt-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  color: var(--icon-primary);
+}
+.ac-prompt-text {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ── COMPOSER ─────────────────────────────────────────────── */
+.ac-composer-form {
+  grid-area: composer;
+  width: 100%;
+  max-width: 1120px;
+  justify-self: center;
+}
+.ac-input-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 12px 12px 12px 16px;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.ac-input-wrapper:hover { border-color: var(--border-strong); }
+.ac-input-wrapper:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.ac-input-chips { overflow: hidden; }
+.ac-input-chips-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+.ac-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 4px 0 10px;
+  max-width: 100%;
+  border-radius: 9999px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+}
+.ac-chip svg { flex-shrink: 0; }
+.ac-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ac-chip-remove {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--icon-secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.ac-chip-remove:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+.ac-input-field {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-primary);
+}
+.ac-input-field::placeholder { color: var(--text-disabled); }
+/* The whole card shows focus, so the field itself needs no ring */
+.ac-input-field:focus-visible { box-shadow: none; }
+
+.ac-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ac-input-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -6px;
+}
+.ac-tool-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--icon-secondary);
+}
+.ac-tool-btn.is-active {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+.ac-tool-btn.is-active:hover { background: var(--surface-hover); }
+.ac-tool-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+.ac-tool-btn[aria-pressed="true"]:hover { background: var(--accent-soft); border-color: var(--accent-text); color: var(--accent-text); }
+
+.ac-submit-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+.ac-submit-btn:disabled {
+  opacity: 1;
+  background: var(--surface-secondary);
+  border-color: var(--hairline);
+  color: var(--text-disabled);
+  box-shadow: none;
+}
+
+/* ── TOAST ────────────────────────────────────────────────── */
+.ac-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 48px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-popover);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ac-toast svg { flex-shrink: 0; color: var(--icon-secondary); }
+
+/* ── RIGHT SIDEBAR ────────────────────────────────────────── */
+.ac-side {
+  grid-area: side;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ac-side > .ui-card { flex-shrink: 0; }
+
+.ac-card-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.ac-card-view-all {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 150ms ease-out;
+}
+.ac-card-view-all:hover { color: var(--text-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Context rows: label on the left, count badge on the right */
+.ac-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--divider);
+}
+.ac-card-row:first-of-type { border-top: none; }
+.ac-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.ac-row-left svg { flex-shrink: 0; color: var(--icon-secondary); }
+.ac-card-rows { padding: 4px 0; }
+
+/* Recent conversations: grows to fill the sidebar, list scrolls inside */
+.ac-convo-card {
+  flex: 1 1 0;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ac-side > .ac-convo-card { flex-shrink: 1; }
+.ac-convo-search {
+  position: relative;
+  flex-shrink: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--divider);
+}
+.ac-convo-search-icon {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--icon-secondary);
+  pointer-events: none;
+}
+.ac-convo-search .ui-input {
+  height: 36px;
+  padding-left: 36px;
+}
+.ac-convo-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.ac-convo-empty {
+  padding: 24px 20px;
+  text-align: center;
+}
+.ac-convo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 10px 20px;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.ac-convo-item:hover { background: var(--surface-hover); }
+.ac-convo-item.active { background: var(--accent-soft); }
+.ac-convo-item.active .ac-convo-time { color: var(--accent-text); }
+.ac-convo-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ac-convo-title {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ac-convo-item.active .ac-convo-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.ac-convo-time {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* Row buttons stay quiet until the row is hovered, focused or open */
+.ac-convo-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.ac-convo-item:hover .ac-convo-actions,
+.ac-convo-item:focus-within .ac-convo-actions,
+.ac-convo-item.active .ac-convo-actions { opacity: 1; }
+@media (hover: none) {
+  .ac-convo-actions { opacity: 1; }
+}
+.ac-row-btn {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.ac-row-btn:hover { background: var(--surface); border-color: var(--hairline); }
+.ac-row-btn--danger:hover {
+  background: var(--error-soft);
+  border-color: transparent;
+  color: var(--error);
+}
+
+/* Call to action at the bottom of the sidebar */
+.ac-cta-card {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ac-cta-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ac-cta-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  color: var(--icon-primary);
+}
+.ac-cta-desc {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.ac-cta-btn { align-self: flex-start; }
+
+/* ── SMALLER SCREENS ──────────────────────────────────────── */
+
+/* One column: the page grows and scrolls as a whole, the chat keeps a
+   fixed-height window, and the sidebar sits under the composer.
+   Selectors use .ac-page so they win over dashboard-responsive.css. */
+@media (max-width: 1024px) {
+  .ac-page {
+    height: auto;
+    overflow: visible;
+  }
+  .ac-page .ac-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "header"
+      "thread"
+      "composer"
+      "side";
+  }
+  .ac-page .ac-thread {
+    height: 60vh;
+    min-height: 360px;
+  }
+  .ac-page .ac-side {
+    margin-top: 8px;
+    overflow: visible;
+  }
+  .ac-page .ac-convo-card {
+    flex: none;
+    min-height: 0;
+  }
+  .ac-page .ac-convo-list { max-height: 320px; }
+}
+
+@media (max-width: 640px) {
+  .ac-prompts-grid { grid-template-columns: minmax(0, 1fr); }
+  .ac-page .ac-thread { height: 55vh; min-height: 320px; }
+  .ac-input-wrapper { padding: 10px 10px 10px 12px; }
+  .ac-input-tools { margin-left: -4px; }
+  /* Touch targets at least 40px on phones */
+  .ac-tool-btn, .ac-submit-btn, .ac-feedback-btn, .ac-row-btn { width: 40px; height: 40px; }
+  .ac-action-btn { height: 40px; }
+  .ac-convo-actions { opacity: 1; }
+  .ac-header .ui-page-header__actions { width: 100%; }
+  .ac-header .ui-page-header__actions .ui-btn { flex: 1; }
+  .ac-user-bubble { max-width: 88%; }
+  .ac-source-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Context panel hidden: the chat takes the whole page width. */
+.ac-page-grid--wide {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "header"
+    "thread"
+    "composer";
+}
+.ac-page-grid--wide .ac-thread-inner,
+.ac-page-grid--wide .ac-composer-form { max-width: 1200px; }

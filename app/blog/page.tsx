@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import SimplePageLayout from "../../components/landing/SimplePageLayout";
 
 export const metadata = {
@@ -26,12 +27,19 @@ const BLOG_POSTS = [
 export default function BlogPage() {
   return (
     <SimplePageLayout title="Blog" description="Thoughts on knowledge management, AI, and engineering.">
-      <div className="flex flex-col gap-8 mt-8">
+      <div className="not-prose flex flex-col gap-4">
         {BLOG_POSTS.map((post, idx) => (
-          <div key={idx} className="p-6 rounded-2xl border border-black/5 hover:border-black/10 hover:shadow-sm transition-all bg-white cursor-pointer group">
-            <div className="text-sm text-zinc-400 mb-2">{post.date}</div>
-            <h3 className="text-xl font-bold text-zinc-900 group-hover:text-[#ff6b00] transition-colors mb-3 mt-0">{post.title}</h3>
-            <p className="text-zinc-600 m-0">{post.excerpt}</p>
+          <div key={idx} className="group p-6 rounded-2xl border border-hairline bg-surface hover:border-border-strong transition-colors duration-200 cursor-pointer">
+            <div className="text-sm font-medium text-text-tertiary mb-2">{post.date}</div>
+            <h3 className="flex items-start justify-between gap-4 text-lg font-semibold tracking-tight text-text-primary mb-2">
+              {post.title}
+              <ArrowRight
+                size={16}
+                className="mt-1 shrink-0 text-icon-secondary transition-transform duration-200 group-hover:translate-x-1"
+                aria-hidden="true"
+              />
+            </h3>
+            <p className="text-base leading-relaxed text-text-secondary">{post.excerpt}</p>
           </div>
         ))}
       </div>

@@ -9,6 +9,8 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface SettingsUpdates {
   preferences?: { theme?: string; compactMode?: boolean; onboardingTips?: boolean; [key: string]: unknown };
@@ -49,18 +51,9 @@ interface AuditEvent {
 // Mock data removed, fetching from real API endpoints now.
 
 // ── Role Badge ────────────────────────────────────────────────────────────────
+// Roles are not a status, so every role uses the same neutral badge.
 function RoleBadge({ role }: { role: string }) {
-  const map: Record<string, { bg: string; color: string }> = {
-    Owner: { bg: "#fff3ee", color: "#ff6b00" },
-    Admin: { bg: "#eff6ff", color: "#3b82f6" },
-    Member: { bg: "#f4f4f5", color: "#52525b" },
-  };
-  const s = map[role] || map.Member;
-  return (
-    <span style={{ background: s.bg, color: s.color, fontSize: 11.5, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
-      {role}
-    </span>
-  );
+  return <span className="ui-badge ui-badge--neutral">{role}</span>;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -237,23 +230,20 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
-        <div style={{ color: "#a1a1aa", fontSize: 14 }}>Loading…</div>
+      <div className="settings-stack" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+        <div className="ui-skeleton" style={{ height: 44, width: 280, maxWidth: "100%" }} />
+        <div className="ui-skeleton" style={{ height: 240, borderRadius: 16 }} />
       </div>
     );
   }
 
   return (
-    <motion.div
-      key={activeTab}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-    >
-      {/* Page Header */}
-      <div className="settings-page-header">
-        <h2 className="settings-page-title">{activeTab}</h2>
-        <p className="settings-page-desc">
+    <div key={activeTab} className="settings-stack">
+      {/* Tab title + description */}
+      <div className="settings-section-head">
+        <h2 className="type-heading">{activeTab}</h2>
+        <p className="type-subtitle">
           {activeTab === "Members" && "Manage team members, roles, and access permissions."}
           {activeTab === "API Keys" && "Create and manage API keys to access Corely programmatically."}
           {activeTab === "Audit Logs" && "A full audit trail of all actions performed in your workspace."}
@@ -270,23 +260,25 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── GENERAL ──────────────────────────────────────────────────── */}
       {activeTab === "General" && (
-        <div className="settings-card">
+        <div className="ui-card settings-card">
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><AlignJustify size={17} /></div>
+              <div className="settings-row-icon"><AlignJustify size={16} /></div>
               <div>
                 <p className="settings-row-label">Compact Mode</p>
                 <p className="settings-row-desc">Display more content with reduced spacing.</p>
               </div>
             </div>
-            <div className={`settings-toggle ${compactMode ? "on" : ""}`} onClick={() => toggle(compactMode, setCompactMode, "compactMode")}>
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className={`settings-toggle ${compactMode ? "on" : ""}`} onClick={() => toggle(compactMode, setCompactMode, "compactMode")}>
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
               <div className="settings-row-icon">
-                {mounted && resolvedTheme === "dark" ? <Moon size={17} /> : <Sun size={17} />}
+                {mounted && resolvedTheme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
               </div>
               <div>
                 <p className="settings-row-label">Dark Mode</p>
@@ -294,21 +286,25 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               </div>
             </div>
             {mounted && (
-              <div className={`settings-toggle ${resolvedTheme === "dark" ? "on" : ""}`} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
-                <div className="settings-toggle-knob" />
+              <div className="settings-row-control">
+                <div className={`settings-toggle ${resolvedTheme === "dark" ? "on" : ""}`} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+                  <div className="settings-toggle-knob" />
+                </div>
               </div>
             )}
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Lightbulb size={17} /></div>
+              <div className="settings-row-icon"><Lightbulb size={16} /></div>
               <div>
                 <p className="settings-row-label">Onboarding Tips</p>
                 <p className="settings-row-desc">Show contextual tips and guided highlights.</p>
               </div>
             </div>
-            <div className={`settings-toggle ${onboardingTips ? "on" : ""}`} onClick={() => toggle(onboardingTips, setOnboardingTips, "onboardingTips")}>
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className={`settings-toggle ${onboardingTips ? "on" : ""}`} onClick={() => toggle(onboardingTips, setOnboardingTips, "onboardingTips")}>
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
         </div>
@@ -316,18 +312,30 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── WORKSPACE ──────────────────────────────────────────────────── */}
       {activeTab === "Workspace" && (
-        <div className="settings-card">
-          <div className="settings-form-body">
-            <div className="settings-input-group">
-              <label className="settings-input-label">Workspace Name</label>
-              <input type="text" className="settings-input" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} placeholder="e.g. Acme Corp" style={{ maxWidth: 440 }} />
+        <div className="ui-card settings-card">
+          <div className="settings-row">
+            <div className="settings-row-left">
+              <div>
+                <label className="settings-row-label">Workspace Name</label>
+              </div>
             </div>
-            <div className="settings-input-group">
-              <label className="settings-input-label">Workspace Slug</label>
-              <input type="text" className="settings-input" value={workspaceSlug} onChange={(e) => setWorkspaceSlug(e.target.value)} placeholder="e.g. acme-corp" style={{ maxWidth: 440 }} />
-              <span style={{ fontSize: 12, color: "#a1a1aa" }}>corely.ai/<strong>{workspaceSlug || "your-slug"}</strong></span>
+            <div className="settings-row-control">
+              <input type="text" className="ui-input settings-control-input" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} placeholder="e.g. Acme Corp" />
             </div>
-            <button className="settings-btn settings-btn-primary" onClick={() => saveSettings({ workspaceName, workspaceSlug })} disabled={saving}>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-left">
+              <div>
+                <label className="settings-row-label">Workspace Slug</label>
+                <p className="settings-row-desc">corely.ai/<strong>{workspaceSlug || "your-slug"}</strong></p>
+              </div>
+            </div>
+            <div className="settings-row-control">
+              <input type="text" className="ui-input settings-control-input" value={workspaceSlug} onChange={(e) => setWorkspaceSlug(e.target.value)} placeholder="e.g. acme-corp" />
+            </div>
+          </div>
+          <div className="settings-card-footer">
+            <button className="ui-btn ui-btn--primary" onClick={() => saveSettings({ workspaceName, workspaceSlug })} disabled={saving}>
               {saving ? "Saving…" : "Save Changes"}
             </button>
           </div>
@@ -337,41 +345,64 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       {/* ── MEMBERS ──────────────────────────────────────────────────── */}
       {activeTab === "Members" && (
         <>
-          <div className="settings-card">
-            <div className="settings-card-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <p className="settings-card-title">Team Members</p>
-                <p className="settings-card-subtitle">{members.length} members total</p>
+          <div className="ui-card settings-card">
+            <div className="ui-card-header">
+              <div className="settings-card-heading">
+                <p className="type-heading">Team Members</p>
+                <p className="type-caption">{members.length} members total</p>
               </div>
-              <button className="settings-btn settings-btn-primary" style={{ gap: 6 }}>
-                <Plus size={14} /> Invite Member
+              <button className="ui-btn ui-btn--primary">
+                <Plus size={16} /> Invite Member
               </button>
             </div>
-            <div>
-              {members.map((m) => (
-                <div key={m.id} className="settings-row">
-                  <div className="settings-row-left">
-                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: m.status === "invited" ? "#f4f4f5" : "linear-gradient(135deg, #ff6b00, #ff9240)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: m.status === "invited" ? "#a1a1aa" : "#fff", flexShrink: 0 }}>
-                      {m.initials}
-                    </div>
-                    <div>
-                      <p className="settings-row-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {m.name}
-                        {m.status === "invited" && <span style={{ fontSize: 11, background: "#fef9c3", color: "#a16207", padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>Invited</span>}
-                      </p>
-                      <p className="settings-row-desc">{m.email} · Joined {m.joinedAt}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <RoleBadge role={m.role} />
-                    {m.role !== "Owner" && (
-                      <button className="settings-btn settings-btn-danger" style={{ padding: "5px 10px", fontSize: 12 }}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="settings-table-scroll">
+              <table className="ui-table settings-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr key={m.id}>
+                      <td>
+                        <div className="settings-member">
+                          <div className={`settings-avatar ${m.status === "invited" ? "settings-avatar--invited" : ""}`}>
+                            {m.initials}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p className="settings-member-name">{m.name}</p>
+                            <p className="type-caption">{m.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td><RoleBadge role={m.role} /></td>
+                      <td>
+                        <StatusBadge tone={m.status === "invited" ? "warning" : "success"}>
+                          {m.status === "invited" ? "Invited" : "Active"}
+                        </StatusBadge>
+                      </td>
+                      <td className="settings-table-muted">{m.joinedAt}</td>
+                      <td className="settings-table-actions">
+                        {m.role !== "Owner" && (
+                          <button className="ui-btn ui-btn--ghost ui-btn--sm settings-danger-ghost">
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="settings-table-empty">No members found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </>
@@ -379,24 +410,26 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── AI & INTELLIGENCE ──────────────────────────────────────────── */}
       {activeTab === "AI & Intelligence" && (
-        <div className="settings-card">
+        <div className="ui-card settings-card">
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><SettingsIcon size={17} /></div>
+              <div className="settings-row-icon"><SettingsIcon size={16} /></div>
               <div>
                 <p className="settings-row-label">Default LLM Model</p>
                 <p className="settings-row-desc">The AI model used for all queries by default.</p>
               </div>
             </div>
-            <div className="settings-select-wrapper">
-              <select className="settings-select" value={defaultLlm} onChange={(e) => { setDefaultLlm(e.target.value); saveSettings({ workspaceSettings: { defaultLlm: e.target.value } }); }}>
-                <option value="gpt-4o">GPT-4o (Recommended)</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                <option value="gemini-1-5-pro">Gemini 1.5 Pro</option>
-              </select>
-              <ChevronDown size={14} className="settings-select-chevron" />
+            <div className="settings-row-control">
+              <div className="settings-select-wrapper">
+                <select className="ui-input settings-select" value={defaultLlm} onChange={(e) => { setDefaultLlm(e.target.value); saveSettings({ workspaceSettings: { defaultLlm: e.target.value } }); }}>
+                  <option value="gpt-4o">GPT-4o (Recommended)</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="claude-3-opus">Claude 3 Opus</option>
+                  <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                  <option value="gemini-1-5-pro">Gemini 1.5 Pro</option>
+                </select>
+                <ChevronDown size={16} className="settings-select-chevron" />
+              </div>
             </div>
           </div>
         </div>
@@ -404,40 +437,46 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── DATA & SOURCES ──────────────────────────────────────────────── */}
       {activeTab === "Data & Sources" && (
-        <div className="settings-card">
-          <div className="settings-card-header">
-            <p className="settings-card-title">Data Retention</p>
-            <p className="settings-card-subtitle">Control how long synced data is retained in your workspace</p>
+        <div className="ui-card settings-card">
+          <div className="ui-card-header">
+            <div className="settings-card-heading">
+              <p className="type-heading">Data Retention</p>
+              <p className="type-caption">Control how long synced data is retained in your workspace</p>
+            </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Clock size={17} /></div>
+              <div className="settings-row-icon"><Clock size={16} /></div>
               <div>
                 <p className="settings-row-label">Memory Retention Period</p>
                 <p className="settings-row-desc">Automatically archive memory items older than this threshold.</p>
               </div>
             </div>
-            <div className="settings-select-wrapper">
-              <select className="settings-select" defaultValue="90">
-                <option value="30">30 days</option>
-                <option value="90">90 days</option>
-                <option value="180">6 months</option>
-                <option value="365">1 year</option>
-                <option value="0">Forever</option>
-              </select>
-              <ChevronDown size={14} className="settings-select-chevron" />
+            <div className="settings-row-control">
+              <div className="settings-select-wrapper">
+                <select className="ui-input settings-select" defaultValue="90">
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="180">6 months</option>
+                  <option value="365">1 year</option>
+                  <option value="0">Forever</option>
+                </select>
+                <ChevronDown size={16} className="settings-select-chevron" />
+              </div>
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Activity size={17} /></div>
+              <div className="settings-row-icon"><Activity size={16} /></div>
               <div>
                 <p className="settings-row-label">Auto Re-sync</p>
                 <p className="settings-row-desc">Automatically re-sync connected sources on a schedule.</p>
               </div>
             </div>
-            <div className={`settings-toggle on`}>
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className={`settings-toggle on`}>
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
         </div>
@@ -446,70 +485,85 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       {/* ── API KEYS ──────────────────────────────────────────────────── */}
       {activeTab === "API Keys" && (
         <>
-          {/* Generate new key modal */}
+          {/* Generate new key panel */}
           {showNewKeyModal && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="settings-card" style={{ marginBottom: 20, border: "1px solid #ff6b00", background: "#fffaf7" }}>
-              <div className="settings-form-body">
-                {newKeyValue ? (
-                  <>
-                    <p className="settings-card-title" style={{ marginBottom: 4 }}>Your new API key</p>
-                    <p style={{ fontSize: 13, color: "var(--db-text-muted)", marginBottom: 12 }}>Copy this now. For security, it won&apos;t be shown again.</p>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <code style={{ flex: 1, background: "#f4f4f5", borderRadius: 8, padding: "10px 14px", fontSize: 13, fontFamily: "monospace", wordBreak: "break-all", border: "1px solid #e4e4e7" }}>
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, ease: "easeOut" }} className="ui-card settings-card settings-card--highlight">
+              {newKeyValue ? (
+                <>
+                  <div className="ui-card-header">
+                    <div className="settings-card-heading">
+                      <p className="type-heading">Your new API key</p>
+                      <p className="type-caption">Copy this now. For security, it won&apos;t be shown again.</p>
+                    </div>
+                  </div>
+                  <div className="settings-card-body">
+                    <div className="settings-key-reveal">
+                      <code className="settings-code-block settings-code-block--key">
                         {newKeyValue}
                       </code>
                       <button
-                        className="settings-btn settings-btn-default"
+                        className="ui-btn ui-btn--secondary"
                         onClick={() => { navigator.clipboard.writeText(newKeyValue); toast.success("Copied to clipboard"); }}
-                        style={{ flexShrink: 0, gap: 6 }}
+                        style={{ flexShrink: 0 }}
                       >
-                        <Copy size={14} /> Copy
+                        <Copy size={16} /> Copy
                       </button>
                     </div>
-                    <button className="settings-btn settings-btn-primary" style={{ marginTop: 16 }} onClick={() => { setShowNewKeyModal(false); setNewKeyValue(null); setNewKeyName(""); }}>
+                  </div>
+                  <div className="settings-card-footer">
+                    <button className="ui-btn ui-btn--primary" onClick={() => { setShowNewKeyModal(false); setNewKeyValue(null); setNewKeyName(""); }}>
                       Done
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="settings-card-title" style={{ marginBottom: 12 }}>Create new API key</p>
-                    <div className="settings-input-group">
-                      <label className="settings-input-label">Key Name</label>
-                      <input type="text" className="settings-input" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g. Production, CI/CD, Local Dev" style={{ maxWidth: 380 }} autoFocus />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="ui-card-header">
+                    <div className="settings-card-heading">
+                      <p className="type-heading">Create new API key</p>
                     </div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                      <button className="settings-btn settings-btn-primary" onClick={generateApiKey} disabled={!newKeyName.trim() || generatingKey}>
-                        {generatingKey ? "Generating…" : "Generate Key"}
-                      </button>
-                      <button className="settings-btn settings-btn-default" onClick={() => { setShowNewKeyModal(false); setNewKeyName(""); }}>
-                        Cancel
-                      </button>
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-left">
+                      <div>
+                        <label className="settings-row-label">Key Name</label>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
+                    <div className="settings-row-control">
+                      <input type="text" className="ui-input settings-control-input" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g. Production, CI/CD, Local Dev" autoFocus />
+                    </div>
+                  </div>
+                  <div className="settings-card-footer">
+                    <button className="ui-btn ui-btn--secondary" onClick={() => { setShowNewKeyModal(false); setNewKeyName(""); }}>
+                      Cancel
+                    </button>
+                    <button className="ui-btn ui-btn--primary" onClick={generateApiKey} disabled={!newKeyName.trim() || generatingKey}>
+                      {generatingKey ? "Generating…" : "Generate Key"}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
-          <div className="settings-card">
-            <div className="settings-card-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <p className="settings-card-title">API Keys</p>
-                <p className="settings-card-subtitle">{apiKeys.length} active key{apiKeys.length !== 1 ? "s" : ""}</p>
+          <div className="ui-card settings-card">
+            <div className="ui-card-header">
+              <div className="settings-card-heading">
+                <p className="type-heading">API Keys</p>
+                <p className="type-caption">{apiKeys.length} active key{apiKeys.length !== 1 ? "s" : ""}</p>
               </div>
-              <button className="settings-btn settings-btn-primary" style={{ gap: 6 }} onClick={() => { setShowNewKeyModal(true); setNewKeyValue(null); }}>
-                <Plus size={14} /> New Key
+              <button className="ui-btn ui-btn--primary" onClick={() => { setShowNewKeyModal(true); setNewKeyValue(null); }}>
+                <Plus size={16} /> New Key
               </button>
             </div>
 
             {apiKeys.length === 0 ? (
-              <div style={{ padding: "48px 24px", textAlign: "center" }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#f4f4f5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <Key size={22} color="#a1a1aa" />
-                </div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--db-text)", margin: "0 0 6px" }}>No API keys yet</p>
-                <p style={{ fontSize: 13, color: "var(--db-text-muted)", margin: 0 }}>Create your first key to access the Corely API programmatically.</p>
-              </div>
+              <EmptyState
+                compact
+                icon={<Key />}
+                title="No API keys yet"
+                description="Create your first key to access the Corely API programmatically."
+              />
             ) : (
               apiKeys.map((key) => (
                 <div key={key.id} className="settings-row">
@@ -518,26 +572,28 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                     <div>
                       <p className="settings-row-label">{key.name}</p>
                       <p className="settings-row-desc">
-                        {revealedKeys.has(key.id) ? <code style={{ fontFamily: "monospace" }}>{key.prefix}</code> : "••••••••••••••••"}
-                        {" · "}Created {key.createdAt}
+                        Created {key.createdAt}
                         {key.lastUsed ? ` · Last used ${key.lastUsed}` : " · Never used"}
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="settings-row-control">
+                    <code className="settings-key-chip">
+                      {revealedKeys.has(key.id) ? key.prefix : "••••••••••••••••"}
+                    </code>
                     <button
-                      className="settings-btn settings-btn-default"
-                      style={{ gap: 5, padding: "5px 10px" }}
+                      className="ui-icon-btn"
+                      aria-label={revealedKeys.has(key.id) ? "Hide key" : "Show key"}
                       onClick={() => {
                         const next = new Set(revealedKeys);
                         if (next.has(key.id)) next.delete(key.id); else next.add(key.id);
                         setRevealedKeys(next);
                       }}
                     >
-                      {revealedKeys.has(key.id) ? <EyeOff size={13} /> : <Eye size={13} />}
+                      {revealedKeys.has(key.id) ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
-                    <button className="settings-btn settings-btn-danger" style={{ gap: 5, padding: "5px 10px" }} onClick={() => revokeKey(key.id)}>
-                      <Trash2 size={13} /> Revoke
+                    <button className="ui-btn ui-btn--ghost settings-danger-ghost" onClick={() => revokeKey(key.id)}>
+                      <Trash2 size={16} /> Revoke
                     </button>
                   </div>
                 </div>
@@ -545,15 +601,17 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             )}
           </div>
 
-          <div className="settings-card" style={{ marginTop: 20 }}>
-            <div className="settings-card-header">
-              <p className="settings-card-title">API Documentation</p>
+          <div className="ui-card settings-card">
+            <div className="ui-card-header">
+              <div className="settings-card-heading">
+                <p className="type-heading">API Documentation</p>
+              </div>
             </div>
-            <div className="settings-form-body" style={{ paddingTop: 16 }}>
-              <p style={{ fontSize: 13.5, color: "#52525b", lineHeight: 1.6 }}>
+            <div className="settings-card-body">
+              <p className="settings-text">
                 Use your API key in the Authorization header to authenticate requests:
               </p>
-              <code style={{ display: "block", background: "#18181b", color: "#10b981", borderRadius: 10, padding: "14px 18px", fontSize: 13, fontFamily: "monospace", marginTop: 12, lineHeight: 1.6 }}>
+              <code className="settings-code-block">
                 curl -H &quot;Authorization: Bearer crl_live_...&quot; \<br />
                 &nbsp;&nbsp;https://api.corely.ai/v1/memory
               </code>
@@ -565,52 +623,72 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       {/* ── SECURITY ──────────────────────────────────────────────────── */}
       {activeTab === "Security" && (
         <>
-          <div className="settings-card">
+          <div className="ui-card settings-card">
             <div className="settings-row">
               <div className="settings-row-left">
-                <div className="settings-row-icon"><Shield size={17} /></div>
+                <div className="settings-row-icon"><Shield size={16} /></div>
                 <div>
                   <p className="settings-row-label">Two-Factor Authentication</p>
                   <p className="settings-row-desc">Require 2FA for all workspace members.</p>
                 </div>
               </div>
-              <div className={`settings-toggle ${twoFactorEnabled ? "on" : ""}`} onClick={() => toggle(twoFactorEnabled, setTwoFactorEnabled, "twoFactorEnabled")}>
-                <div className="settings-toggle-knob" />
+              <div className="settings-row-control">
+                <div className={`settings-toggle ${twoFactorEnabled ? "on" : ""}`} onClick={() => toggle(twoFactorEnabled, setTwoFactorEnabled, "twoFactorEnabled")}>
+                  <div className="settings-toggle-knob" />
+                </div>
               </div>
             </div>
             <div className="settings-row">
               <div className="settings-row-left">
-                <div className="settings-row-icon"><Key size={17} /></div>
+                <div className="settings-row-icon"><Key size={16} /></div>
                 <div>
                   <p className="settings-row-label">Single Sign-On (SSO)</p>
                   <p className="settings-row-desc">Configure SAML or OIDC provider for your team.</p>
                 </div>
               </div>
-              <button className="settings-btn settings-btn-default">Configure SSO</button>
+              <div className="settings-row-control">
+                <button className="ui-btn ui-btn--secondary">Configure SSO</button>
+              </div>
             </div>
           </div>
-          <p className="settings-section-title">Change Password</p>
-          <div className="settings-card">
-            <div className="settings-form-body">
-              <div className="settings-input-group">
-                <label className="settings-input-label">Current Password</label>
-                <div style={{ position: "relative", maxWidth: 440 }}>
-                  <input type={showCurrentPw ? "text" : "password"} className="settings-input" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ paddingRight: 40 }} />
-                  <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#a1a1aa" }}>
-                    {showCurrentPw ? <EyeOff size={15} /> : <Eye size={15} />}
+          <div className="ui-card settings-card">
+            <div className="ui-card-header">
+              <div className="settings-card-heading">
+                <p className="type-heading">Change Password</p>
+              </div>
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-left">
+                <div>
+                  <label className="settings-row-label">Current Password</label>
+                </div>
+              </div>
+              <div className="settings-row-control">
+                <div className="settings-input-wrap">
+                  <input type={showCurrentPw ? "text" : "password"} className="ui-input" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ paddingRight: 40 }} />
+                  <button type="button" className="settings-input-icon-btn" aria-label={showCurrentPw ? "Hide password" : "Show password"} onClick={() => setShowCurrentPw(!showCurrentPw)}>
+                    {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
-              <div className="settings-input-group">
-                <label className="settings-input-label">New Password</label>
-                <div style={{ position: "relative", maxWidth: 440 }}>
-                  <input type={showNewPw ? "text" : "password"} className="settings-input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ paddingRight: 40 }} />
-                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#a1a1aa" }}>
-                    {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
+            </div>
+            <div className="settings-row">
+              <div className="settings-row-left">
+                <div>
+                  <label className="settings-row-label">New Password</label>
+                </div>
+              </div>
+              <div className="settings-row-control">
+                <div className="settings-input-wrap">
+                  <input type={showNewPw ? "text" : "password"} className="ui-input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ paddingRight: 40 }} />
+                  <button type="button" className="settings-input-icon-btn" aria-label={showNewPw ? "Hide password" : "Show password"} onClick={() => setShowNewPw(!showNewPw)}>
+                    {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
-              <button className="settings-btn settings-btn-primary" style={{ marginTop: 8 }} onClick={async () => {
+            </div>
+            <div className="settings-card-footer">
+              <button className="ui-btn ui-btn--primary" onClick={async () => {
                 if (!currentPassword || !newPassword) { toast.error("Please fill out both fields."); return; }
                 try {
                   const res = await fetch("/api/settings/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword, newPassword }) });
@@ -625,41 +703,47 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── NOTIFICATIONS ──────────────────────────────────────────────── */}
       {activeTab === "Notifications" && (
-        <div className="settings-card">
+        <div className="ui-card settings-card">
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Mail size={17} /></div>
+              <div className="settings-row-icon"><Mail size={16} /></div>
               <div>
                 <p className="settings-row-label">Email Digest</p>
                 <p className="settings-row-desc">Receive daily activity summaries to your inbox.</p>
               </div>
             </div>
-            <div className={`settings-toggle ${emailNotifications ? "on" : ""}`} onClick={() => toggle(emailNotifications, setEmailNotifications, "emailNotifications")}>
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className={`settings-toggle ${emailNotifications ? "on" : ""}`} onClick={() => toggle(emailNotifications, setEmailNotifications, "emailNotifications")}>
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Activity size={17} /></div>
+              <div className="settings-row-icon"><Activity size={16} /></div>
               <div>
                 <p className="settings-row-label">Source Sync Alerts</p>
                 <p className="settings-row-desc">Get notified when a source sync fails or completes.</p>
               </div>
             </div>
-            <div className="settings-toggle on">
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className="settings-toggle on">
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
-              <div className="settings-row-icon"><Users size={17} /></div>
+              <div className="settings-row-icon"><Users size={16} /></div>
               <div>
                 <p className="settings-row-label">Team Activity</p>
                 <p className="settings-row-desc">Notifications for member joins, role changes, and invitations.</p>
               </div>
             </div>
-            <div className="settings-toggle">
-              <div className="settings-toggle-knob" />
+            <div className="settings-row-control">
+              <div className="settings-toggle">
+                <div className="settings-toggle-knob" />
+              </div>
             </div>
           </div>
         </div>
@@ -667,77 +751,104 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
       {/* ── AUDIT LOGS ──────────────────────────────────────────────────── */}
       {activeTab === "Audit Logs" && (
-        <div className="settings-card">
-          <div className="settings-card-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <p className="settings-card-title">Audit Trail</p>
-              <p className="settings-card-subtitle">All workspace actions for compliance and security</p>
+        <div className="ui-card settings-card">
+          <div className="ui-card-header">
+            <div className="settings-card-heading">
+              <p className="type-heading">Audit Trail</p>
+              <p className="type-caption">All workspace actions for compliance and security</p>
             </div>
-            <button className="settings-btn settings-btn-default" style={{ gap: 6 }}>Export CSV</button>
+            <button className="ui-btn ui-btn--secondary">Export CSV</button>
           </div>
-          {auditLogs.map((event) => (
-            <div key={event.id} className="settings-row">
-              <div className="settings-row-left">
-                <div className="settings-row-icon" style={{ background: event.status === "success" ? "#f0fdf4" : "#fef2f2", color: event.status === "success" ? "#16a34a" : "#ef4444" }}>
-                  {event.status === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                </div>
-                <div>
-                  <p className="settings-row-label">{event.action} — <span style={{ fontWeight: 500, color: "#52525b" }}>{event.resource}</span></p>
-                  <p className="settings-row-desc">by {event.actor}</p>
-                </div>
-              </div>
-              <span style={{ fontSize: 12, color: "#a1a1aa", whiteSpace: "nowrap", flexShrink: 0 }}>{event.timestamp}</span>
-            </div>
-          ))}
-          {auditLogs.length === 0 && (
-            <div style={{ padding: "40px", textAlign: "center", color: "#a1a1aa", fontSize: 14 }}>
-              No audit logs found.
-            </div>
-          )}
+          <div className="settings-table-scroll">
+            <table className="ui-table settings-table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Resource</th>
+                  <th>Actor</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLogs.map((event) => (
+                  <tr key={event.id}>
+                    <td style={{ fontWeight: 500 }}>{event.action}</td>
+                    <td className="settings-table-muted" style={{ whiteSpace: "normal" }}>{event.resource}</td>
+                    <td className="settings-table-muted">{event.actor}</td>
+                    <td>
+                      <StatusBadge tone={event.status === "success" ? "success" : "error"}>
+                        {event.status === "success" ? <CheckCircle2 /> : <XCircle />}
+                        {event.status === "success" ? "Success" : "Failure"}
+                      </StatusBadge>
+                    </td>
+                    <td className="settings-table-muted" style={{ textAlign: "right" }}>{event.timestamp}</td>
+                  </tr>
+                ))}
+                {auditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="settings-table-empty">No audit logs found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* ── BILLING ──────────────────────────────────────────────────── */}
       {activeTab === "Billing" && (
-        <div className="settings-card" style={{ padding: "48px 32px", textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, background: "#fff3ee", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <Building2 size={24} color="#ff6b00" />
+        <div className="ui-card settings-card">
+          <div className="settings-row">
+            <div className="settings-row-left">
+              <div className="settings-row-icon"><Building2 size={16} /></div>
+              <div>
+                <h3 className="type-heading">Enterprise Plan</h3>
+                <p className="settings-text" style={{ marginTop: 4, maxWidth: 520 }}>
+                  Your billing is managed by your Corely account executive. Contact <strong>billing@corely.ai</strong> for invoice requests.
+                </p>
+              </div>
+            </div>
+            <div className="settings-row-control">
+              <button className="ui-btn ui-btn--primary">Contact Billing Team</button>
+            </div>
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", margin: "0 0 8px" }}>Enterprise Plan</h3>
-          <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: "0 0 24px", maxWidth: 360, lineHeight: 1.6 }}>
-            Your billing is managed by your Corely account executive. Contact <strong>billing@corely.ai</strong> for invoice requests.
-          </p>
-          <button className="settings-btn settings-btn-primary">Contact Billing Team</button>
         </div>
       )}
 
       {/* ── ADVANCED ──────────────────────────────────────────────────── */}
       {activeTab === "Advanced" && (
-        <div className="settings-danger-card">
-          <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <div className="settings-row-icon" style={{ background: "#fef2f2", color: "#ef4444", flexShrink: 0 }}>
-              <AlertTriangle size={17} />
+        <div className="ui-card settings-card settings-danger-card">
+          <div className="ui-card-header">
+            <div className="settings-card-title-row">
+              <div className="settings-row-icon settings-row-icon--danger">
+                <AlertTriangle size={16} />
+              </div>
+              <p className="type-heading settings-danger-title">Danger Zone</p>
             </div>
-            <div>
-              <p className="settings-row-label" style={{ color: "#ef4444" }}>Danger Zone</p>
-              <p className="settings-row-desc" style={{ marginBottom: 16 }}>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-left">
+              <p className="settings-text">
                 Permanently delete this workspace and all associated data. This action is irreversible.
               </p>
-              <button className="settings-btn settings-btn-danger" onClick={() => setShowDeleteModal(true)}>
+            </div>
+            <div className="settings-row-control">
+              <button className="ui-btn ui-btn--destructive" onClick={() => setShowDeleteModal(true)}>
                 Delete Workspace
               </button>
             </div>
           </div>
           {showDeleteModal && (
-            <div style={{ marginTop: 20, padding: 16, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
-              <p style={{ fontSize: 13, color: "#ef4444", marginBottom: 12, fontWeight: 500 }}>
+            <div className="settings-danger-notice">
+              <p>
                 To delete this workspace, please contact <strong>support@corely.ai</strong>.
               </p>
-              <button className="settings-btn settings-btn-default" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              <button className="ui-btn ui-btn--secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
             </div>
           )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

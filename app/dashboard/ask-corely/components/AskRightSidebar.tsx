@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../lib/auth-context";
-import { motion } from "framer-motion";
 import {
   Users,
   Folder,
@@ -14,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 
 
@@ -114,148 +114,96 @@ export default function AskRightSidebar({
   };
 
   return (
-    <div style={{ flexShrink: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: 14, overflowY: "hidden", paddingRight: 4 }}>
-      {/* New Chat Button */}
-      <motion.button
-        onClick={() => setActiveSessionId(null)}
-        className="ac-new-chat-btn"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          width: "100%",
-          padding: "12px",
-          borderRadius: "10px",
-          background: "#ff6b00",
-          color: "#fff",
-          border: "none",
-          fontWeight: "600",
-          fontSize: "13px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-          boxShadow: "0 4px 12px rgba(255, 107, 0, 0.15)",
-          transition: "all 0.2s ease",
-        }}
-      >
-        <Sparkles size={15} fill="#fff" />
-        New Conversation
-      </motion.button>
-
+    // The "New conversation" button now sits in the page header (AskMain).
+    <aside className="ac-side" data-lenis-prevent>
       {/* Context Card */}
-      <motion.div
-        className="ac-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div className="ac-card-header">
-          <div className="ac-card-title">
-            Context <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>(Auto-detected)</span>
+      <section className="ui-card">
+        <div className="ui-card-header">
+          <div className="ac-card-heading">
+            <h2 className="type-heading">Context</h2>
+            <span className="type-caption">Auto-detected</span>
           </div>
           <Link href="/dashboard/sources" className="ac-card-view-all">View all</Link>
         </div>
 
-        <div className="ac-card-row">
-          <div className="ac-row-left">
-            <Users size={15} style={{ color: "var(--db-text-muted)" }} /> People
+        <div className="ac-card-rows">
+          <div className="ac-card-row">
+            <div className="ac-row-left">
+              <Users size={16} /> People
+            </div>
+            <span className="ui-badge">{stats?.people ?? "-"}</span>
           </div>
-          <div className="ac-row-right">{stats?.people ?? "-"}</div>
+          <div className="ac-card-row">
+            <div className="ac-row-left">
+              <Folder size={16} /> Chat sessions
+            </div>
+            <span className="ui-badge">{stats?.sessions ?? "-"}</span>
+          </div>
+          <div className="ac-card-row">
+            <div className="ac-row-left">
+              <Database size={16} /> Memories
+            </div>
+            <span className="ui-badge">{stats?.memories ?? "-"}</span>
+          </div>
+          <div className="ac-card-row">
+            <div className="ac-row-left">
+              <Calendar size={16} /> Time range
+            </div>
+            <span className="ui-badge">This week</span>
+          </div>
+          <div className="ac-card-row">
+            <div className="ac-row-left">
+              <Database size={16} /> Data sources
+            </div>
+            <StatusBadge tone={stats && stats.sources > 0 ? "success" : "neutral"} dot={!!stats && stats.sources > 0}>
+              {stats?.sources ?? "-"} connected
+            </StatusBadge>
+          </div>
         </div>
-        <div className="ac-card-row">
-          <div className="ac-row-left">
-            <Folder size={15} style={{ color: "var(--db-text-muted)" }} /> Chat Sessions
-          </div>
-          <div className="ac-row-right">{stats?.sessions ?? "-"}</div>
-        </div>
-        <div className="ac-card-row">
-          <div className="ac-row-left">
-            <Database size={15} style={{ color: "var(--db-text-muted)" }} /> Memories
-          </div>
-          <div className="ac-row-right">{stats?.memories ?? "-"}</div>
-        </div>
-        <div className="ac-card-row">
-          <div className="ac-row-left">
-            <Calendar size={15} style={{ color: "var(--db-text-muted)" }} /> Time Range
-          </div>
-          <div className="ac-row-right">This Week</div>
-        </div>
-        <div className="ac-card-row">
-          <div className="ac-row-left">
-            <Database size={15} style={{ color: "var(--db-text-muted)" }} /> Data Sources
-          </div>
-          <div className="ac-row-right" style={{ color: "var(--db-text)", fontWeight: 600 }}>
-            {stats?.sources ?? "-"} Connected
-          </div>
-        </div>
-      </motion.div>
-
-
+      </section>
 
       {/* Recent Conversations */}
-      <motion.div
-        className="ac-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-        style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
-      >
-        <div className="ac-card-header" style={{ flexShrink: 0 }}>
-          <div className="ac-card-title">Recent Conversations</div>
+      <section className="ui-card ac-convo-card">
+        <div className="ui-card-header">
+          <h2 className="type-heading">Recent conversations</h2>
+          {sessions.length > 0 && <span className="ui-badge">{sessions.length}</span>}
         </div>
+
         {/* Conversation search */}
-        <div style={{ padding: "0 0 8px", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", background: "#f9f9f9", border: "1px solid #f0f0f0", borderRadius: 8 }}>
-            <Search size={13} style={{ color: "#a1a1aa", flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search conversations..."
-              value={sessionSearch}
-              onChange={(e) => setSessionSearch(e.target.value)}
-              style={{ border: "none", background: "transparent", outline: "none", fontSize: 12, color: "#374151", width: "100%" }}
-            />
-          </div>
+        <div className="ac-convo-search">
+          <Search size={16} className="ac-convo-search-icon" />
+          <input
+            type="text"
+            className="ui-input"
+            aria-label="Search conversations"
+            placeholder="Search conversations..."
+            value={sessionSearch}
+            onChange={(e) => setSessionSearch(e.target.value)}
+          />
         </div>
-        <div 
-          className="ac-convo-list" 
+
+        <div
+          className="ac-convo-list"
           data-lenis-prevent
           onWheel={(e) => e.stopPropagation()}
-          style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", paddingRight: "4px" }}
         >
           {loading && sessions.length === 0 && (
-            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
-              Loading conversations...
-            </div>
+            <p className="type-caption ac-convo-empty">Loading conversations...</p>
           )}
           {!loading && sessions.length === 0 && (
-            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
-              No recent conversations.
-            </div>
+            <p className="type-caption ac-convo-empty">No recent conversations.</p>
           )}
           {!loading && sessions.length > 0 && filteredSessions.length === 0 && (
-            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px 0" }}>
-              No conversations match your search.
-            </div>
+            <p className="type-caption ac-convo-empty">No conversations match your search.</p>
           )}
           {filteredSessions.map((session) => (
             <div
               key={session.id}
               className={`ac-convo-item ${activeSessionId === session.id ? "active" : ""}`}
               onClick={() => setActiveSessionId(session.id)}
-              style={{
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "8px",
-              }}
             >
-              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
-                <span className="ac-convo-title" style={{ display: "block" }}>
-                  {session.title}
-                </span>
+              <div className="ac-convo-text">
+                <span className="ac-convo-title">{session.title}</span>
                 <span className="ac-convo-time">
                   {new Date(session.updatedAt).toLocaleDateString([], {
                     month: "short",
@@ -263,9 +211,11 @@ export default function AskRightSidebar({
                   })}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: 2 }}>
+              <div className="ac-convo-actions">
                 {/* Export button */}
                 <button
+                  type="button"
+                  className="ui-icon-btn ui-icon-btn--sm ac-row-btn"
                   onClick={(e) => {
                     e.stopPropagation();
                     const a = document.createElement("a");
@@ -273,72 +223,43 @@ export default function AskRightSidebar({
                     a.download = `corely-${session.title.slice(0, 20)}.md`;
                     a.click();
                   }}
-                  style={{
-                    background: "transparent", border: "none", padding: "4px",
-                    cursor: "pointer", color: "#a1a1aa", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                    borderRadius: "4px", transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "#3b82f6";
-                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(59, 130, 246, 0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa";
-                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  }}
                   title="Export as Markdown"
+                  aria-label="Export as Markdown"
                 >
-                  <Download size={12} />
+                  <Download size={14} />
                 </button>
                 {/* Delete button */}
                 <button
+                  type="button"
+                  className="ui-icon-btn ui-icon-btn--sm ac-row-btn ac-row-btn--danger"
                   onClick={(e) => {
                     e.stopPropagation();
                     void handleDeleteSession(session.id);
                   }}
-                  style={{
-                    background: "transparent", border: "none", padding: "4px",
-                    cursor: "pointer", color: "#a1a1aa", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                    borderRadius: "4px", transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "#ef4444";
-                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(239, 68, 68, 0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "#a1a1aa";
-                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  }}
-                  title="Delete Conversation"
+                  title="Delete conversation"
+                  aria-label="Delete conversation"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
           ))}
         </div>
-      </motion.div>
+      </section>
 
       {/* CTA Card */}
-      <motion.div
-        className="ac-cta-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.4 }}
-      >
+      <section className="ui-card ac-cta-card">
         <div className="ac-cta-title">
-          <Sparkles size={16} style={{ color: "#ff6b00" }} fill="#ff6b00" />
-          Get the most out of Corely
+          <span className="ac-cta-icon" aria-hidden="true">
+            <Sparkles size={16} />
+          </span>
+          <h2 className="type-heading">Get the most out of Corely</h2>
         </div>
-        <div className="ac-cta-desc">
-          Connect more sources to improve answer accuracy.
-        </div>
-        <Link href="/dashboard/sources" className="ac-cta-btn">
-          Manage Sources
+        <p className="ac-cta-desc">Connect more sources to improve answer accuracy.</p>
+        <Link href="/dashboard/sources" className="ui-btn ui-btn--secondary ui-btn--sm ac-cta-btn">
+          Manage sources
         </Link>
-      </motion.div>
-    </div>
+      </section>
+    </aside>
   );
 }

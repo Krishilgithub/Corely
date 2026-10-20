@@ -1,69 +1,43 @@
-/* DataTable.css */
+/* DataTable.css
+   The base look comes from .ui-table-wrap and .ui-table in app/globals.css
+   (12px radius wrap, uppercase label headers, 14px cells, row hover).
+   This file only adds what the sortable table needs on top. */
 .dt-container {
   width: 100%;
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid var(--db-border);
-  background: var(--db-panel);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
 .dt-table {
-  width: 100%;
-  border-collapse: collapse;
   text-align: left;
 }
 
-.dt-header {
-  border-bottom: 1px solid #f4f4f5;
-  background: var(--db-bg);
-}
-
-.dt-header-row {
-  /* empty */
-}
-
 .dt-header-cell {
-  padding: 12px 24px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--db-text-muted);
   user-select: none;
 }
 
 .dt-header-content {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.dt-body {
-  /* empty */
-}
-
-.dt-row {
-  border-bottom: 1px solid #f4f4f5;
-  transition: background 0.15s;
-}
-.dt-row:last-child {
-  border-bottom: none;
-}
-.dt-row:hover {
-  background: var(--db-bg);
+.dt-sort-icon {
+  color: var(--icon-secondary);
+  flex-shrink: 0;
 }
 
 .dt-row[data-state="selected"] {
-  background: #fff3ee;
+  background: var(--accent-wash);
 }
 
 .dt-cell {
-  padding: 16px 24px;
   vertical-align: middle;
 }
 
-.dt-empty {
-  padding: 64px 24px;
+.dt-table td.dt-empty {
+  padding: 48px 24px;
   text-align: center;
-  color: var(--db-text-muted);
   font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
 }

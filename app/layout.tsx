@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, Geist, Outfit } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "lenis/dist/lenis.css";
 import LenisProvider from "./components/LenisProvider";
 import { AuthProvider } from "./lib/auth-context";
+import { ThemeProvider } from "../components/ThemeProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
+// Runs before the first paint so the page never flashes the wrong theme or
+// sidebar width. Keys match components/ThemeProvider.tsx and the dashboard Sidebar.
+const bootScript = `(function(){try{var d=document.documentElement;var t=localStorage.getItem("corely-theme")||"system";var dark=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(dark)d.classList.add("dark");if(localStorage.getItem("corely-sidebar")==="collapsed")d.setAttribute("data-sidebar","collapsed");}catch(e){}})();`;
 
+// Geist is the only typeface. Mono is for code and window-chrome labels only.
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
 });
@@ -48,13 +48,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistSans.variable} ${outfit.variable} h-full`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col antialiased bg-white text-[#111111]">
-        <AuthProvider>
-          <LenisProvider>
-            {children}
-          </LenisProvider>
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: bootScript }} />
+      </head>
+      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans antialiased bg-background text-foreground">
+        <ThemeProvider>
+          <AuthProvider>
+            <LenisProvider>
+              {children}
+            </LenisProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

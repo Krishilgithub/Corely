@@ -19,51 +19,53 @@ export default function ContactPage() {
     }, 1500);
   };
 
+  const labelClass = "text-sm font-medium text-text-primary";
+
   return (
     <SimplePageLayout title="Talk to Sales" description="Learn how Corely can transform your enterprise's institutional knowledge.">
-      <div className="max-w-2xl mx-auto">
+      <div className="not-prose">
         <AnimatePresence mode="wait">
           {!isSuccess ? (
-            <motion.form 
+            <motion.form
               key="form"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               onSubmit={handleSubmit}
-              className="bg-white p-8 rounded-2xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-6"
+              className="rounded-2xl border border-hairline bg-surface p-6 sm:p-8 shadow-2xs flex flex-col gap-5"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="firstName" className="text-sm font-semibold text-zinc-900">First Name</label>
-                  <input required type="text" id="firstName" className="px-4 py-3 rounded-xl border border-black/10 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 focus:border-[#ff6b00] transition-all" placeholder="Jane" />
+                  <label htmlFor="firstName" className={labelClass}>First Name</label>
+                  <input required type="text" id="firstName" className="ui-input" placeholder="Jane" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="lastName" className="text-sm font-semibold text-zinc-900">Last Name</label>
-                  <input required type="text" id="lastName" className="px-4 py-3 rounded-xl border border-black/10 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 focus:border-[#ff6b00] transition-all" placeholder="Doe" />
+                  <label htmlFor="lastName" className={labelClass}>Last Name</label>
+                  <input required type="text" id="lastName" className="ui-input" placeholder="Doe" />
                 </div>
               </div>
-              
+
               <div className="flex flex-col gap-2">
-                <label htmlFor="email" className="text-sm font-semibold text-zinc-900">Work Email</label>
-                <input required type="email" id="email" className="px-4 py-3 rounded-xl border border-black/10 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 focus:border-[#ff6b00] transition-all" placeholder="jane@company.com" />
+                <label htmlFor="email" className={labelClass}>Work Email</label>
+                <input required type="email" id="email" className="ui-input" placeholder="jane@company.com" />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="company" className="text-sm font-semibold text-zinc-900">Company Name</label>
-                <input required type="text" id="company" className="px-4 py-3 rounded-xl border border-black/10 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 focus:border-[#ff6b00] transition-all" placeholder="Acme Corp" />
+                <label htmlFor="company" className={labelClass}>Company Name</label>
+                <input required type="text" id="company" className="ui-input" placeholder="Acme Corp" />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="message" className="text-sm font-semibold text-zinc-900">How can we help?</label>
-                <textarea required id="message" rows={4} className="px-4 py-3 rounded-xl border border-black/10 bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/20 focus:border-[#ff6b00] transition-all resize-none" placeholder="Tell us about your team and what you're looking to achieve..."></textarea>
+                <label htmlFor="message" className={labelClass}>How can we help?</label>
+                <textarea required id="message" rows={4} className="ui-input !resize-none" placeholder="Tell us about your team and what you're looking to achieve..."></textarea>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-2 w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#ff6b00] text-white font-bold rounded-xl hover:bg-[#e54e00] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-4px_rgba(255,107,0,0.45)] shadow-[0_4px_12px_rgba(255,107,0,0.25)] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                className="ui-btn ui-btn--primary ui-btn--lg ui-btn--block mt-2"
               >
-                {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Sending...</> : <>Contact Sales <ArrowRight size={18} /></>}
+                {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Sending...</> : <>Contact Sales <ArrowRight size={16} /></>}
               </button>
             </motion.form>
           ) : (
@@ -71,18 +73,18 @@ export default function ContactPage() {
               key="success"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white p-12 rounded-2xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center text-center gap-4"
+              className="rounded-2xl border border-hairline bg-surface px-6 py-12 sm:p-12 shadow-2xs flex flex-col items-center justify-center text-center gap-4"
             >
-              <div className="w-16 h-16 bg-[#ff6b00]/10 text-[#ff6b00] rounded-full flex items-center justify-center mb-2">
-                <CheckCircle2 size={32} />
+              <div className="size-14 rounded-2xl bg-success-soft text-success flex items-center justify-center mb-2">
+                <CheckCircle2 size={28} />
               </div>
-              <h2 className="text-2xl font-bold text-zinc-900">Message Received</h2>
-              <p className="text-zinc-600 max-w-md">
+              <h2 className="text-2xl font-semibold tracking-tight text-text-primary">Message received</h2>
+              <p className="text-base leading-relaxed text-text-secondary max-w-md">
                 Thank you for reaching out. Our team will review your inquiry and get back to you within 24 hours.
               </p>
-              <button 
+              <button
                 onClick={() => setIsSuccess(false)}
-                className="mt-6 px-6 py-2.5 bg-zinc-100 text-zinc-900 font-semibold rounded-xl hover:bg-zinc-200 transition-colors"
+                className="ui-btn ui-btn--secondary mt-4"
               >
                 Send another message
               </button>
@@ -90,15 +92,15 @@ export default function ContactPage() {
           )}
         </AnimatePresence>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-black/5">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-8 pt-8 border-t border-hairline">
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 mb-2">Support</h3>
-            <p className="text-zinc-600 mb-2">Need technical assistance with your account?</p>
-            <a href="mailto:support@corely.ai" className="text-[#ff6b00] font-semibold hover:underline">support@corely.ai</a>
+            <h3 className="text-base font-semibold text-text-primary mb-2">Support</h3>
+            <p className="text-sm text-text-secondary mb-2">Need technical assistance with your account?</p>
+            <a href="mailto:support@corely.ai" className="text-sm font-semibold text-[var(--accent-text)] underline-offset-4 hover:underline">support@corely.ai</a>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 mb-2">Office</h3>
-            <p className="text-zinc-600">Corely Inc.<br/>San Francisco, CA<br/>United States</p>
+            <h3 className="text-base font-semibold text-text-primary mb-2">Office</h3>
+            <p className="text-sm leading-relaxed text-text-secondary">Corely Inc.<br/>San Francisco, CA<br/>United States</p>
           </div>
         </div>
       </div>

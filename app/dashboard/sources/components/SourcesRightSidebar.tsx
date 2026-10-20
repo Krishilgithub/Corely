@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Database } from "lucide-react";
@@ -133,73 +132,64 @@ export default function SourcesRightSidebar() {
     return path;
   }, [totalIndexed]);
 
+  // Area under the line, for a faint wash below the series.
+  const areaPath = `${chartPath} L 250,100 L 0,100 Z`;
+
   return (
-    <div style={{ flexShrink: 0, width: 280, display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="src-rail">
       {/* Source Overview (Donut Chart) */}
-      <motion.div
-        className="src-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <div className="src-card-header">
-          <div className="src-card-title">Source Overview</div>
+      <div className="ui-card src-rail-card">
+        <div className="ui-card-header">
+          <div className="type-heading">Source overview</div>
         </div>
-        <div className="src-overview-body">
+        <div className="ui-card-body src-overview-body">
           <div className="src-donut-wrap">
             <svg viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
-              {/* Idle / Empty grey circle */}
+              {/* Empty track */}
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--divider)" strokeWidth="11" />
+              {/* Synced (key series, accent) */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke="var(--db-border)"
-                strokeWidth="11"
-              />
-              {/* Synced (Green) */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke="#22c55e"
+                stroke="var(--src-ring-synced)"
                 strokeWidth="11"
                 strokeDasharray={chartInfo.syncedDash}
                 strokeDashoffset={chartInfo.syncedOffset}
                 style={{ transition: "stroke-dasharray 0.3s ease" }}
               />
-              {/* Syncing (Blue) */}
+              {/* Syncing */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke="#2563eb"
+                stroke="var(--src-ring-syncing)"
                 strokeWidth="11"
                 strokeDasharray={chartInfo.syncingDash}
                 strokeDashoffset={chartInfo.syncingOffset}
                 style={{ transition: "stroke-dasharray 0.3s ease" }}
               />
-              {/* Error (Red) */}
+              {/* Error */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke="#ef4444"
+                stroke="var(--src-ring-error)"
                 strokeWidth="11"
                 strokeDasharray={chartInfo.errorDash}
                 strokeDashoffset={chartInfo.errorOffset}
                 style={{ transition: "stroke-dasharray 0.3s ease" }}
               />
-              {/* Idle with items (Orange) */}
+              {/* Idle */}
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke="#ff6b00"
+                stroke="var(--src-ring-idle)"
                 strokeWidth="11"
                 strokeDasharray={chartInfo.idleDash}
                 strokeDashoffset={chartInfo.idleOffset}
@@ -207,163 +197,156 @@ export default function SourcesRightSidebar() {
               />
             </svg>
             <div className="src-donut-text">
-              <div className="src-donut-num">{totalCount}</div>
-              <div className="src-donut-label">Total</div>
+              <div className="type-metric">{totalCount}</div>
+              <div className="type-caption">Total</div>
             </div>
           </div>
-          
+
           <div className="src-legend">
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#22c55e" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{syncedCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Synced</span>
+              <span className="src-legend-dot" style={{ background: "var(--src-ring-synced)" }} />
+              <strong>{syncedCount}</strong> Synced
             </div>
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#2563eb" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{syncingCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Syncing</span>
+              <span className="src-legend-dot" style={{ background: "var(--src-ring-syncing)" }} />
+              <strong>{syncingCount}</strong> Syncing
             </div>
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#ef4444" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{errorCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Error</span>
+              <span className="src-legend-dot" style={{ background: "var(--src-ring-error)" }} />
+              <strong>{errorCount}</strong> Error
             </div>
             <div className="src-legend-item">
-              <div className="src-legend-dot" style={{ background: "#ff6b00" }} />
-              <span style={{ width: 14, fontWeight: 700 }}>{idleCount}</span> <span style={{ color: "var(--db-text-muted)" }}>Idle</span>
+              <span className="src-legend-dot" style={{ background: "var(--src-ring-idle)" }} />
+              <strong>{idleCount}</strong> Idle
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Data Ingestion (Line Chart) */}
-      <motion.div
-        className="src-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <div className="src-card-header">
-          <div className="src-card-title">Data Ingestion <span style={{ color: "var(--db-text-muted)", fontWeight: 500 }}>(Aggregated)</span></div>
+      <div className="ui-card src-rail-card">
+        <div className="ui-card-header">
+          <div className="type-heading">Data ingestion <span className="type-caption">(aggregated)</span></div>
         </div>
-        
-        <div className="src-chart-main-val">
-          {totalIndexed.toLocaleString()} <span style={{ fontSize: 13, color: "var(--db-text-muted)", fontWeight: 500 }}>Files</span>
-        </div>
-        <div className="src-chart-sub">Total Documents Indexed</div>
-        <div className="src-chart-trend" style={{ color: "#16a34a" }}>
-          <ArrowUpRightIcon size={12} strokeWidth={3} />
-          Active Ingestion Operational
-        </div>
+        <div className="ui-card-body">
+          <div className="src-chart-head">
+            <div className="src-chart-value">
+              <span className="type-metric">{totalIndexed.toLocaleString()}</span>
+              <span className="type-caption">files</span>
+            </div>
+            <div className="type-caption">Total documents indexed</div>
+            <div className="src-chart-trend">
+              <ArrowUpRightIcon size={12} strokeWidth={3} />
+              Active ingestion operational
+            </div>
+          </div>
 
-        <div className="src-chart-area">
-          <div className="src-chart-y-axis">
-            <span>Peak</span>
-            <span>Mid</span>
-            <span>Low</span>
-            <span>0</span>
+          <div className="src-chart">
+            <div className="src-chart__y" aria-hidden="true">
+              <span style={{ top: "10%" }}>Peak</span>
+              <span style={{ top: "36.67%" }}>Mid</span>
+              <span style={{ top: "63.33%" }}>Low</span>
+              <span style={{ top: "90%" }}>0</span>
+            </div>
+            <svg className="src-chart__plot" viewBox="0 0 250 100" preserveAspectRatio="none">
+              {/* Horizontal dashed grid only */}
+              {[10, 36.67, 63.33, 90].map((y) => (
+                <line
+                  key={y}
+                  x1="0"
+                  x2="250"
+                  y1={y}
+                  y2={y}
+                  stroke="var(--divider)"
+                  strokeDasharray="3 3"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+              <path d={areaPath} fill="var(--accent-wash)" stroke="none" />
+              <path
+                d={chartPath}
+                fill="none"
+                stroke="var(--accent-fill)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+            <div className="src-chart__x" aria-hidden="true">
+              <span>Mon</span>
+              <span>Wed</span>
+              <span>Fri</span>
+              <span>Sun</span>
+            </div>
           </div>
-          <div className="src-chart-x-axis">
-            <span>Mon</span>
-            <span>Wed</span>
-            <span>Fri</span>
-            <span>Sun</span>
-          </div>
-          <svg className="src-chart-svg" viewBox="0 0 250 100" preserveAspectRatio="none">
-            <path
-              d={chartPath}
-              fill="none"
-              stroke="#ff6b00"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
         </div>
-      </motion.div>
+      </div>
 
       {/* Recently Added */}
-      <motion.div
-        className="src-sidebar-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-        style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
-      >
-        <div className="src-card-header" style={{ flexShrink: 0 }}>
-          <div className="src-card-title">Recently Added</div>
+      <div className="ui-card src-rail-card">
+        <div className="ui-card-header">
+          <div className="type-heading">Recently added</div>
         </div>
-        <div 
-          className="src-recent-list"
-          data-lenis-prevent
-          onWheel={(e) => e.stopPropagation()}
-          style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", display: "flex", flexDirection: "column", gap: 14, paddingRight: 4, maxHeight: "320px" }}
-        >
-          {loading && (
-            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px" }}>
-              Loading recently added...
-            </div>
-          )}
-          {!loading && sources.length === 0 && (
-            <div style={{ color: "#a1a1aa", fontSize: "12px", textAlign: "center", padding: "12px" }}>
-              No sources connected.
-            </div>
-          )}
-          {[...sources]
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .map((source) => (
-            <div key={source.id} className="src-recent-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div className="src-recent-left" style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                <div
-                  className="src-recent-icon"
-                  style={{
-                    background: "#fdfdfd",
-                    border: "1px solid #e4e4e7",
-                    borderRadius: 6,
-                    width: 30,
-                    height: 30,
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {source.type === "google_drive" ? <GoogleDriveIcon size={15} /> : <Database size={15} color="#a1a1aa" />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                  <div className="src-recent-name" title={source.name} style={{ fontSize: 13, fontWeight: 700, color: "#18181b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{source.name}</div>
-                  <div className="src-recent-type" style={{ fontSize: 11.5, color: "var(--db-text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
-                    {source.type === "google_drive" ? "Google Drive" : source.type}
+        <div className="ui-card-body">
+          <div
+            className="src-recent-list"
+            data-lenis-prevent
+            onWheel={(e) => e.stopPropagation()}
+          >
+            {loading && (
+              <div className="type-caption src-recent-empty">
+                Loading recently added...
+              </div>
+            )}
+            {!loading && sources.length === 0 && (
+              <div className="type-caption src-recent-empty">
+                No sources connected.
+              </div>
+            )}
+            {[...sources]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((source) => (
+              <div key={source.id} className="src-recent-item">
+                <div className="src-recent-left">
+                  {source.type === "google_drive" ? (
+                    <span className="src-logo-tile src-logo-tile--sm"><GoogleDriveIcon size={16} /></span>
+                  ) : (
+                    <span className="src-glyph-tile src-glyph-tile--sm"><Database size={16} /></span>
+                  )}
+                  <div className="src-recent-text">
+                    <div className="src-recent-name" title={source.name}>{source.name}</div>
+                    <div className="type-caption src-recent-type">
+                      {source.type === "google_drive" ? "Google Drive" : source.type}
+                    </div>
                   </div>
                 </div>
+                <div className="type-caption" style={{ flexShrink: 0 }}>
+                  {source.lastSyncedAt ? "Active" : "New"}
+                </div>
               </div>
-              <div className="src-recent-time" style={{ fontSize: 11, color: "#a1a1aa", flexShrink: 0, fontWeight: 500 }}>
-                {source.lastSyncedAt ? "Active" : "New"}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Help Card */}
-      <motion.div
-        className="src-help-card"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.4 }}
-      >
-        <div className="src-help-icon">
+      <div className="src-help-card">
+        <span className="src-glyph-tile src-glyph-tile--sm">
           <BookOpen size={16} />
-        </div>
-        <div>
-          <div className="src-help-title">Need help connecting a source?</div>
+        </span>
+        <div className="src-help-text">
+          <div className="type-body" style={{ fontWeight: 600 }}>Need help connecting a source?</div>
           <Link href="#" className="src-help-link">
             View our integration guide
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </Link>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

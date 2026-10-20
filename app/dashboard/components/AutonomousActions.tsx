@@ -1,22 +1,16 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Cloud, GitBranch, Mail, Cpu, type LucideIcon } from "lucide-react";
+import { Cloud, GitBranch, Mail, Cpu, ChevronRight, type LucideIcon } from "lucide-react";
 import * as React from "react";
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/status-badge";
 
+// All action icons sit on the same neutral tile.
 const iconMap: Record<string, LucideIcon> = {
   Cloud,
   GitBranch,
   Mail,
   Cpu,
-};
-
-const iconConfigMap: Record<string, { bg: string; color: string }> = {
-  Cloud: { bg: "#e0f2fe", color: "#0ea5e9" },
-  GitBranch: { bg: "#fff3ee", color: "#ff6b00" },
-  Mail: { bg: "#fef2f2", color: "#ef4444" },
-  Cpu: { bg: "#f0fdf4", color: "#16a34a" },
 };
 
 function formatTime(dateString: string) {
@@ -36,69 +30,46 @@ export default function AutonomousActions({ data }: { data?: Action[] }) {
   const loading = !data;
 
   return (
-    <motion.div
-      className="db-actions-section"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5, duration: 0.4, ease: "easeOut" }}
-    >
+    <div className="db-actions-section">
       {/* Header */}
       <div className="db-actions-header">
-        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--db-text)" }}>
-          Autonomous Actions
-        </span>
-        <Link
-          href="/dashboard/workflows"
-          style={{
-            fontSize: "12.5px",
-            fontWeight: 600,
-            color: "#ff6b00",
-            textDecoration: "none",
-          }}
-        >
+        <span className="type-heading">Autonomous actions</span>
+        <Link href="/dashboard/workflows" className="db-panel-link">
           View all actions
+          <ChevronRight />
         </Link>
       </div>
 
       {/* Actions Grid */}
-      <div className="db-actions-grid">
-        {loading ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>Loading actions...</div>
-        ) : actions.length === 0 ? (
-          <div style={{ padding: "20px", fontSize: "13px", color: "var(--db-text-muted)" }}>No actions found.</div>
-        ) : (
-          actions.map((action, i) => {
-            const Icon = iconMap[action.iconType] || Cloud;
-            const config = iconConfigMap[action.iconType] || { bg: "#e0f2fe", color: "#0ea5e9" };
+      <div className="db-actions-body">
+        <div className="db-actions-grid">
+          {loading ? (
+            <div className="db-panel-empty">Loading actions...</div>
+          ) : actions.length === 0 ? (
+            <div className="db-panel-empty">No actions found.</div>
+          ) : (
+            actions.map((action, i) => {
+              const Icon = iconMap[action.iconType] || Cloud;
 
-            return (
-              <motion.div
-                key={action.id || i}
-                className="db-action-card"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.07, duration: 0.3 }}
-              >
-                <div
-                  className="db-action-icon"
-                  style={{ backgroundColor: config.bg }}
-                >
-                  <Icon size={18} color={config.color} strokeWidth={2} />
-                </div>
-                <div>
-                  <div className="db-action-time">{formatTime(action.createdAt)}</div>
+              return (
+                <div key={action.id || i} className="db-action-card">
+                  <div className="db-action-top">
+                    <span className="db-action-icon db-row-icon" aria-hidden="true">
+                      <Icon strokeWidth={2} />
+                    </span>
+                    <span className="db-action-time type-caption">{formatTime(action.createdAt)}</span>
+                  </div>
                   <div className="db-action-desc">{action.description}</div>
                   <div className="db-action-footer">
-                    <span>{action.source}</span>
-                    <span style={{ color: "#d4d4d4" }}>•</span>
-                    <span className="db-action-completed">Completed</span>
+                    <span className="db-action-source type-caption">{action.source}</span>
+                    <StatusBadge tone="success" className="db-action-completed">Completed</StatusBadge>
                   </div>
                 </div>
-              </motion.div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

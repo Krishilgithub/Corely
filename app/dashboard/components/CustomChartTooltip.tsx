@@ -2,6 +2,7 @@
 
 import React from "react";
 
+// Chart tooltip: surface background, hairline border, 8px radius, 12px semibold text.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CustomChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -9,21 +10,21 @@ export const CustomChartTooltip = ({ active, payload, label }: any) => {
       <div
         className="custom-chart-tooltip"
         style={{
-          background: "rgba(255, 255, 255, 0.8)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid var(--db-border-light)",
+          background: "var(--surface)",
+          border: "1px solid var(--hairline)",
           borderRadius: "8px",
-          padding: "8px 12px",
-          boxShadow: "0 4px 12px var(--db-shadow)",
+          padding: "6px 12px",
+          boxShadow: "var(--shadow-popover)",
           fontSize: "12px",
+          lineHeight: "16px",
           fontWeight: 600,
-          color: "#18181b",
+          color: "var(--text-primary)",
         }}
       >
-        <p style={{ margin: 0, color: "var(--db-text-muted)", fontSize: "10px", marginBottom: "4px" }}>
+        <p style={{ margin: 0, color: "var(--text-tertiary)", fontSize: "12px", fontWeight: 500, marginBottom: "2px" }}>
           {label}
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: 0, fontVariantNumeric: "tabular-nums" }}>
           {payload[0].value}
         </p>
       </div>

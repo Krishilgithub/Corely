@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
-  Brain,
   Search,
   Plus,
   SlidersHorizontal,
@@ -17,8 +16,10 @@ import {
   CheckCircle2,
   Database,
   Download,
+  FilterX,
 } from "lucide-react";
-import { Skeleton } from "../components/Skeleton";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MemoryStatsGrid } from "./components/MemoryStatsGrid";
 import { MemoryRightSidebar } from "./components/MemoryRightSidebar";
 import { AddMemoryModal } from "./components/AddMemoryModal";
@@ -154,68 +155,35 @@ export default function MemoryPage() {
   }, []);
 
   // ── Filters & Category Mapper ──────────────────────────────────────────────
+  // Each category gets a neutral icon and a short label for its badge.
   const getCategoryDetails = (category: TimelineItem["category"]) => {
     switch (category) {
       case "decision":
-        return {
-          icon: <CheckCircle2 size={14} />,
-          iconBg: "#fff3ee",
-          iconColor: "#ff6b00",
-          iconBorder: "#ffd7c7",
-          badgeBg: "#fff3ee",
-          badgeColor: "#ff6b00",
-        };
+        return { icon: <CheckCircle2 size={16} />, label: "Decision" };
       case "discussion":
-        return {
-          icon: <MessageSquare size={14} />,
-          iconBg: "#f5f3ff",
-          iconColor: "#8b5cf6",
-          iconBorder: "#ddd6fe",
-          badgeBg: "#f5f3ff",
-          badgeColor: "#8b5cf6",
-        };
+        return { icon: <MessageSquare size={16} />, label: "Discussion" };
       case "document":
-        return {
-          icon: <FileText size={14} />,
-          iconBg: "#eff6ff",
-          iconColor: "#3b82f6",
-          iconBorder: "#bfdbfe",
-          badgeBg: "#eff6ff",
-          badgeColor: "#3b82f6",
-        };
+        return { icon: <FileText size={16} />, label: "Document" };
       case "insight":
-        return {
-          icon: <Zap size={14} />,
-          iconBg: "#fff3ee",
-          iconColor: "#ff6b00",
-          iconBorder: "#ffd7c7",
-          badgeBg: "#fff3ee",
-          badgeColor: "#ff6b00",
-        };
+        return { icon: <Zap size={16} />, label: "Insight" };
       case "knowledge":
-        return {
-          icon: <Users size={14} />,
-          iconBg: "#eff6ff",
-          iconColor: "#3b82f6",
-          iconBorder: "#bfdbfe",
-          badgeBg: "#eff6ff",
-          badgeColor: "#3b82f6",
-        };
+        return { icon: <Users size={16} />, label: "Knowledge" };
     }
   };
 
+  // Small neutral tile with the first letter of the source.
   const getSourceIcon = (name: string) => {
     switch (name.toLowerCase()) {
       case "notion":
-        return <span style={{ fontWeight: 800, fontSize: 10, background: "#111", color: "#fff", width: 15, height: 15, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>N</span>;
+        return <span className="mem-source-mark">N</span>;
       case "slack":
-        return <span style={{ fontWeight: 800, fontSize: 10, background: "#4a154b", color: "#fff", width: 15, height: 15, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>S</span>;
+        return <span className="mem-source-mark">S</span>;
       case "google drive":
-        return <span style={{ fontWeight: 800, fontSize: 10, background: "#34a853", color: "#fff", width: 15, height: 15, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>▲</span>;
+        return <span className="mem-source-mark">▲</span>;
       case "corely ai":
-        return <span style={{ fontWeight: 800, fontSize: 10, background: "#ff6b00", color: "#fff", width: 15, height: 15, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>C</span>;
+        return <span className="mem-source-mark">C</span>;
       default:
-        return <span style={{ fontWeight: 800, fontSize: 10, background: "#10b981", color: "#fff", width: 15, height: 15, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>H</span>;
+        return <span className="mem-source-mark">H</span>;
     }
   };
 
@@ -352,16 +320,11 @@ export default function MemoryPage() {
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     
     let cumulativePercent = 0;
-    const colorMap: Record<string, string> = {
-      notion: "var(--db-text)",
-      slack: "#4a154b",
-      "google drive": "#34a853",
-      "corely ai": "#ff6b00"
-    };
 
     const circ = 251.327; // 2 * pi * 40
 
-    return sorted.map(([name, count]) => {
+    // Slices use the grayscale chart palette (defined in memory.css), in order.
+    return sorted.map(([name, count], index) => {
       const percent = total > 0 ? count / total : 0;
       const dash = percent * circ;
       const gap = circ - dash;
@@ -372,7 +335,7 @@ export default function MemoryPage() {
       return {
         name,
         count,
-        color: colorMap[name.toLowerCase()] || "#10b981",
+        color: `var(--mem-chart-${(index % 5) + 1})`,
         dash: `${dash} ${gap}`,
         offset: -offset
       };
@@ -525,75 +488,75 @@ export default function MemoryPage() {
   return (
     <main className="db-content">
       <div className="mem-container">
-        
+
         {/* ── 1. Page Header ── */}
-        <div className="mem-header-row">
-          <div className="mem-header-left">
-            <div className="mem-title-wrap">
-              <div className="mem-title-icon">
-                <Brain size={26} strokeWidth={2.5} />
-              </div>
-              <h1 className="mem-title">Memory</h1>
-            </div>
-            <p className="mem-subtitle">
-              Corely&apos;s persistent memory of your organization&apos;s knowledge, decisions, and context.
-            </p>
-          </div>
-          
-          <div className="mem-header-actions">
-            <div className="mem-search-bar">
-              <Search size={14} style={{ color: "#a1a1aa", flexShrink: 0 }} />
-              <input
-                type="text"
-                className="mem-search-input"
-                placeholder="Search Memory"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button className="mem-add-btn" onClick={handleExportCSV} style={{ background: "var(--db-panel)", color: "var(--db-text)", border: "1px solid #e4e4e7" }}>
-              <Download size={15} strokeWidth={2.5} />
-              <span>Export CSV</span>
-            </button>
-            <button className="mem-add-btn" onClick={() => setShowAddModal(true)}>
-              <Plus size={15} strokeWidth={2.5} />
-              <span>Add to Memory</span>
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Memory"
+          subtitle="Corely's persistent memory of your organization's knowledge, decisions, and context."
+          actions={
+            <>
+              <button type="button" className="ui-btn ui-btn--secondary" onClick={handleExportCSV}>
+                <Download />
+                <span>Export CSV</span>
+              </button>
+              <button type="button" className="ui-btn ui-btn--primary" onClick={() => setShowAddModal(true)}>
+                <Plus />
+                <span>Add to Memory</span>
+              </button>
+            </>
+          }
+        />
 
         {/* ── 2. Summary Stats Cards ── */}
         <MemoryStatsGrid stats={stats} />
 
         {/* ── 3. Main Dashboard Grid ── */}
         <div className="mem-main-grid">
-          
+
           {/* ── Left Column: Timeline and Tabs ── */}
           <div className="mem-left-column">
-            
-            {/* Tabs & Filters */}
+
+            {/* Tabs */}
             <div className="mem-tabs-bar">
               <div className="mem-tabs-list">
                 {["timeline", "decisions", "discussions", "documents", "knowledge sets", "snapshots"].map((tab) => (
                   <button
                     key={tab}
+                    type="button"
                     className={`mem-tab-item ${activeTab === tab ? "active" : ""}`}
                     onClick={() => handleTabChange(tab)}
-                    style={{ textTransform: "capitalize" }}
                   >
-                    {tab}
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
                     {activeTab === tab && (
-                      <motion.div layoutId="tab-line" className="mem-tab-active-line" />
+                      <motion.div
+                        layoutId="tab-line"
+                        className="mem-tab-active-line"
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                      />
                     )}
                   </button>
                 ))}
               </div>
-              
+            </div>
+
+            {/* Search + filters toggle */}
+            <div className="mem-toolbar">
+              <div className="mem-search">
+                <Search size={16} />
+                <input
+                  type="text"
+                  className="ui-input"
+                  placeholder="Search Memory"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
               <button
-                className={`mem-filter-btn ${showFilterBar ? "active" : ""}`}
+                type="button"
+                className={`ui-btn ui-btn--secondary mem-filter-btn ${showFilterBar ? "active" : ""}`}
                 onClick={() => setShowFilterBar((prev) => !prev)}
               >
-                <SlidersHorizontal size={13} />
+                <SlidersHorizontal />
                 <span>Filters</span>
               </button>
             </div>
@@ -603,52 +566,60 @@ export default function MemoryPage() {
               {showFilterBar && (
                 <motion.div
                   className="mem-filter-bar"
-                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                  animate={{ height: "auto", opacity: 1, marginTop: 12 }}
-                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                   style={{ overflow: "hidden" }}
                 >
                   <div className="mem-filter-row-inner">
                     <div className="mem-filter-group">
-                      <label className="mem-filter-label">Source</label>
-                      <select
-                        className="mem-filter-select"
-                        value={selectedSource}
-                        onChange={(e) => setSelectedSource(e.target.value)}
-                      >
-                        <option value="all">All Sources</option>
-                        {uniqueSources.map(source => (
-                          <option key={source} value={source}>{source}</option>
-                        ))}
-                      </select>
+                      <label className="type-label">Source</label>
+                      <div className="mem-select-wrap">
+                        <select
+                          className="ui-input"
+                          value={selectedSource}
+                          onChange={(e) => setSelectedSource(e.target.value)}
+                        >
+                          <option value="all">All Sources</option>
+                          {uniqueSources.map(source => (
+                            <option key={source} value={source}>{source}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} />
+                      </div>
                     </div>
 
                     <div className="mem-filter-group">
-                      <label className="mem-filter-label">Category</label>
-                      <select
-                        className="mem-filter-select"
-                        value={selectedCategory}
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                      >
-                        <option value="all">All Categories</option>
-                        <option value="decision">Decision Captured</option>
-                        <option value="discussion">Discussion Summary</option>
-                        <option value="document">Document Added</option>
-                        <option value="insight">Insight Generated</option>
-                        <option value="knowledge">Knowledge Update</option>
-                      </select>
+                      <label className="type-label">Category</label>
+                      <div className="mem-select-wrap">
+                        <select
+                          className="ui-input"
+                          value={selectedCategory}
+                          onChange={(e) => handleCategoryChange(e.target.value)}
+                        >
+                          <option value="all">All Categories</option>
+                          <option value="decision">Decision Captured</option>
+                          <option value="discussion">Discussion Summary</option>
+                          <option value="document">Document Added</option>
+                          <option value="insight">Insight Generated</option>
+                          <option value="knowledge">Knowledge Update</option>
+                        </select>
+                        <ChevronDown size={16} />
+                      </div>
                     </div>
 
                     {(selectedSource !== "all" || selectedCategory !== "all") && (
                       <button
-                        className="mem-filter-clear-btn"
+                        type="button"
+                        className="ui-btn ui-btn--secondary mem-filter-clear-btn"
                         onClick={() => {
                           setSelectedSource("all");
                           handleCategoryChange("all");
                         }}
                       >
-                        Clear Filters
+                        <FilterX />
+                        Clear filters
                       </button>
                     )}
                   </div>
@@ -656,155 +627,147 @@ export default function MemoryPage() {
               )}
             </AnimatePresence>
 
-            {/* Timeline Header Info */}
-            <div className="mem-timeline-header">
-              <h2 className="mem-timeline-title">Memory Timeline</h2>
-              <p className="mem-timeline-sub">A chronological view of important moments and changes.</p>
-            </div>
-
-            {/* Timeline Items List */}
-            <div className="mem-timeline-list">
-              <div className="mem-timeline-line" />
+            {/* Timeline: one hairline table card with a header and an optional footer */}
+            <div className="ui-table-wrap mem-timeline-list">
+              <div className="mem-table-card-header">
+                <h2 className="type-heading">Memory timeline</h2>
+                <p className="type-caption">A chronological view of important moments and changes.</p>
+              </div>
 
               {isLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 32, paddingLeft: 95 }}>
+                <div className="mem-skeleton-list">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-                      <Skeleton width={48} height={48} borderRadius="50%" />
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <Skeleton width="40%" height={20} />
-                        <Skeleton width="100%" height={16} />
-                        <Skeleton width="80%" height={16} />
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <Skeleton width={80} height={24} borderRadius={12} />
-                          <Skeleton width={80} height={24} borderRadius={12} />
-                        </div>
+                    <div key={i} className="mem-skeleton-row">
+                      <div className="ui-skeleton" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
+                      <div className="mem-skeleton-lines">
+                        <div className="ui-skeleton" style={{ width: "40%", height: 14, borderRadius: 6 }} />
+                        <div className="ui-skeleton" style={{ width: "80%", height: 12, borderRadius: 6 }} />
                       </div>
+                      <div className="ui-skeleton" style={{ width: 80, height: 22, borderRadius: 9999 }} />
+                      <div className="ui-skeleton" style={{ width: 56, height: 12, borderRadius: 6 }} />
                     </div>
                   ))}
                 </div>
               ) : Object.keys(groupedItems).length === 0 ? (
-                <div style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, marginLeft: 103, background: "var(--db-bg)", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--db-shadow)", marginBottom: 20 }}>
-                    {timelineItems.length === 0 ? (
-                      <Database size={28} style={{ color: "#ff6b00" }} />
-                    ) : (
-                      <Search size={28} style={{ color: "var(--db-text-muted)" }} />
-                    )}
-                  </div>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", marginBottom: 8 }}>
-                    {timelineItems.length === 0 ? "Your Memory is empty" : "No entries match your filters"}
-                  </h3>
-                  <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
-                    {timelineItems.length === 0 
+                <EmptyState
+                  icon={timelineItems.length === 0 ? <Database /> : <Search />}
+                  title={timelineItems.length === 0 ? "Your Memory is empty" : "No entries match your filters"}
+                  description={
+                    timelineItems.length === 0
                       ? "Corely builds your institutional memory automatically by syncing with your tools."
-                      : "Try adjusting your search query, or clear your filters to see all memory entries."}
-                  </p>
-                  
-                  {timelineItems.length === 0 ? (
-                    <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-                      <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
-                        <button className="mem-btn-primary" style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}>
-                          Connect Data Sources
+                      : "Try adjusting your search query, or clear your filters to see all memory entries."
+                  }
+                  action={
+                    timelineItems.length === 0 ? (
+                      <div className="mem-empty-actions">
+                        <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
+                          <button type="button" className="ui-btn ui-btn--primary">
+                            Connect data sources
+                          </button>
+                        </Link>
+                        <button
+                          type="button"
+                          className="ui-btn ui-btn--secondary"
+                          onClick={() => setShowAddModal(true)}
+                        >
+                          Add manual entry
                         </button>
-                      </Link>
-                      <button 
-                        className="mem-btn-secondary" 
-                        style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}
-                        onClick={() => setShowAddModal(true)}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="ui-btn ui-btn--secondary"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSelectedSource("all");
+                          handleCategoryChange("all");
+                        }}
                       >
-                        Add Manual Entry
+                        <FilterX />
+                        Clear all filters
                       </button>
-                    </div>
-                  ) : (
-                    <button 
-                      className="mem-btn-secondary" 
-                      style={{ padding: "8px 16px", borderRadius: 8, fontWeight: 600, marginTop: 20 }}
-                      onClick={() => {
-                        setSearchQuery("");
-                        setSelectedSource("all");
-                        handleCategoryChange("all");
-                      }}
-                    >
-                      Clear All Filters
-                    </button>
-                  )}
-                </div>
+                    )
+                  }
+                />
               ) : (
-                <div className="mem-data-table-container">
-                  <table className="mem-data-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 40 }}></th>
-                        <th>Title & Snippet</th>
-                        <th style={{ width: 140 }}>Source</th>
-                        <th style={{ width: 80 }}>Time</th>
-                        <th style={{ width: 40 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.keys(groupedItems).map((date) => (
-                        <Fragment key={date}>
-                          <tr className="mem-table-group-header">
-                            <td colSpan={5}>{date}</td>
-                          </tr>
-                          {groupedItems[date].map((item) => {
-                            const cfg = getCategoryDetails(item.category);
-                            const isOld = !item.date.includes("Today") && !item.date.includes("Yesterday");
-                            return (
-                              <tr
-                                key={item.id}
-                                className={`mem-table-row ${isOld ? "mem-table-row-old" : ""}`}
-                                onClick={() => setSelectedMemory(item)}
-                              >
-                                <td className="mem-td-category">
-                                  <div className="mem-table-icon" style={{ background: cfg.iconBg, color: cfg.iconColor, borderColor: cfg.iconBorder }}>
-                                    {cfg.icon}
+                <table className="ui-table mem-data-table">
+                  <thead>
+                    <tr>
+                      <th>Title &amp; snippet</th>
+                      <th style={{ width: 140 }}>Category</th>
+                      <th style={{ width: 160 }}>Source</th>
+                      <th style={{ width: 96 }}>Time</th>
+                      <th style={{ width: 56 }} aria-label="Actions"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(groupedItems).map((date) => (
+                      <Fragment key={date}>
+                        <tr className="mem-table-group-header">
+                          <td colSpan={5}>{date}</td>
+                        </tr>
+                        {groupedItems[date].map((item) => {
+                          const cfg = getCategoryDetails(item.category);
+                          const isOld = !item.date.includes("Today") && !item.date.includes("Yesterday");
+                          return (
+                            <tr
+                              key={item.id}
+                              className={`mem-table-row ${isOld ? "mem-table-row-old" : ""}`}
+                              onClick={() => setSelectedMemory(item)}
+                            >
+                              <td className="mem-td-title">
+                                <div className="mem-title-cell">
+                                  <span className="mem-row-icon">{cfg.icon}</span>
+                                  <div className="mem-title-text">
+                                    <span className="mem-row-title">{item.title}</span>
+                                    <span className="type-caption mem-table-content-preview">{item.content}</span>
                                   </div>
-                                </td>
-                                <td className="mem-td-title">
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                    <span style={{ color: "#18181b", fontWeight: 600, fontSize: 13 }}>{item.title}</span>
-                                    <span className="mem-table-content-preview">{item.content}</span>
-                                  </div>
-                                </td>
-                                <td className="mem-td-source">
-                                  <div className="mem-source-badge">
-                                    <div className="mem-source-icon-wrap" style={{ opacity: 0.8 }}>{getSourceIcon(item.sourceName)}</div>
-                                    <span style={{ fontSize: 12, fontWeight: 500 }}>{item.sourceName}</span>
-                                  </div>
-                                </td>
-                                <td className="mem-td-date">
-                                  <span style={{ fontSize: 12, color: "var(--db-text-muted)" }}>{item.time}</span>
-                                </td>
-                                <td className="mem-td-actions">
-                                  <button
-                                    className="mem-card-action-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteItem(item.id);
-                                    }}
-                                    title="Delete entry"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                                </div>
+                              </td>
+                              <td className="mem-td-category">
+                                <span className="ui-badge ui-badge--neutral">{cfg.label}</span>
+                              </td>
+                              <td className="mem-td-source">
+                                <div className="mem-source-badge">
+                                  {getSourceIcon(item.sourceName)}
+                                  <span className="type-caption mem-source-name">{item.sourceName}</span>
+                                </div>
+                              </td>
+                              <td className="mem-td-date">
+                                <span className="type-caption">{item.time}</span>
+                              </td>
+                              <td className="mem-td-actions">
+                                <button
+                                  type="button"
+                                  className="ui-icon-btn ui-icon-btn--sm mem-card-action-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteItem(item.id);
+                                  }}
+                                  title="Delete entry"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
               )}
 
               {/* Load More Button */}
               {visibleCount < filteredItems.length && (
                 <div className="mem-load-more-container">
-                  <button className="mem-load-more-btn" onClick={() => setVisibleCount(v => v + 10)}>
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn--ghost ui-btn--sm"
+                    onClick={() => setVisibleCount(v => v + 10)}
+                  >
                     <span>Load more</span>
-                    <ChevronDown size={13} />
+                    <ChevronDown />
                   </button>
                 </div>
               )}
@@ -813,7 +776,7 @@ export default function MemoryPage() {
           </div>
 
           {/* ── Right Column: Sidebar Panels ── */}
-          <MemoryRightSidebar 
+          <MemoryRightSidebar
             stats={stats}
             sourceChartData={sourceChartData}
             snapshots={snapshots}
@@ -851,39 +814,48 @@ export default function MemoryPage() {
         {selectedMemory && (
           <div className="mem-modal-overlay" onClick={() => setSelectedMemory(null)}>
             <motion.div
-              className="mem-modal-card"
+              className="ui-popover mem-modal-card"
               onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
             >
-              <h2 className="mem-modal-title" style={{ marginBottom: 4 }}>{selectedMemory.title}</h2>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, fontSize: 13, color: "var(--db-text-muted)" }}>
-                <span>{selectedMemory.date} at {selectedMemory.time}</span>
-                <span>•</span>
-                <span style={{ textTransform: "capitalize" }}>{selectedMemory.sourceName}</span>
+              <div className="mem-modal-header">
+                <h2 className="type-heading">{selectedMemory.title}</h2>
+                <div className="type-caption mem-detail-meta">
+                  <span>{selectedMemory.date} at {selectedMemory.time}</span>
+                  <span aria-hidden="true">•</span>
+                  <span className="mem-detail-source">{selectedMemory.sourceName}</span>
+                </div>
               </div>
-              
-              <div style={{ background: "#f4f4f5", padding: 16, borderRadius: 8, fontSize: 14, color: "#18181b", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+
+              <div className="mem-detail-content">
                 {selectedMemory.content}
                 {selectedMemory.url && (
-                  <div style={{ marginTop: 12 }}>
-                    <a href={selectedMemory.url} target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <FileText size={14} /> Open Document
+                  <div className="mem-detail-link">
+                    <a
+                      href={selectedMemory.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ui-btn ui-btn--secondary ui-btn--sm"
+                    >
+                      <FileText /> Open Document
                     </a>
                   </div>
                 )}
               </div>
 
-              <div className="mem-badge-list" style={{ marginTop: 20 }}>
-                {selectedMemory.badges.map((b) => (
-                  <span key={b} className="mem-badge" style={{ background: "#f4f4f5", color: "#52525b" }}>{b}</span>
-                ))}
-              </div>
+              {selectedMemory.badges.length > 0 && (
+                <div className="mem-badge-list">
+                  {selectedMemory.badges.map((b) => (
+                    <span key={b} className="ui-badge ui-badge--neutral mem-badge">{b}</span>
+                  ))}
+                </div>
+              )}
 
-              <div className="mem-modal-actions" style={{ marginTop: 32 }}>
-                <button type="button" className="mem-submit-btn" onClick={() => setSelectedMemory(null)}>
+              <div className="mem-modal-actions">
+                <button type="button" className="ui-btn ui-btn--secondary" onClick={() => setSelectedMemory(null)}>
                   Close
                 </button>
               </div>

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Shield, Camera, Globe, Clock, Palette, Bell, Key, LogOut, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { User, Mail, Shield, Camera, Globe, Clock, Palette, Bell, Key, LogOut, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme } from "../../../components/ThemeProvider";
 
+// Layout and form styles come from app/dashboard/settings/settings-layout.css,
+// so this page matches the Settings page.
 export default function ProfilePage() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -22,276 +24,297 @@ export default function ProfilePage() {
     }, 800);
   };
 
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+
   return (
-    <div style={{ flex: 1, minWidth: 0, padding: "40px", maxWidth: 1000, margin: "0 auto", width: "100%" }}>
+    <div className="settings-outer">
       {showToast && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          style={{
-            position: "fixed", top: 24, right: 24, zIndex: 9999, background: "var(--db-text)", color: "#ffffff",
-            padding: "14px 20px", borderRadius: 12, display: "flex", alignItems: "center", gap: 10,
-            fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.25)"
-          }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="settings-toast"
+          role="status"
         >
-          <CheckCircle2 size={18} color="#4ade80" />
+          <CheckCircle2 size={16} />
           Profile updated successfully
         </motion.div>
       )}
 
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--db-text)", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Profile Settings</h1>
-        <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: 0 }}>Manage your personal account settings and preferences.</p>
-      </motion.div>
+      <div className="settings-layout">
+        {/* Identity header */}
+        <div className="settings-sidebar-header profile-identity">
+          <div className="profile-avatar">{initial}</div>
+          <div className="profile-identity-text">
+            <h1 className="type-title">{user?.name || "Profile Settings"}</h1>
+            <p className="type-caption">{user?.email || "Manage your personal account settings and preferences."}</p>
+          </div>
+        </div>
 
-      <div style={{ display: "flex", gap: 40, marginTop: 40, alignItems: "flex-start" }}>
-        {/* Sidebar */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}
-        >
+        {/* Mini-nav */}
+        <nav className="settings-nav-list" aria-label="Profile sections">
           <button
             onClick={() => setActiveTab("general")}
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
-              background: activeTab === "general" ? "#fff3ee" : "transparent",
-              color: activeTab === "general" ? "#ff6b00" : "#52525b",
-              borderRadius: 8, border: "none", fontSize: 14, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.15s", textAlign: "left"
-            }}
+            className={`settings-nav-item ${activeTab === "general" ? "active" : ""}`}
           >
-            <User size={16} /> General
+            <User size={16} className="settings-nav-icon" /> General
           </button>
           <button
             onClick={() => setActiveTab("security")}
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
-              background: activeTab === "security" ? "#fff3ee" : "transparent",
-              color: activeTab === "security" ? "#ff6b00" : "#52525b",
-              borderRadius: 8, border: "none", fontSize: 14, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.15s", textAlign: "left"
-            }}
+            className={`settings-nav-item ${activeTab === "security" ? "active" : ""}`}
           >
-            <Shield size={16} /> Security
+            <Shield size={16} className="settings-nav-icon" /> Security
           </button>
           <button
             onClick={() => setActiveTab("notifications")}
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
-              background: activeTab === "notifications" ? "#fff3ee" : "transparent",
-              color: activeTab === "notifications" ? "#ff6b00" : "#52525b",
-              borderRadius: 8, border: "none", fontSize: 14, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.15s", textAlign: "left"
-            }}
+            className={`settings-nav-item ${activeTab === "notifications" ? "active" : ""}`}
           >
-            <Bell size={16} /> Notifications
+            <Bell size={16} className="settings-nav-icon" /> Notifications
           </button>
-          
-          <div style={{ height: 1, background: "var(--db-border)", margin: "16px 0" }} />
-          
+
+          <div className="settings-nav-divider" />
+
           <button
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
-              background: "transparent", color: "#ef4444",
-              borderRadius: 8, border: "none", fontSize: 14, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.15s", textAlign: "left"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "#fef2f2"}
+            className="settings-nav-item settings-nav-item--danger"
+            onMouseEnter={(e) => e.currentTarget.style.background = "var(--error-soft)"}
             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
           >
-            <LogOut size={16} /> Sign out
+            <LogOut size={16} className="settings-nav-icon" /> Sign out
           </button>
-        </motion.div>
+        </nav>
 
         {/* Content Area */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{ flex: 1, minWidth: 0, background: "var(--db-panel)", border: "1px solid #e4e4e7", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.03)", padding: 32 }}
-        >
-          {activeTab === "general" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-                <div style={{ position: "relative" }}>
-                  <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #ff6b00, #ff9240)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 800, color: "#ffffff", boxShadow: "0 8px 24px rgba(255, 107, 0, 0.2)" }}>
-                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+        <div className="settings-main-col">
+          <div key={activeTab} className="settings-stack">
+            {activeTab === "general" && (
+              <div className="ui-card settings-card">
+                <div className="ui-card-header">
+                  <div className="settings-card-heading">
+                    <p className="type-heading">Profile Settings</p>
+                    <p className="type-caption">Manage your personal account settings and preferences.</p>
                   </div>
-                  <button style={{ position: "absolute", bottom: -4, right: -4, width: 32, height: 32, borderRadius: "50%", background: "var(--db-panel)", border: "1px solid #e4e4e7", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", color: "#52525b" }}>
-                    <Camera size={14} />
-                  </button>
                 </div>
-                <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--db-text)" }}>Profile Picture</h3>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--db-text-muted)", maxWidth: 300 }}>Upload a high-res image. JPG, GIF, or PNG. Max size of 5MB.</p>
-                </div>
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Full Name</label>
-                  <input type="text" defaultValue={user?.name || ""} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = "#ff6b00"} onBlur={(e) => e.target.style.borderColor = "var(--db-border)"} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Email Address</label>
-                  <div style={{ position: "relative" }}>
-                    <input type="email" defaultValue={user?.email || ""} disabled style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", background: "#f4f4f5", color: "var(--db-text-muted)" }} />
-                    <Mail size={16} color="#a1a1aa" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div>
+                      <h3 className="settings-row-label">Profile Picture</h3>
+                      <p className="settings-row-desc" style={{ maxWidth: 300 }}>Upload a high-res image. JPG, GIF, or PNG. Max size of 5MB.</p>
+                    </div>
+                  </div>
+                  <div className="settings-row-control">
+                    <div className="profile-avatar-edit">
+                      <div className="profile-avatar profile-avatar--sm">{initial}</div>
+                      <button className="profile-avatar-btn" aria-label="Upload profile picture">
+                        <Camera size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Role / Title</label>
-                  <input type="text" defaultValue="Software Engineer" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = "#ff6b00"} onBlur={(e) => e.target.style.borderColor = "var(--db-border)"} />
-                </div>
-              </div>
 
-              <div style={{ height: 1, background: "var(--db-border)" }} />
-
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--db-text)" }}>Preferences</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Language</label>
-                  <div style={{ position: "relative" }}>
-                    <select style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", appearance: "none", cursor: "pointer", background: "var(--db-panel)" }}>
-                      <option>English (US)</option>
-                      <option>French (FR)</option>
-                      <option>Spanish (ES)</option>
-                    </select>
-                    <Globe size={16} color="#a1a1aa" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Full Name</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <input type="text" defaultValue={user?.name || ""} className="ui-input settings-control-input" onFocus={(e) => e.target.style.borderColor = "var(--accent-border)"} onBlur={(e) => e.target.style.borderColor = "var(--hairline)"} />
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Timezone</label>
-                  <div style={{ position: "relative" }}>
-                    <select style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", appearance: "none", cursor: "pointer", background: "var(--db-panel)" }}>
-                      <option>Pacific Time (PT)</option>
-                      <option>Eastern Time (ET)</option>
-                      <option>Coordinated Universal Time (UTC)</option>
-                    </select>
-                    <Clock size={16} color="#a1a1aa" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Email Address</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <div className="settings-input-wrap settings-input-wrap--lead">
+                      <input type="email" defaultValue={user?.email || ""} disabled className="ui-input" />
+                      <Mail size={16} className="settings-input-lead-icon" />
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Appearance</label>
-                  <div style={{ position: "relative" }}>
-                    <select 
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
-                      style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 8, border: "1px solid var(--db-border)", fontSize: 14, outline: "none", appearance: "none", cursor: "pointer", background: "var(--db-panel)", color: "var(--db-text)" }}
-                    >
-                      <option value="light">Light Mode</option>
-                      <option value="dark">Dark Mode</option>
-                      <option value="system">System Default</option>
-                    </select>
-                    <Palette size={16} color="#a1a1aa" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Role / Title</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <input type="text" defaultValue="Software Engineer" className="ui-input settings-control-input" onFocus={(e) => e.target.style.borderColor = "var(--accent-border)"} onBlur={(e) => e.target.style.borderColor = "var(--hairline)"} />
                   </div>
                 </div>
-              </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  style={{
-                    background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
-                  }}
-                >
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </div>
-          )}
+                <div className="settings-card-subhead">
+                  <h3 className="type-heading">Preferences</h3>
+                </div>
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Language</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
+                      <select className="ui-input settings-select">
+                        <option>English (US)</option>
+                        <option>French (FR)</option>
+                        <option>Spanish (ES)</option>
+                      </select>
+                      <Globe size={16} className="settings-input-lead-icon" />
+                      <ChevronDown size={16} className="settings-select-chevron" />
+                    </div>
+                  </div>
+                </div>
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Timezone</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
+                      <select className="ui-input settings-select">
+                        <option>Pacific Time (PT)</option>
+                        <option>Eastern Time (ET)</option>
+                        <option>Coordinated Universal Time (UTC)</option>
+                      </select>
+                      <Clock size={16} className="settings-input-lead-icon" />
+                      <ChevronDown size={16} className="settings-select-chevron" />
+                    </div>
+                  </div>
+                </div>
+                <div className="settings-row">
+                  <div className="settings-row-left">
+                    <div><label className="settings-row-label">Appearance</label></div>
+                  </div>
+                  <div className="settings-row-control">
+                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
+                      <select
+                        value={theme}
+                        onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
+                        className="ui-input settings-select"
+                      >
+                        <option value="light">Light Mode</option>
+                        <option value="dark">Dark Mode</option>
+                        <option value="system">System Default</option>
+                      </select>
+                      <Palette size={16} className="settings-input-lead-icon" />
+                      <ChevronDown size={16} className="settings-select-chevron" />
+                    </div>
+                  </div>
+                </div>
 
-          {activeTab === "security" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-              <div>
-                <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "var(--db-text)" }}>Change Password</h3>
-                <p style={{ margin: "0 0 24px", fontSize: 13, color: "var(--db-text-muted)" }}>Ensure your account is using a long, random password to stay secure.</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 400 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>Current Password</label>
-                    <input type="password" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = "#ff6b00"} onBlur={(e) => e.target.style.borderColor = "var(--db-border)"} />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#3f3f46" }}>New Password</label>
-                    <input type="password" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 14, outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.target.style.borderColor = "#ff6b00"} onBlur={(e) => e.target.style.borderColor = "var(--db-border)"} />
-                  </div>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    style={{
-                      background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", marginTop: 8, width: "fit-content", opacity: isSaving ? 0.7 : 1
-                    }}
-                  >
-                    {isSaving ? "Updating..." : "Update Password"}
+                <div className="settings-card-footer">
+                  <button onClick={handleSave} disabled={isSaving} className="ui-btn ui-btn--primary">
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </div>
+            )}
 
-              <div style={{ height: 1, background: "var(--db-border)" }} />
+            {activeTab === "security" && (
+              <>
+                <div className="ui-card settings-card">
+                  <div className="ui-card-header">
+                    <div className="settings-card-heading">
+                      <h3 className="type-heading">Change Password</h3>
+                      <p className="type-caption">Ensure your account is using a long, random password to stay secure.</p>
+                    </div>
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-left">
+                      <div><label className="settings-row-label">Current Password</label></div>
+                    </div>
+                    <div className="settings-row-control">
+                      <input type="password" className="ui-input settings-control-input" onFocus={(e) => e.target.style.borderColor = "var(--accent-border)"} onBlur={(e) => e.target.style.borderColor = "var(--hairline)"} />
+                    </div>
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-left">
+                      <div><label className="settings-row-label">New Password</label></div>
+                    </div>
+                    <div className="settings-row-control">
+                      <input type="password" className="ui-input settings-control-input" onFocus={(e) => e.target.style.borderColor = "var(--accent-border)"} onBlur={(e) => e.target.style.borderColor = "var(--hairline)"} />
+                    </div>
+                  </div>
+                  <div className="settings-card-footer">
+                    <button onClick={handleSave} disabled={isSaving} className="ui-btn ui-btn--primary">
+                      {isSaving ? "Updating..." : "Update Password"}
+                    </button>
+                  </div>
+                </div>
 
-              <div>
-                <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "var(--db-text)", display: "flex", alignItems: "center", gap: 8 }}>Two-Factor Authentication <span style={{ padding: "2px 8px", borderRadius: 100, background: "#fefce8", color: "#eab308", fontSize: 11, fontWeight: 700 }}>Recommended</span></h3>
-                <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--db-text-muted)", maxWidth: 500 }}>Add an extra layer of security to your account by requiring more than just a password to sign in.</p>
-                <button style={{ background: "var(--db-panel)", border: "1px solid #e4e4e7", color: "var(--db-text)", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <Key size={16} /> Enable 2FA
-                </button>
-              </div>
+                <div className="ui-card settings-card">
+                  <div className="settings-row">
+                    <div className="settings-row-left">
+                      <div className="settings-row-icon"><Key size={16} /></div>
+                      <div>
+                        <div className="settings-card-title-row">
+                          <h3 className="type-heading">Two-Factor Authentication</h3>
+                          <span className="ui-badge ui-badge--accent">Recommended</span>
+                        </div>
+                        <p className="settings-row-desc" style={{ maxWidth: 500 }}>Add an extra layer of security to your account by requiring more than just a password to sign in.</p>
+                      </div>
+                    </div>
+                    <div className="settings-row-control">
+                      <button className="ui-btn ui-btn--secondary">
+                        <Key size={16} /> Enable 2FA
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-              <div style={{ height: 1, background: "var(--db-border)" }} />
+                <div className="ui-card settings-card settings-danger-card">
+                  <div className="ui-card-header">
+                    <div className="settings-card-title-row">
+                      <div className="settings-row-icon settings-row-icon--danger"><AlertTriangle size={16} /></div>
+                      <h3 className="type-heading settings-danger-title">Danger Zone</h3>
+                    </div>
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row-left">
+                      <p className="settings-text">Once you delete your account, there is no going back. Please be certain.</p>
+                    </div>
+                    <div className="settings-row-control">
+                      <button className="ui-btn ui-btn--destructive">
+                        Delete Account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
-              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 20 }}>
-                <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "#dc2626", display: "flex", alignItems: "center", gap: 8 }}>
-                  <AlertTriangle size={18} /> Danger Zone
-                </h3>
-                <p style={{ margin: "0 0 20px", fontSize: 13, color: "#991b1b" }}>Once you delete your account, there is no going back. Please be certain.</p>
-                <button style={{ background: "#dc2626", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-                  Delete Account
-                </button>
-              </div>
-            </div>
-          )}
+            {activeTab === "notifications" && (
+              <div className="ui-card settings-card">
+                <div className="ui-card-header">
+                  <div className="settings-card-heading">
+                    <h3 className="type-heading">Email Notifications</h3>
+                    <p className="type-caption">Choose what Corely updates you receive via email.</p>
+                  </div>
+                </div>
 
-          {activeTab === "notifications" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "var(--db-text)" }}>Email Notifications</h3>
-              <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--db-text-muted)" }}>Choose what Corely updates you receive via email.</p>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {[
                   { title: "Weekly Digest", desc: "A summary of knowledge discovered in your workspace.", checked: true },
                   { title: "New Feature Announcements", desc: "Updates about new Corely features and improvements.", checked: true },
                   { title: "Security Alerts", desc: "Notifications about unusual activity or new sign-ins.", checked: true, disabled: true },
                   { title: "Team Activity", desc: "When teammates join your workspace or mention you.", checked: false }
                 ].map((item, i) => (
-                  <label key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: item.disabled ? "not-allowed" : "pointer", opacity: item.disabled ? 0.6 : 1 }}>
-                    <input type="checkbox" defaultChecked={item.checked} disabled={item.disabled} style={{ marginTop: 4, width: 16, height: 16, accentColor: "#ff6b00" }} />
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--db-text)" }}>{item.title}</div>
-                      <div style={{ fontSize: 13, color: "var(--db-text-muted)", marginTop: 2 }}>{item.desc}</div>
+                  <label key={i} className="settings-row" style={{ cursor: item.disabled ? "not-allowed" : "pointer", opacity: item.disabled ? 0.6 : 1 }}>
+                    <div className="settings-row-left">
+                      <div>
+                        <div className="settings-row-label">{item.title}</div>
+                        <div className="settings-row-desc">{item.desc}</div>
+                      </div>
+                    </div>
+                    <div className="settings-row-control">
+                      <input type="checkbox" defaultChecked={item.checked} disabled={item.disabled} className="settings-switch-input" />
                     </div>
                   </label>
                 ))}
-              </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  style={{
-                    background: "var(--db-text)", color: "#ffffff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1
-                  }}
-                >
-                  {isSaving ? "Saving..." : "Save Preferences"}
-                </button>
+                <div className="settings-card-footer">
+                  <button onClick={handleSave} disabled={isSaving} className="ui-btn ui-btn--primary">
+                    {isSaving ? "Saving..." : "Save Preferences"}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </motion.div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

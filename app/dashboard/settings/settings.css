@@ -1,0 +1,146 @@
+/* Settings page styles, part 1 (set-*).
+   Split out of app/dashboard/dashboard.css. Imported from app/dashboard/layout.tsx
+   in the original order, so the cascade is unchanged.
+   Only the classes still in use are kept: SettingsRightSidebar uses the set-* card
+   classes, workflows uses .set-card-header, and dashboard-responsive.css still
+   names .set-page-grid and .set-account-info. Main settings styles live in
+   settings-layout.css. */
+
+.set-page-grid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ── RIGHT SIDEBAR CARDS ───────────────────────────────────── */
+.set-sidebar-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.set-card-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+/* Account card */
+.set-account-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.set-account-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--surface-secondary);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon-primary);
+}
+.set-account-name {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.set-account-type {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.set-btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
+}
+.set-btn-outline:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+.set-btn-outline:active { transform: scale(0.98); }
+
+/* Plan card */
+.set-plan-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--accent-text);
+  margin-bottom: 4px;
+}
+.set-plan-desc {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+/* Security card */
+.set-sec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.set-sec-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.set-sec-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.set-sec-left svg { color: var(--success); flex-shrink: 0; }
+.set-sec-right {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.set-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+.set-link-btn:hover { text-decoration: underline; }
+
+/* Help card */
+.set-help-desc {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}

@@ -1,388 +1,617 @@
-.login-page {
+/* ═══════════════════════════════════════════════════════════
+   AUTH PAGES: /login (with the forgot-password view), /signup, /reset-password
+   One shared shell: soft neutral canvas, centred column, logo tile,
+   large title, frosted form card, footer link.
+   Every colour is a token from app/globals.css, so light and dark mode both work.
+   All class names start with "auth-" because this file stays loaded
+   after the user moves to other pages.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Page canvas ─────────────────────────────────────────── */
+.auth-page {
+  position: relative;
+  width: 100%;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #fafafa;
-  position: relative;
+  /* 72px at the top keeps the column clear of the "Back to Home" link */
+  padding: 72px 24px 48px;
   overflow: hidden;
+  background: linear-gradient(180deg, var(--canvas) 0%, var(--surface) 45%, var(--canvas) 100%);
+  color: var(--text-primary);
 }
 
-/* Background decorative elements */
-.login-bg-blob {
+/* Soft grey glow behind the top of the column. Neutral only, no hue. */
+.auth-glow {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.4;
+  top: 0;
+  left: 50%;
+  width: 800px;
+  height: 400px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: linear-gradient(
+    to top right,
+    color-mix(in srgb, var(--border-strong) 40%, transparent),
+    color-mix(in srgb, var(--hairline) 30%, transparent),
+    transparent
+  );
+  filter: blur(64px);
+  pointer-events: none;
   z-index: 0;
 }
 
-.blob-1 {
-  width: 500px;
-  height: 500px;
-  background: #ff6b00;
-  top: -150px;
-  right: -100px;
+/* "Back to Home" ghost link, top left */
+.auth-back-link {
+  position: absolute;
+  top: 20px;
+  left: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+.auth-back-link:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
 }
 
-.blob-2 {
-  width: 600px;
-  height: 600px;
-  background: #ff9240;
-  bottom: -200px;
-  left: -200px;
-  opacity: 0.2;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 440px;
-  background: white;
-  border-radius: 24px;
-  padding: 48px;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05),
-              0 0 0 1px rgba(0, 0, 0, 0.03);
+/* ── Centred column ──────────────────────────────────────── */
+.auth-shell {
   position: relative;
   z-index: 1;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.login-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.login-logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ff6b00, #ff9240);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 20px;
-  box-shadow: 0 8px 16px -6px rgba(255, 107, 0, 0.4);
-}
-
-.login-logo-text {
-  font-family: var(--font-outfit), sans-serif;
-  font-weight: 700;
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  color: #111;
-}
-
-.login-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 8px;
-}
-
-.login-subtitle {
-  font-size: 15px;
-  color: #71717a;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #3f3f46;
-}
-
-.form-input {
   width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid #e4e4e7;
-  background: #fff;
-  font-size: 15px;
-  color: #111;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.form-input:focus {
-  border-color: #ff6b00;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
-}
-
-.form-input::placeholder {
-  color: #a1a1aa;
-}
-
-.login-btn {
-  height: 48px;
-  border-radius: 12px;
-  background: #111;
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
+  max-width: 576px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  margin-top: 8px;
-}
-
-.login-btn:hover {
-  background: #27272a;
-  transform: translateY(-1px);
-}
-
-.login-btn:active {
-  transform: translateY(0);
-}
-
-.login-btn:disabled {
-  background: #3f3f46;
-  cursor: not-allowed;
-}
-
-/* ── Extras ── */
-.login-forgot-btn {
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: #ff6b00;
-  cursor: pointer;
-  padding: 0;
-  font-weight: 500;
-}
-.login-forgot-btn:hover {
-  text-decoration: underline;
-}
-
-.login-divider {
-  display: flex;
-  align-items: center;
+  gap: 24px;
   text-align: center;
-  margin: 24px 0;
-}
-.login-divider::before,
-.login-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #e4e4e7;
-}
-.login-divider-text {
-  padding: 0 12px;
-  color: #71717a;
-  font-size: 13px;
-  font-weight: 500;
 }
 
-.login-oauth-group {
-  display: flex;
+/* Brand lockup: logo tile + "Corely" wordmark. Links home (or back to sign in). */
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 12px;
+  transition: opacity 150ms ease-out;
 }
-.login-oauth-btn {
-  flex: 1;
-  display: flex;
+.auth-brand:hover {
+  opacity: 0.8;
+}
+
+/* Logo tile: surface tile, hairline border, inset highlight (DESIGN.md §2) */
+.auth-logo-tile {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 3px 0 rgba(0, 0, 0, 0.15);
+}
+
+.auth-wordmark {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.auth-heading {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #e4e4e7;
-  background: #ffffff;
-  color: #18181b;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.login-oauth-btn:hover {
-  background: #f4f4f5;
 }
 
-.login-text-btn {
-  background: none;
-  border: none;
-  color: #111;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-}
-.login-text-btn:hover {
-  color: #ff6b00;
+.auth-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
 }
 
-.login-spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 24px;
+.auth-subtitle {
+  margin: 0;
+  max-width: 576px;
   font-size: 14px;
-  color: #71717a;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--text-secondary);
 }
 
-.login-footer a {
-  color: #111;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.login-footer a:hover {
-  color: #ff6b00;
-}
-
-@media (max-width: 640px) {
-  .login-page {
-    padding: 20px;
+@media (min-width: 640px) {
+  .auth-title {
+    font-size: 36px;
+    line-height: 40px;
   }
-  
-  .login-card {
-    padding: 32px 24px;
-    border-radius: 20px;
-  }
-  
-  .login-title {
-    font-size: 20px;
-  }
-  
-  .login-logo-text {
-    font-size: 24px;
-  }
-  
-  .login-back-btn {
-    top: 20px;
-    left: 20px;
+  .auth-subtitle {
+    font-size: 16px;
+    line-height: 26px;
   }
 }
 
-.login-back-btn {
-  position: absolute;
-  top: 32px;
-  left: 32px;
+/* ── Frosted form card ───────────────────────────────────── */
+.auth-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px; /* 32px from 640px up */
+  border-radius: 16px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .auth-card {
+    padding: 32px;
+  }
+}
+
+/* Used while the reset-password form is loading */
+.auth-card--loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: var(--icon-secondary);
+}
+
+/* ── Form fields ─────────────────────────────────────────── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+/* Two fields side by side (signup name + company). One column on small phones. */
+.auth-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 479px) {
+  .auth-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Uppercase 12px semibold label */
+.auth-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Label on the left, small text button on the right */
+.auth-label-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #71717a;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-  transition: color 0.2s;
-  z-index: 10;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.login-back-btn:hover {
-  color: #111;
-}
-
-/* ── Error & Success Banners ── */
-.login-error-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 4px;
-  font-size: 13.5px;
-  color: #dc2626;
-  font-weight: 500;
-}
-
-.login-success-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-  font-size: 13.5px;
-  color: #16a34a;
-  font-weight: 500;
-}
-
-/* ── Password Visibility Toggle ── */
-.login-password-wrapper {
+.auth-input-wrap {
   position: relative;
 }
 
-.login-password-wrapper .form-input {
+.auth-input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  outline: none;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.auth-input::placeholder {
+  color: var(--text-disabled);
+}
+.auth-input:hover {
+  border-color: var(--border-strong);
+}
+/* Focus: orange border plus a soft orange ring */
+.auth-input:focus,
+.auth-input:focus-visible {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+/* Touch screens: inputs at least 44px tall (12 + 20 + 12 + 2px border = 46px) */
+@media (pointer: coarse) {
+  .auth-input {
+    min-height: 44px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  /* Bigger tap area for the show / hide button */
+  .auth-eye-btn {
+    right: 4px;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Room on the right for the show / hide password button */
+.auth-input--with-toggle {
   padding-right: 44px;
 }
 
-.login-eye-btn {
+/* Show / hide password button inside the input */
+.auth-eye-btn {
   position: absolute;
-  right: 14px;
   top: 50%;
+  right: 12px;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #a1a1aa;
-  cursor: pointer;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--icon-secondary);
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+.auth-eye-btn:hover {
+  color: var(--icon-primary);
 }
 
-.login-eye-btn:hover {
-  color: #52525b;
+/* Small text button, e.g. "Forgot password?" */
+.auth-link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.auth-link-btn:hover {
+  text-decoration: underline;
 }
 
-/* ── Remember Me ── */
-.login-remember-row {
-  margin-top: -4px;
-}
-
-.login-remember-label {
+/* ── Checkbox rows (remember me, terms) ──────────────────── */
+.auth-check {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
-  color: #52525b;
-  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* For text that can wrap onto two lines: keep the box next to the first line */
+.auth-check--top {
+  align-items: flex-start;
+  gap: 10px;
+}
+.auth-check--top .auth-checkbox {
+  margin-top: 2px;
 }
 
-.login-checkbox {
+.auth-checkbox {
   width: 16px;
   height: 16px;
-  border-radius: 4px;
-  accent-color: #ff6b00;
-  cursor: pointer;
+  margin: 0;
   flex-shrink: 0;
+  border-radius: 4px;
+  accent-color: var(--accent-fill);
+  cursor: pointer;
+}
+
+/* Inline text link, e.g. "Terms of Service" */
+.auth-inline-link {
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.auth-inline-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Primary call to action ──────────────────────────────── */
+.auth-btn {
+  width: 100%;
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent-fill);
+  color: var(--accent-fg);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  /* Faint orange shadow, auth CTAs only */
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent-fill) 45%, transparent);
+  cursor: pointer;
+  transition: transform 200ms ease-out, background-color 200ms ease-out, opacity 200ms ease-out;
+}
+.auth-btn:hover {
+  background: var(--accent-fill-hover);
+}
+.auth-btn:active {
+  transform: scale(0.98);
+}
+.auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.auth-btn:disabled:hover {
+  background: var(--accent-fill);
+}
+
+/* The arrow slides 4px in its direction on hover */
+.auth-btn__arrow {
+  flex-shrink: 0;
+  transition: transform 200ms ease-out;
+}
+.auth-btn:hover:not(:disabled) .auth-btn__arrow {
+  transform: translateX(4px);
+}
+.auth-btn--back:hover:not(:disabled) .auth-btn__arrow {
+  transform: translateX(-4px);
+}
+
+.auth-spinner {
+  flex-shrink: 0;
+  animation: auth-spin 1s linear infinite;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Error and success banners ───────────────────────────── */
+/* Neutral card. Only the icon and the text carry the status colour. */
+.auth-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: left;
+}
+.auth-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+/* 2px top padding lines the first text line up with the 24px icon */
+.auth-banner__text {
+  padding-top: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.auth-banner__text strong {
+  font-weight: 600;
+}
+
+.auth-banner--error {
+  color: var(--error);
+}
+.auth-banner--error .auth-banner__icon {
+  background: var(--error-soft);
+}
+
+/* Green text is mixed with a little of the main text colour so it stays easy to read */
+.auth-banner--success {
+  color: color-mix(in srgb, var(--success) 75%, var(--text-primary));
+}
+.auth-banner--success .auth-banner__icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+/* ── Signup: plan facts strip ────────────────────────────── */
+.auth-perks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface-secondary);
+  overflow: hidden;
+}
+.auth-perk {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 8px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.auth-perk + .auth-perk {
+  border-left: 1px solid var(--hairline);
+}
+.auth-perk__stat {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.auth-perk__desc {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* ── Signup: password strength meter ─────────────────────── */
+.auth-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+.auth-strength__bars {
+  display: flex;
+  gap: 4px;
+}
+.auth-strength__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--hairline);
+  transition: background-color 250ms ease;
+}
+.auth-strength__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.auth-strength__label {
+  font-weight: 600;
+}
+.auth-strength__hint {
+  color: var(--text-tertiary);
+}
+
+/* ── Footer switch link ──────────────────────────────────── */
+.auth-footer {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.auth-footer a,
+.auth-footer-btn {
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.auth-footer a:hover,
+.auth-footer-btn:hover {
+  text-decoration: underline;
+}
+.auth-footer-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+/* ── Phones (375px) ──────────────────────────────────────── */
+@media (max-width: 479px) {
+  .auth-page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .auth-perk {
+    padding: 10px 4px;
+  }
+}
+
+/* ── Dark mode ───────────────────────────────────────────── */
+/* Layers: canvas (page) < surface (card) < surface-secondary (inputs, banners, strip). */
+.dark .auth-page {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, var(--surface) 0%, transparent 70%),
+    var(--canvas);
+}
+/* A faint warm glow, so the top of the page is not flat black */
+.dark .auth-glow {
+  background: linear-gradient(
+    to top right,
+    var(--accent-wash),
+    color-mix(in srgb, var(--surface-hover) 40%, transparent),
+    transparent
+  );
+}
+/* Frosted card: no black drop shadow, a thin light edge on top instead */
+.dark .auth-card {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+.dark .auth-logo-tile {
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.dark .auth-input {
+  background: var(--surface-secondary);
+  box-shadow: none;
+}
+.dark .auth-input:hover {
+  border-color: var(--border-strong);
+}
+.dark .auth-input:focus,
+.dark .auth-input:focus-visible {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.dark .auth-banner {
+  background: var(--surface-secondary);
+}
+.dark .auth-strength__bar {
+  background: var(--surface-hover);
 }

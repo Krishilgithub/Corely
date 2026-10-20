@@ -1,41 +1,37 @@
 "use client";
 
-import { Brain } from "lucide-react";
 import { Skeleton } from "./components/Skeleton";
 
+// Loading view for Home. The blocks follow the real layout:
+// header, four KPI tiles, two cards side by side, then the actions card.
 export default function DashboardLoading() {
   return (
-    <div style={{ padding: 32, width: "100%", maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: "#fff3ee", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Brain size={24} color="#ff6b00" />
+    <div className="db-content" role="status" aria-busy="true" aria-label="Loading dashboard">
+      {/* Page header: title and subtitle on the left, date button on the right */}
+      <div className="ui-page-header">
+        <div className="ui-page-header__text">
+          <Skeleton width={280} height={34} borderRadius={8} style={{ maxWidth: "100%" }} />
+          <Skeleton width={360} height={20} style={{ maxWidth: "100%" }} />
         </div>
-        <div>
-          <Skeleton width={200} height={28} style={{ marginBottom: 8 }} />
-          <Skeleton width={300} height={16} />
-        </div>
-      </div>
-      
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 24, marginBottom: 48 }}>
-        <Skeleton height={100} borderRadius={16} />
-        <Skeleton height={100} borderRadius={16} />
-        <Skeleton height={100} borderRadius={16} />
-        <Skeleton height={100} borderRadius={16} />
+        <Skeleton width={136} height={36} borderRadius={8} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Skeleton height={80} borderRadius={12} />
-          <Skeleton height={80} borderRadius={12} />
-          <Skeleton height={80} borderRadius={12} />
-          <Skeleton height={80} borderRadius={12} />
-          <Skeleton height={80} borderRadius={12} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <Skeleton height={200} borderRadius={16} />
-          <Skeleton height={200} borderRadius={16} />
-        </div>
+      {/* KPI tiles */}
+      <div className="db-stats-grid">
+        <Skeleton height={140} borderRadius={12} />
+        <Skeleton height={140} borderRadius={12} />
+        <Skeleton height={140} borderRadius={12} />
+        <Skeleton height={140} borderRadius={12} />
       </div>
+
+      {/* Activity feed and insights */}
+      <div className="db-main-grid">
+        <Skeleton height={440} borderRadius={16} />
+        <Skeleton height={440} borderRadius={16} />
+      </div>
+
+      {/* Autonomous actions */}
+      <Skeleton height={200} borderRadius={16} />
     </div>
   );
 }

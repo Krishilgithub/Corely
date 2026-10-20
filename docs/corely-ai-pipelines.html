@@ -23,11 +23,6 @@
     color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
-  --accent:#818cf8; --critical:#f87171; --high:#fb923c; --medium:#facc15; --ok:#4ade80;
-  color-scheme:dark;
-}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;overflow-x:hidden}
@@ -87,7 +82,6 @@ tr:last-child td{border-bottom:0}
 /* pills */
 .pill{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:4px;padding:.1rem .45rem;color:#fff;background:var(--c);vertical-align:2px}
 .pill.real{--c:var(--ok)} .pill.partial{--c:var(--medium)} .pill.fake{--c:var(--critical)} .pill.idle{--c:var(--high)} .pill.prop{--c:var(--accent)}
-:root[data-theme="dark"] .pill{color:#111}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill{color:#111}}
 .pipe{border:1px solid var(--border);border-radius:10px;padding:.2rem 1.1rem 1rem;margin:1.2rem 0;background:var(--bg)}
 .meta{color:var(--muted);font-size:.9rem;margin:.2rem 0 .6rem}
@@ -128,6 +122,21 @@ figcaption{color:var(--muted);font-size:.88rem;margin-top:.5rem}
 
 footer{max-width:1240px;margin:3rem auto 0;padding:1.2rem 16px 2rem;border-top:1px solid var(--border);color:var(--muted);font-size:.9rem;text-align:center}
 </style>
+
+<style>
+/* Single column: the sidebar is gone, topics live in the top navbar */
+.layout{display:block !important;max-width:900px;margin:0 auto;padding:0 16px}
+main{max-width:900px;margin:0 auto}
+[id]{scroll-margin-top:72px}
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:nowrap;align-items:center;gap:1rem;padding:0 16px;height:56px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;white-space:nowrap;flex:none}
+.topbar .topics{display:flex;flex-wrap:nowrap;gap:.25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:thin;flex:1;min-width:0}
+.topbar .topics a{flex:none;text-decoration:none;color:var(--muted);padding:.35rem .65rem;border-radius:6px;font-size:.9rem}
+.topbar .topics a:hover{background:var(--surface);color:var(--text)}
+.topbar .topics a.active{background:var(--accent);color:#fff}
+@media (max-width:640px){.topbar .brand{display:none}}
+</style>
 </head>
 <body>
 
@@ -141,41 +150,19 @@ footer{max-width:1240px;margin:3rem auto 0;padding:1.2rem 16px 2rem;border-top:1
   </defs>
 </svg>
 
-<div class="topbar">
-  <span class="brand">Corely docs</span>
-  <nav aria-label="Corely documents">
-    <a href="corely-findings.html">Gap Analysis</a>
-    <a href="corely-adr.html">Architecture Decisions</a>
-    <a href="corely-ai-pipelines.html" class="current" aria-current="page">AI Pipelines</a>
-    <a href="corely-system-design.html">System Design</a>
+<header class="topbar">
+  <span class="brand">Corely &middot; AI Pipelines</span>
+  <nav class="topics" aria-label="On this page">
+    <a href="#intro">Introduction</a>
+    <a href="#overview">Overview diagram</a>
+    <a href="#glossary">Glossary</a>
+    <a href="#pipelines">The pipelines</a>
+    <a href="#models">Models and costs</a>
+    <a href="#future">Proposed future agents</a>
   </nav>
-  <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme">Theme</button>
-</div>
+</header>
 
 <div class="layout">
-<aside class="toc" aria-label="Table of contents">
-  <strong>On this page</strong>
-  <ol>
-    <li><a href="#intro">Introduction</a></li>
-    <li><a href="#overview">Overview diagram</a></li>
-    <li><a href="#glossary">Glossary</a></li>
-    <li><a href="#pipelines">The pipelines</a>
-      <ol>
-        <li><a href="#p1">Ask Corely (RAG)</a></li>
-        <li><a href="#p2">Connector sync</a></li>
-        <li><a href="#p3">Manual upload</a></li>
-        <li><a href="#p4">Background worker</a></li>
-        <li><a href="#p5">Insights generator</a></li>
-        <li><a href="#p6">Semantic search</a></li>
-        <li><a href="#p7">Workflows (simulated)</a></li>
-        <li><a href="#p8">Webhooks (stubs)</a></li>
-      </ol>
-    </li>
-    <li><a href="#models">Models and costs</a></li>
-    <li><a href="#future">Proposed future agents</a></li>
-  </ol>
-</aside>
-
 <main>
 <header class="hero" id="intro">
   <h1>Corely AI Pipelines</h1>
@@ -1548,12 +1535,18 @@ CRITICAL INSTRUCTIONS:
 
 <script>
 (function(){
-  var root=document.documentElement, btn=document.getElementById('themeBtn');
-  try{var s=localStorage.getItem('corely-theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
-  function isDark(){var t=root.getAttribute('data-theme'); if(t) return t==='dark'; return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;}
-  function label(){btn.textContent=isDark()?'Light mode':'Dark mode';}
-  label();
-  btn.addEventListener('click',function(){var n=isDark()?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('corely-theme',n);}catch(e){} label();});
+  var links=[].slice.call(document.querySelectorAll('.topbar .topics a'));
+  var targets=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function update(){
+    var y=window.scrollY+90, cur=0;
+    targets.forEach(function(t,i){ if(t&&t.getBoundingClientRect().top+window.scrollY<=y) cur=i; });
+    links.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+    var a=links[cur]; if(a&&a.scrollIntoView&&a.parentNode.scrollWidth>a.parentNode.clientWidth){
+      var n=a.parentNode; n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2; }
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  update();
 })();
 </script>
 </body>

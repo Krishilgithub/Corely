@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Skeleton } from "../components/Skeleton";
 import {
   Sparkles,
   Download,
@@ -14,6 +13,7 @@ import {
   ChevronDown,
   Calendar,
   Filter,
+  ChevronRight,
   MoreHorizontal,
   TrendingUp,
   Activity,
@@ -35,15 +35,18 @@ import {
   Cell,
   LineChart,
   Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip
 } from "recharts";
-import { motion } from "framer-motion";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "../components/DataTable";
-import { CustomChartTooltip } from "../components/CustomChartTooltip";
+import { PageHeader } from "@/components/ui/page-header";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import "./insights.css";
 
 
@@ -51,22 +54,42 @@ import "./insights.css";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function getSourceIcon(sourceName: string) {
-  if (!sourceName) return <Database size={12} />;
+  if (!sourceName) return <Database size={14} />;
   const s = sourceName.toLowerCase();
   if (s.includes("slack")) return <img src="/slack.png" alt="Slack" style={{ width: 14, height: 14, objectFit: "contain" }} />;
   if (s.includes("gmail") || s.includes("mail")) return <img src="/gmail.png" alt="Gmail" style={{ width: 14, height: 14, objectFit: "contain" }} />;
   if (s.includes("notion")) return <img src="/notion.png" alt="Notion" style={{ width: 14, height: 14, objectFit: "contain" }} />;
   if (s.includes("drive")) return <img src="/drive.png" alt="Drive" style={{ width: 14, height: 14, objectFit: "contain" }} />;
   if (s.includes("linear")) return <img src="/linear.png" alt="Linear" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  return <Database size={12} />;
+  return <Database size={14} />;
 }
 
-function getSourceColor(sourceName: string) {
-  if (!sourceName) return "#4a154b";
-  const s = sourceName.toLowerCase();
-  if (s.includes("github")) return "#24292e";
-  if (s.includes("slack") || s.includes("gmail") || s.includes("mail") || s.includes("notion") || s.includes("drive") || s.includes("linear")) return "transparent";
-  return "#ff6b00";
+// Priority word → badge tone, any letter case.
+// Critical and High read as errors, Medium as a warning, everything else neutral.
+function priorityTone(priority?: string): StatusTone {
+  const p = (priority || "").toLowerCase();
+  if (p === "critical" || p === "high") return "error";
+  if (p === "medium") return "warning";
+  return "neutral";
+}
+
+// Chart tooltip: surface card, hairline border, 12px semibold text. Works in both themes.
+function InsightsChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value?: number | string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="in-chart-tooltip">
+      <p className="in-chart-tooltip__label">{label}</p>
+      <p>{payload[0].value}</p>
+    </div>
+  );
 }
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -133,10 +156,10 @@ export default function InsightsPage() {
     const low = insights.filter((i) => i.priority === "Low").length;
 
     return [
-      { name: "Critical", value: critical, color: "#ef4444" },
-      { name: "High", value: high, color: "#ff6b00" },
-      { name: "Medium", value: medium, color: "#eab308" },
-      { name: "Low", value: low, color: "#22c55e" },
+      { name: "Critical", value: critical, color: "var(--in-pie-1)" },
+      { name: "High", value: high, color: "var(--in-pie-2)" },
+      { name: "Medium", value: medium, color: "var(--in-pie-3)" },
+      { name: "Low", value: low, color: "var(--in-pie-4)" },
     ].filter(d => d.value > 0);
   }, [insights]);
 
@@ -147,15 +170,14 @@ export default function InsightsPage() {
       counts[i.category] = (counts[i.category] || 0) + 1;
     });
     return Object.entries(counts)
-      .map(([name, value]) => {
-        let color = "#ff6b00", iconBg = "#eff6ff", iconColor = "#3b82f6";
-        if (name === "Activity") { color = "#16a34a"; iconBg = "#f0fdf4"; iconColor = "#16a34a"; }
-        else if (name === "Operational") { color = "#8b5cf6"; iconBg = "#f5f3ff"; iconColor = "#8b5cf6"; }
-        else if (name === "People") { color = "#ea580c"; iconBg = "#fff7ed"; iconColor = "#ea580c"; }
-        else if (name === "Product") { color = "#0891b2"; iconBg = "#ecfeff"; iconColor = "#0891b2"; }
-        else if (name === "Risk") { color = "#ef4444"; iconBg = "#fef2f2"; iconColor = "#ef4444"; }
-        return { name, value, color, iconBg, iconColor };
-      })
+      // Bars and icon tiles stay neutral; orange is kept for the trend line.
+      .map(([name, value]) => ({
+        name,
+        value,
+        color: "var(--icon-secondary)",
+        iconBg: "var(--surface-secondary)",
+        iconColor: "var(--icon-primary)",
+      }))
       .sort((a, b) => b.value - a.value);
   }, [insights]);
 
@@ -208,8 +230,8 @@ export default function InsightsPage() {
         const IconCmp = IconMap[item.icon] || Sparkles;
         return (
           <div className="in-insight-col">
-            <div className="in-insight-icon" style={{ backgroundColor: item.iconBg, color: item.iconColor }}>
-              <IconCmp size={16} strokeWidth={2.5} />
+            <div className="in-insight-icon">
+              <IconCmp size={16} />
             </div>
             <div>
               <div className="in-insight-title">{item.title}</div>
@@ -226,9 +248,7 @@ export default function InsightsPage() {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <span className="in-badge" style={{ backgroundColor: item.catBg, color: item.catColor }}>
-            {item.category}
-          </span>
+          <span className="ui-badge ui-badge--neutral">{item.category}</span>
         );
       },
       size: 150,
@@ -239,9 +259,9 @@ export default function InsightsPage() {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <span className="in-badge" style={{ backgroundColor: item.priBg, color: item.priColor }}>
-            <span style={{ marginRight: 4 }}>●</span> {item.priority}
-          </span>
+          <StatusBadge tone={priorityTone(item.priority)} dot>
+            {item.priority}
+          </StatusBadge>
         );
       },
       size: 150,
@@ -252,8 +272,8 @@ export default function InsightsPage() {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div className="in-impact" style={{ color: item.priColor }}>
-            {item.impact} {item.trend === "up" ? "↑" : "↓"}
+          <div className="in-impact">
+            {item.impact} <span className="in-impact-arrow">{item.trend === "up" ? "↑" : "↓"}</span>
           </div>
         );
       },
@@ -262,7 +282,7 @@ export default function InsightsPage() {
     {
       accessorKey: "time",
       header: "Detected",
-      cell: ({ getValue }) => <div className="in-time">{getValue<string>()}</div>,
+      cell: ({ getValue }) => <div className="type-caption in-time">{getValue<string>()}</div>,
       size: 120,
     },
     {
@@ -272,20 +292,21 @@ export default function InsightsPage() {
         const item = row.original;
         return (
           <div className="in-sources">
-            <div className="in-source-avatar" style={{ background: getSourceColor(item.source) }}>
+            <div className="in-source-avatar">
               {getSourceIcon(item.source)}
             </div>
+            {item.source && <span className="type-caption in-source-name">{item.source}</span>}
           </div>
         );
       },
-      size: 100,
+      size: 140,
     },
     {
       id: "actions",
       header: "",
       cell: () => (
-        <div style={{ textAlign: "right" }}>
-          <button className="in-actions-btn">
+        <div className="in-actions-cell">
+          <button type="button" className="ui-icon-btn ui-icon-btn--sm in-actions-btn" aria-label="More actions">
             <MoreHorizontal size={16} />
           </button>
         </div>
@@ -310,155 +331,119 @@ export default function InsightsPage() {
   };
 
   return (
-    <main className="in-container">
+    <main className="db-content in-container">
       {/* ── Header ── */}
-      <div className="in-header-row">
-        <div className="in-title-wrapper">
-          <h1 className="in-title">
-            <Sparkles size={24} color="#ff6b00" /> Insights
-          </h1>
-          <p className="in-subtitle">
-            AI-generated insights from across your organization.
-          </p>
-        </div>
-        <div className="in-header-actions">
-          <button className="in-btn-secondary" onClick={handleExport}>
-            <Download size={14} />
-            Export
-          </button>
-          <Link href="/dashboard/ask-corely?q=Analyze+my+recent+insights" style={{ textDecoration: "none" }}>
-            <button className="in-btn-primary">
-              <Sparkles size={14} />
-              Ask about insights
+      <PageHeader
+        title="Insights"
+        subtitle="AI-generated insights from across your organization."
+        actions={
+          <>
+            <button type="button" className="ui-btn ui-btn--secondary" onClick={handleExport}>
+              <Download />
+              Export
             </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="in-tabs">
-        {tabs.map((tab) => (
-          <div
-            key={tab}
-            className={`in-tab ${activeTab === tab ? "active" : ""}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </div>
-        ))}
-      </div>
+            <Link href="/dashboard/ask-corely?q=Analyze+my+recent+insights" style={{ textDecoration: "none" }}>
+              <button type="button" className="ui-btn ui-btn--primary">
+                <Sparkles />
+                Ask about insights
+              </button>
+            </Link>
+          </>
+        }
+      />
 
       {/* ── Stat Cards ── */}
       <div className="in-stats-grid">
-        <div className="in-stat-card">
-          <div
-            className="in-stat-icon-wrapper"
-            style={{ backgroundColor: "#fff3ee", color: "#ff6b00" }}
-          >
-            <Zap size={20} />
-          </div>
-          <div>
-            <div className="in-stat-val">{stats.critical}</div>
-            <div className="in-stat-label">Critical Insights</div>
-            <div className="in-stat-trend" style={{ color: "#16a34a" }}>
-              <TrendingUp size={12} /> 20% vs last month
-            </div>
-          </div>
-        </div>
-
-        <div className="in-stat-card">
-          <div
-            className="in-stat-icon-wrapper"
-            style={{ backgroundColor: "#fffbeb", color: "#d97706" }}
-          >
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <div className="in-stat-val">{stats.high}</div>
-            <div className="in-stat-label">High Priority</div>
-            <div className="in-stat-trend" style={{ color: "#16a34a" }}>
-              <TrendingUp size={12} /> 12% vs last month
-            </div>
-          </div>
-        </div>
-
-        <div className="in-stat-card">
-          <div
-            className="in-stat-icon-wrapper"
-            style={{ backgroundColor: "#f0fdf4", color: "#16a34a" }}
-          >
-            <CheckCircle size={20} />
-          </div>
-          <div>
-            <div className="in-stat-val">{stats.newThisMonth}</div>
-            <div className="in-stat-label">New This Month</div>
-            <div className="in-stat-trend" style={{ color: "#16a34a" }}>
-              <TrendingUp size={12} /> 34% vs last month
-            </div>
-          </div>
-        </div>
-
-        <div className="in-stat-card">
-          <div
-            className="in-stat-icon-wrapper"
-            style={{ backgroundColor: "#f5f3ff", color: "#8b5cf6" }}
-          >
-            <Eye size={20} />
-          </div>
-          <div>
-            <div className="in-stat-val">{stats.actionedRate}%</div>
-            <div className="in-stat-label">Actioned Rate</div>
-            <div className="in-stat-trend" style={{ color: "#16a34a" }}>
-              <TrendingUp size={12} /> 18% vs last month
-            </div>
-          </div>
-        </div>
+        <KpiTile
+          className="in-kpi--key"
+          icon={<Zap />}
+          value={stats.critical}
+          label="Critical insights"
+          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 20% vs last month</span>}
+        />
+        <KpiTile
+          icon={<AlertTriangle />}
+          value={stats.high}
+          label="High priority"
+          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 12% vs last month</span>}
+        />
+        <KpiTile
+          icon={<CheckCircle />}
+          value={stats.newThisMonth}
+          label="New this month"
+          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 34% vs last month</span>}
+        />
+        <KpiTile
+          icon={<Eye />}
+          value={`${stats.actionedRate}%`}
+          label="Actioned rate"
+          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 18% vs last month</span>}
+        />
       </div>
 
-      {/* ── Filters ── */}
-      <div className="in-filters-bar">
-        <div className="in-search-box">
-          <Search size={14} color="#a1a1aa" />
-          <input type="text" placeholder="Search insights..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+      {/* ── Tabs + Filters ── */}
+      <div className="in-filters">
+        <div className="in-tabs">
+          {tabs.map((tab) => (
+            <div
+              key={tab}
+              className={`in-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </div>
+          ))}
         </div>
-        <div className="in-dropdown" style={{ position: "relative" }}>
-          <select value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
-            <option>All Priority</option>
-            <option>Critical</option>
-            <option>High</option>
-            <option>Medium</option>
-            <option>Low</option>
-          </select>
-          {selectedPriority} <ChevronDown size={14} color="#a1a1aa" />
-        </div>
-        <div className="in-dropdown" style={{ position: "relative" }}>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
-            <option>All Categories</option>
-            <option>Operational</option>
-            <option>Activity</option>
-            <option>Product</option>
-            <option>People</option>
-            <option>Risk</option>
-          </select>
-          {selectedCategory} <ChevronDown size={14} color="#a1a1aa" />
-        </div>
-        <div className="in-dropdown" style={{ position: "relative" }}>
-          <select value={selectedSource} onChange={e => setSelectedSource(e.target.value)} style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", top: 0, left: 0 }}>
-            <option>All Sources</option>
-            <option>Salesforce</option>
-            <option>GitHub</option>
-            <option>Google Drive</option>
-            <option>Slack</option>
-            <option>Corely AI</option>
-          </select>
-          {selectedSource} <ChevronDown size={14} color="#a1a1aa" />
-        </div>
-        <div className="in-dropdown" style={{ marginLeft: "auto" }}>
-          <Calendar size={14} color="#3f3f46" /> This Month{" "}
-          <ChevronDown size={14} color="#a1a1aa" />
-        </div>
-        <div className="in-dropdown">
-          <Filter size={14} color="#3f3f46" /> Filters
+
+        <div className="in-filters-bar">
+          <div className="in-search-box">
+            <Search size={16} />
+            <input
+              type="text"
+              className="ui-input"
+              placeholder="Search insights..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="in-select">
+            <select className="ui-input" value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)}>
+              <option>All Priority</option>
+              <option>Critical</option>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+            <ChevronDown size={16} />
+          </div>
+          <div className="in-select">
+            <select className="ui-input" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+              <option>All Categories</option>
+              <option>Operational</option>
+              <option>Activity</option>
+              <option>Product</option>
+              <option>People</option>
+              <option>Risk</option>
+            </select>
+            <ChevronDown size={16} />
+          </div>
+          <div className="in-select">
+            <select className="ui-input" value={selectedSource} onChange={e => setSelectedSource(e.target.value)}>
+              <option>All Sources</option>
+              <option>Salesforce</option>
+              <option>GitHub</option>
+              <option>Google Drive</option>
+              <option>Slack</option>
+              <option>Corely AI</option>
+            </select>
+            <ChevronDown size={16} />
+          </div>
+          <div className="ui-btn ui-btn--secondary in-filter-btn in-filter-btn--push">
+            <Calendar /> This Month <ChevronDown />
+          </div>
+          <div className="ui-btn ui-btn--secondary in-filter-btn">
+            <Filter /> Filters
+          </div>
         </div>
       </div>
 
@@ -467,77 +452,63 @@ export default function InsightsPage() {
         {/* Left Side Table */}
         <div className="in-table-container">
           {loading ? (
-            <div style={{ padding: 24 }}>
+            <div>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div className="in-table-row" key={`skel-${i}`} style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
-                  <div className="in-insight-col" style={{ gap: 16, flex: 2, display: 'flex' }}>
-                    <Skeleton width={32} height={32} borderRadius="8px" />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                      <Skeleton width="80%" height={16} />
-                      <Skeleton width="95%" height={12} />
+                <div className="in-skeleton-row" key={`skel-${i}`}>
+                  <div className="in-skeleton-main">
+                    <div className="ui-skeleton" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
+                    <div className="in-skeleton-lines">
+                      <div className="ui-skeleton" style={{ width: "80%", height: 14, borderRadius: 6 }} />
+                      <div className="ui-skeleton" style={{ width: "95%", height: 12, borderRadius: 6 }} />
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}><Skeleton width={80} height={24} borderRadius="12px" /></div>
-                  <div style={{ flex: 1 }}><Skeleton width={80} height={24} borderRadius="12px" /></div>
-                  <div style={{ flex: 1 }}><Skeleton width={60} height={16} /></div>
+                  <div className="in-skeleton-cell"><div className="ui-skeleton" style={{ width: 80, height: 22, borderRadius: 9999 }} /></div>
+                  <div className="in-skeleton-cell"><div className="ui-skeleton" style={{ width: 80, height: 22, borderRadius: 9999 }} /></div>
+                  <div className="in-skeleton-cell"><div className="ui-skeleton" style={{ width: 60, height: 14, borderRadius: 6 }} /></div>
                 </div>
               ))}
             </div>
           ) : visibleInsights.length > 0 ? (
             <DataTable columns={columns} data={visibleInsights} />
           ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              style={{ padding: "64px 24px", textAlign: "center", border: "1.5px dashed #e4e4e7", borderRadius: 16, background: "var(--db-bg)", display: "flex", flexDirection: "column", alignItems: "center", margin: "20px 0" }}
-            >
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--db-panel)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px var(--db-shadow)", marginBottom: 20 }}>
-                {insights.length === 0 ? (
-                  <Sparkles size={28} style={{ color: "#ff6b00" }} />
-                ) : (
-                  <Search size={28} style={{ color: "var(--db-text-muted)" }} />
-                )}
-              </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--db-text)", marginBottom: 8 }}>
-                {insights.length === 0 ? "No insights generated yet" : "No insights match your filters"}
-              </h3>
-              <p style={{ fontSize: 14, color: "var(--db-text-muted)", margin: 0, maxWidth: 360, lineHeight: 1.5 }}>
-                {insights.length === 0 
+            <EmptyState
+              icon={insights.length === 0 ? <Sparkles /> : <Search />}
+              title={insights.length === 0 ? "No insights generated yet" : "No insights match your filters"}
+              description={
+                insights.length === 0
                   ? "Corely needs more data to generate organizational insights. Connect more tools or wait for the next analysis cycle."
-                  : "Try adjusting your search query, or clear your filters to see all available insights."}
-              </p>
-              
-              {insights.length === 0 ? (
-                <div style={{ marginTop: 24 }}>
+                  : "Try adjusting your search query, or clear your filters to see all available insights."
+              }
+              action={
+                insights.length === 0 ? (
                   <Link href="/dashboard/sources" style={{ textDecoration: "none" }}>
-                    <button className="in-btn-primary" style={{ padding: "10px 20px", borderRadius: 8, fontWeight: 600 }}>
-                      Connect Data Sources
+                    <button type="button" className="ui-btn ui-btn--primary">
+                      Connect data sources
                     </button>
                   </Link>
-                </div>
-              ) : (
-                <button 
-                  className="in-btn-secondary" 
-                  style={{ padding: "8px 16px", borderRadius: 8, fontWeight: 600, marginTop: 20 }}
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedPriority("All Priority");
-                    setSelectedCategory("All Categories");
-                    setSelectedSource("All Sources");
-                  }}
-                >
-                  Clear All Filters
-                </button>
-              )}
-            </motion.div>
+                ) : (
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn--secondary"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedPriority("All Priority");
+                      setSelectedCategory("All Categories");
+                      setSelectedSource("All Sources");
+                    }}
+                  >
+                    Clear all filters
+                  </button>
+                )
+              }
+            />
           )}
 
           <div className="in-table-footer">
-            <span>Showing {Math.min(visibleInsights.length, visibleCount)} of {filteredInsights.length} insights</span>
+            <span className="type-caption">Showing {Math.min(visibleInsights.length, visibleCount)} of {filteredInsights.length} insights</span>
             {visibleCount < filteredInsights.length && (
-              <button className="in-load-more" onClick={() => setVisibleCount(v => v + 5)}>
-                Load more <ChevronDown size={14} />
+              <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm" onClick={() => setVisibleCount(v => v + 5)}>
+                Load more <ChevronDown />
               </button>
             )}
           </div>
@@ -546,15 +517,16 @@ export default function InsightsPage() {
         {/* Right Side Sidebar */}
         <div className="in-sidebar">
           {/* Donut Chart */}
-          <div className="in-side-card">
+          <div className="ui-card in-side-card">
             <div className="in-side-header">
-              <span className="in-side-title">Insights Overview</span>
+              <h3 className="type-heading">Insights overview</h3>
               <a href="#" className="in-side-link">
-                View all
+                View all <ChevronRight size={14} />
               </a>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ position: "relative", width: 140, height: 140 }}>
+            <div className="in-donut-row">
+              <div className="in-donut">
+                {dynamicPieData.length === 0 && <div className="in-donut-track" />}
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -562,6 +534,7 @@ export default function InsightsPage() {
                       innerRadius={50}
                       outerRadius={70}
                       paddingAngle={2}
+                      cornerRadius={4}
                       dataKey="value"
                       stroke="none"
                     >
@@ -571,32 +544,17 @@ export default function InsightsPage() {
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    textAlign: "center",
-                  }}
-                >
-                  <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>
-                    {insights.length}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--db-text-muted)", fontWeight: 500 }}>
-                    Total
-                  </div>
+                <div className="in-donut-center">
+                  <span className="type-metric">{insights.length}</span>
+                  <span className="type-caption">Total</span>
                 </div>
               </div>
               <div className="in-legend">
                 {dynamicPieData.map((d) => (
                   <div className="in-legend-item" key={d.name}>
-                    <div
-                      className="in-legend-dot"
-                      style={{ backgroundColor: d.color }}
-                    />
-                    <span style={{ width: 16, fontWeight: 700 }}>{d.value}</span>
-                    <span style={{ color: "var(--db-text-muted)" }}>{d.name}</span>
+                    <span className="in-legend-dot" style={{ backgroundColor: d.color }} />
+                    <span className="in-legend-value">{d.value}</span>
+                    <span className="in-legend-name">{d.name}</span>
                   </div>
                 ))}
               </div>
@@ -604,47 +562,42 @@ export default function InsightsPage() {
           </div>
 
           {/* Line Chart */}
-          <div className="in-side-card">
+          <div className="ui-card in-side-card">
             <div className="in-side-header">
-              <span className="in-side-title">Insights Trend</span>
+              <h3 className="type-heading">Insights trend</h3>
               <a href="#" className="in-side-link">
-                View analytics
+                View analytics <ChevronRight size={14} />
               </a>
             </div>
-            <div
-              className="in-dropdown"
-              style={{ width: "fit-content", marginBottom: 16, height: 28, fontSize: 12 }}
-            >
-              This Month <ChevronDown size={14} color="#a1a1aa" />
+            <div className="ui-btn ui-btn--secondary ui-btn--sm in-chart-chip">
+              This Month <ChevronDown />
             </div>
-            <div style={{ width: "100%", height: 120 }}>
+            <div className="in-chart">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dynamicLineData}>
-                  <defs>
-                    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-                      <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#ff6b00" floodOpacity="0.3" />
-                    </filter>
-                  </defs>
+                <LineChart data={dynamicLineData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--divider)" />
                   <XAxis
                     dataKey="date"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fill: "#a1a1aa" }}
-                    dy={10}
+                    tick={{ fontSize: 12, fontWeight: 600, fill: "var(--text-tertiary)" }}
+                    dy={8}
                   />
                   <YAxis
                     hide
                     domain={[0, "dataMax + 10"]}
                   />
-                  <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#f4f4f5', strokeWidth: 1 }} />
+                  <Tooltip
+                    content={<InsightsChartTooltip />}
+                    cursor={{ stroke: "var(--border-strong)", strokeWidth: 1, strokeDasharray: "3 3" }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="val"
-                    stroke="#ff6b00"
-                    strokeWidth={3}
+                    stroke="var(--accent-fill)"
+                    strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 5, fill: "#ff6b00", stroke: "var(--db-panel)", strokeWidth: 2 }}
-                    filter="url(#shadow)"
+                    activeDot={{ r: 4, fill: "var(--accent-fill)", stroke: "var(--surface)", strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -652,14 +605,14 @@ export default function InsightsPage() {
           </div>
 
           {/* Progress Bars */}
-          <div className="in-side-card">
+          <div className="ui-card in-side-card">
             <div className="in-side-header">
-              <span className="in-side-title">Top Insight Categories</span>
+              <h3 className="type-heading">Top insight categories</h3>
               <a href="#" className="in-side-link">
-                View all
+                View all <ChevronRight size={14} />
               </a>
             </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div className="in-progress-list">
               {dynamicCategoryProgress.map((cat) => (
                 <div className="in-progress-row" key={cat.name}>
                   <div className="in-progress-label">
@@ -667,11 +620,11 @@ export default function InsightsPage() {
                       className="in-progress-label-icon"
                       style={{ backgroundColor: cat.iconBg, color: cat.iconColor }}
                     >
-                      {cat.name === "Operational" && <Code2 size={10} />}
-                      {cat.name === "Activity" && <Activity size={10} />}
-                      {cat.name === "People" && <Users size={10} />}
-                      {cat.name === "Product" && <Sparkles size={10} />}
-                      {cat.name === "Risk" && <ShieldAlert size={10} />}
+                      {cat.name === "Operational" && <Code2 size={12} />}
+                      {cat.name === "Activity" && <Activity size={12} />}
+                      {cat.name === "People" && <Users size={12} />}
+                      {cat.name === "Product" && <Sparkles size={12} />}
+                      {cat.name === "Risk" && <ShieldAlert size={12} />}
                     </div>
                     {cat.name}
                   </div>
@@ -681,25 +634,25 @@ export default function InsightsPage() {
                       style={{ width: `${(cat.value / maxCategoryValue) * 100}%`, backgroundColor: cat.color }}
                     />
                   </div>
-                  <div style={{ textAlign: "right", fontWeight: 700 }}>{cat.value}</div>
+                  <div className="in-progress-value">{cat.value}</div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* CTA Card */}
-          <div className="in-cta-card">
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div className="in-cta-icon">
-                <Sparkles size={18} />
-              </div>
-              <div>
-                <div className="in-cta-title">Want deeper insights?</div>
-                <div className="in-cta-desc">Ask Corely anything about these insights</div>
+          <div className="ui-card in-cta-card">
+            <div className="in-cta-head">
+              <span className="ui-icon-well ui-icon-well--sm">
+                <Sparkles />
+              </span>
+              <div className="in-cta-text">
+                <span className="type-heading">Want deeper insights?</span>
+                <span className="type-caption">Ask Corely anything about these insights</span>
               </div>
             </div>
-            <button className="in-cta-btn" style={{ marginTop: 4 }}>
-              Ask Corely <ArrowRight size={14} />
+            <button type="button" className="ui-btn ui-btn--secondary ui-btn--sm">
+              Ask Corely <ArrowRight />
             </button>
           </div>
         </div>

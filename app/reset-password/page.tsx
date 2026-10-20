@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { motion } from "framer-motion";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
+import CorelyLogo from "@/components/icons/corely-logo";
 import "../login/login.css";
 
 function ResetPasswordForm() {
@@ -64,84 +63,99 @@ function ResetPasswordForm() {
   };
 
   return (
-    <motion.div 
-      className="login-card"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
-      <div className="login-header">
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <div className="login-logo cursor-pointer">
-            <Image src="/logo.png" alt="Corely" width={32} height={32} style={{ borderRadius: 8 }} />
-            <div className="login-logo-text">Corely</div>
-          </div>
-        </Link>
-        <h1 className="login-title">Choose a new password</h1>
-        <p className="login-subtitle">
-          {success ? "Password reset successfully! Redirecting..." : "Enter your new password below."}
+    <div className="auth-shell">
+      <Link href="/" className="auth-brand">
+        <span className="auth-logo-tile">
+          <CorelyLogo size={32} />
+        </span>
+        <span className="auth-wordmark">Corely</span>
+      </Link>
+
+      <div className="auth-heading">
+        <h1 className="auth-title">Choose a new password</h1>
+        <p className="auth-subtitle">
+          {success ? "Password reset successfully. Redirecting..." : "Enter your new password below."}
         </p>
       </div>
 
       {!success && (
-        <form className="login-form" onSubmit={handleSubmit}>
-          {error && <div style={{ color: "#ef4444", fontSize: 13, marginBottom: 16 }}>{error}</div>}
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">New Password</label>
-            <input
-              id="password"
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="login-btn"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={18} className="login-spinner animate-spin" />
-                Resetting...
-              </>
-            ) : (
-              "Reset Password"
+        <div className="auth-card">
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {error && (
+              <div className="auth-banner auth-banner--error">
+                <span className="auth-banner__icon">
+                  <AlertCircle size={14} />
+                </span>
+                <span className="auth-banner__text">{error}</span>
+              </div>
             )}
-          </button>
-        </form>
+            <div className="auth-field">
+              <label htmlFor="password" className="auth-label">New Password</label>
+              <input
+                id="password"
+                type="password"
+                className="auth-input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="confirmPassword" className="auth-label">Confirm Password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className="auth-input"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="auth-btn"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="auth-spinner" />
+                  <span>Resetting...</span>
+                </>
+              ) : (
+                <>
+                  <span>Reset password</span>
+                  <ArrowRight size={16} className="auth-btn__arrow" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div className="login-page">
-      <Link href="/" className="login-back-btn">
+    <div className="auth-page">
+      <div className="auth-glow" aria-hidden="true" />
+      <Link href="/" className="auth-back-link">
         <ArrowLeft size={16} /> Back to Home
       </Link>
-      <div className="login-bg-blob blob-1" />
-      <div className="login-bg-blob blob-2" />
-      <Suspense fallback={<div className="login-card"><Loader2 className="animate-spin" /></div>}>
+      <Suspense
+        fallback={
+          <div className="auth-shell">
+            <div className="auth-card auth-card--loading">
+              <Loader2 size={20} className="auth-spinner" />
+            </div>
+          </div>
+        }
+      >
         <ResetPasswordForm />
       </Suspense>
     </div>

@@ -39,7 +39,7 @@ function Particles(props: Record<string, unknown>) {
       <Points ref={ref} positions={positions} stride={3} frustumCulled={false} {...props}>
         <PointMaterial
           transparent
-          color="#ff6b00"
+          color="#A1A1AA"
           size={0.02}
           sizeAttenuation={true}
           depthWrite={false}
@@ -51,7 +51,7 @@ function Particles(props: Record<string, unknown>) {
 
 export default function Hero3D() {
   return (
-    <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen">
+    <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
       <Canvas camera={{ position: [0, 0, 8] }}>
         <Particles />
       </Canvas>

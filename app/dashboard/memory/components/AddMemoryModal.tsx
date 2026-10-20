@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { TimelineItem } from "../types";
 import "../memory.css";
 
@@ -40,35 +41,40 @@ export function AddMemoryModal({
   return (
     <div className="mem-modal-overlay">
       <motion.div
-        className="mem-modal-card"
-        initial={{ scale: 0.95, opacity: 0 }}
+        className="ui-popover mem-modal-card"
+        initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        exit={{ scale: 0.98, opacity: 0 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       >
-        <h2 className="mem-modal-title">Add to Memory</h2>
-        
-        <form onSubmit={handleAddMemorySubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div className="mem-modal-header">
+          <h2 className="type-heading">Add to Memory</h2>
+        </div>
+
+        <form onSubmit={handleAddMemorySubmit} className="mem-form">
           <div className="mem-form-group">
-            <label className="mem-form-label">Event Category</label>
-            <select
-              className="mem-form-select"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value as TimelineItem["category"])}
-            >
-              <option value="decision">Decision Captured</option>
-              <option value="discussion">Discussion Summary</option>
-              <option value="document">Document Added</option>
-              <option value="insight">Insight Generated</option>
-              <option value="knowledge">Knowledge Update</option>
-            </select>
+            <label className="mem-form-label">Event category</label>
+            <div className="mem-select-wrap">
+              <select
+                className="ui-input"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value as TimelineItem["category"])}
+              >
+                <option value="decision">Decision Captured</option>
+                <option value="discussion">Discussion Summary</option>
+                <option value="document">Document Added</option>
+                <option value="insight">Insight Generated</option>
+                <option value="knowledge">Knowledge Update</option>
+              </select>
+              <ChevronDown size={16} />
+            </div>
           </div>
 
           <div className="mem-form-group">
-            <label className="mem-form-label">Title / Event Type</label>
+            <label className="mem-form-label">Title / event type</label>
             <input
               type="text"
-              className={`mem-form-input ${formErrors.title ? "error" : ""}`}
+              className={`ui-input ${formErrors.title ? "error" : ""}`}
               placeholder="e.g. Decision Captured"
               value={newTitle}
               onChange={(e) => {
@@ -76,13 +82,13 @@ export function AddMemoryModal({
                 if (formErrors.title) setFormErrors({ ...formErrors, title: undefined });
               }}
             />
-            {formErrors.title && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.title}</span>}
+            {formErrors.title && <span className="mem-form-error">{formErrors.title}</span>}
           </div>
 
           <div className="mem-form-group">
-            <label className="mem-form-label">Content Description</label>
+            <label className="mem-form-label">Content description</label>
             <textarea
-              className={`mem-form-textarea ${formErrors.content ? "error" : ""}`}
+              className={`ui-input mem-form-textarea ${formErrors.content ? "error" : ""}`}
               placeholder="Provide description of what happened..."
               value={newContent}
               onChange={(e) => {
@@ -90,14 +96,14 @@ export function AddMemoryModal({
                 if (formErrors.content) setFormErrors({ ...formErrors, content: undefined });
               }}
             />
-            {formErrors.content && <span className="mem-form-error" style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>{formErrors.content}</span>}
+            {formErrors.content && <span className="mem-form-error">{formErrors.content}</span>}
           </div>
 
           <div className="mem-form-group">
-            <label className="mem-form-label">Badge Tag</label>
+            <label className="mem-form-label">Badge tag</label>
             <input
               type="text"
-              className="mem-form-input"
+              className="ui-input"
               placeholder="e.g. Marketing Strategy"
               value={newBadge}
               onChange={(e) => setNewBadge(e.target.value)}
@@ -105,26 +111,29 @@ export function AddMemoryModal({
           </div>
 
           <div className="mem-form-group">
-            <label className="mem-form-label">Data Source</label>
-            <select
-              className="mem-form-select"
-              value={newSource}
-              onChange={(e) => setNewSource(e.target.value)}
-            >
-              <option value="Notion">Notion</option>
-              <option value="Slack">Slack</option>
-              <option value="Google Drive">Google Drive</option>
-              <option value="Corely AI">Corely AI</option>
-              <option value="HR System">HR System</option>
-            </select>
+            <label className="mem-form-label">Data source</label>
+            <div className="mem-select-wrap">
+              <select
+                className="ui-input"
+                value={newSource}
+                onChange={(e) => setNewSource(e.target.value)}
+              >
+                <option value="Notion">Notion</option>
+                <option value="Slack">Slack</option>
+                <option value="Google Drive">Google Drive</option>
+                <option value="Corely AI">Corely AI</option>
+                <option value="HR System">HR System</option>
+              </select>
+              <ChevronDown size={16} />
+            </div>
           </div>
 
           <div className="mem-modal-actions">
-            <button type="button" className="mem-cancel-btn" onClick={() => setShowAddModal(false)}>
+            <button type="button" className="ui-btn ui-btn--secondary" onClick={() => setShowAddModal(false)}>
               Cancel
             </button>
-            <button type="submit" className="mem-submit-btn">
-              Save Memory
+            <button type="submit" className="ui-btn ui-btn--primary">
+              Save memory
             </button>
           </div>
         </form>
