@@ -22,6 +22,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";
 
 // Maximum recursion depth for nested blocks (prevents infinite loops)
 const MAX_BLOCK_DEPTH = 5;
@@ -190,6 +191,9 @@ async function processPage(
 
   // ── Deduplication via content hash ────────────────────────────
   const contentHash = crypto.createHash("sha256").update(fullContent).digest("hex");
+  const parent = page.parent as { type?: string; page_id?: string; database_id?: string; data_source_id?: string };
+  const parentId = parent?.page_id ?? parent?.database_id ?? parent?.data_source_id ?? null;
+  const metadata = scopeMetadata("notion", [{ type: "page", id: page.id, name: title }], { parentId });
 
   const existing = await prisma.document.findUnique({
     where: { sourceId_externalId: { sourceId, externalId: page.id } },
@@ -197,6 +201,7 @@ async function processPage(
   });
 
   if (existing?.contentHash === contentHash) {
+    await ensureDocumentMetadata(existing.id, metadata);
     console.log(`[Notion] ↩️  Skipped "${title}" — unchanged`);
     return false;
   }
@@ -213,12 +218,14 @@ async function processPage(
       url: page.url,
       rawContent: fullContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
     update: {
       title,
       rawContent: fullContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
   });

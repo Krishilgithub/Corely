@@ -15,6 +15,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";
 
 // Supported Google Drive MIME types → how we export them
 const SUPPORTED_MIME_TYPES: Record<string, { exportMime: string; fileType: string }> = {
@@ -139,14 +140,26 @@ export async function syncGoogleDrive(sourceId: string): Promise<void> {
     else if (typeof config.folderId === "string") folderIds = [config.folderId];
 
     let query = `trashed = false and (${mimeQuery})`;
+    const rootFoldersBySubfolder = new Map<string, Array<{ id: string; name: string }>>();
 
     if (folderIds.length > 0) {
       console.log(`[Google Drive] Restricted to folders: ${folderIds.join(', ')}`);
       
       const allAllowedFolderIds = new Set<string>();
-      for (const fId of folderIds) {
+      const rawNames = config.folderNames as unknown;
+      for (const [i, fId] of folderIds.entries()) {
         const allowed = await getAllSubfolderIds(driveClient, fId);
         allowed.forEach(id => allAllowedFolderIds.add(id));
+        // Remember which selected folder each sub-folder sits under, so files
+        // can be linked to a project at the selected-folder level.
+        const rootName =
+          Array.isArray(rawNames) ? String(rawNames[i] ?? "") :
+          rawNames && typeof rawNames === "object" ? String((rawNames as Record<string, unknown>)[fId] ?? "") : "";
+        for (const id of allowed) {
+          const list = rootFoldersBySubfolder.get(id) ?? [];
+          list.push({ id: fId, name: rootName || "Drive folder" });
+          rootFoldersBySubfolder.set(id, list);
+        }
       }
 
       const parentConditions = Array.from(allAllowedFolderIds)
@@ -167,7 +180,7 @@ export async function syncGoogleDrive(sourceId: string): Promise<void> {
         pageSize: 100,
         pageToken,
         fields:
-          "nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, size)",
+          "nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, size, parents)",
         q: query,
         orderBy: "modifiedTime desc",
       });
@@ -185,6 +198,8 @@ export async function syncGoogleDrive(sourceId: string): Promise<void> {
               name: file.name,
               mimeType: file.mimeType,
               webViewLink: file.webViewLink ?? undefined,
+              parents: file.parents ?? undefined,
+              rootFolders: (file.parents ?? []).flatMap(p => rootFoldersBySubfolder.get(p) ?? []),
               modifiedTime: file.modifiedTime ?? undefined,
             },
             sourceId,
@@ -228,6 +243,9 @@ interface DriveFile {
   name: string;
   mimeType: string;
   webViewLink?: string;
+  parents?: string[];
+  /** The selected folders (from source config) this file sits under. */
+  rootFolders?: Array<{ id: string; name: string }>;
   modifiedTime?: string;
 }
 
@@ -313,6 +331,10 @@ async function processFile(
 
   // ── Deduplication via content hash ───────────────────────────
   const contentHash = crypto.createHash("sha256").update(rawContent).digest("hex");
+  const folderScopes = new Map<string, { type: "folder"; id: string; name?: string }>();
+  for (const root of file.rootFolders ?? []) folderScopes.set(root.id, { type: "folder", id: root.id, name: root.name });
+  for (const id of file.parents ?? []) if (!folderScopes.has(id)) folderScopes.set(id, { type: "folder", id });
+  const metadata = scopeMetadata("google_drive", Array.from(folderScopes.values()));
 
   const existing = await prisma.document.findUnique({
     where: { sourceId_externalId: { sourceId, externalId: file.id } },
@@ -320,6 +342,7 @@ async function processFile(
   });
 
   if (existing?.contentHash === contentHash) {
+    await ensureDocumentMetadata(existing.id, metadata);
     console.log(`[Google Drive] ↩️  Skipped "${file.name}" — unchanged`);
     return false;
   }
@@ -336,12 +359,14 @@ async function processFile(
       url: file.webViewLink,
       rawContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
     update: {
       title: file.name,
       rawContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
   });

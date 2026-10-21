@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, type ComponentType } from "react";
 import {
   Home,
   MessageSquare,
+  FolderKanban,
   Library,
   Link2,
   Building2,
@@ -17,13 +18,10 @@ import {
   ChevronsUpDown,
   PanelLeftClose,
   X,
-  Moon,
-  Sun,
   LogOut,
   User,
 } from "lucide-react";
 import CorelyLogo from "@/components/icons/corely-logo";
-import { useTheme } from "@/components/ThemeProvider";
 
 // ── Navigation model ────────────────────────────────────────────────────────
 type NavChild = { label: string; href: string };
@@ -35,6 +33,7 @@ type NavItem =
 const NAV: NavItem[] = [
   { kind: "link", label: "Home", icon: Home, href: "/dashboard" },
   { kind: "link", label: "Ask Corely", icon: MessageSquare, href: "/dashboard/ask-corely" },
+  { kind: "link", label: "Projects", icon: FolderKanban, href: "/dashboard/projects" },
   {
     kind: "group",
     label: "Knowledge",
@@ -55,29 +54,13 @@ const NAV: NavItem[] = [
     ],
   },
   { kind: "divider" },
-  {
-    kind: "group",
-    label: "Settings",
-    icon: Settings,
-    children: [
-      { label: "General", href: "/dashboard/settings/general" },
-      { label: "Members", href: "/dashboard/settings/members" },
-      { label: "API keys", href: "/dashboard/settings/api-keys" },
-      { label: "Security", href: "/dashboard/settings/security" },
-      { label: "Billing", href: "/dashboard/settings/billing" },
-    ],
-  },
+  { kind: "link", label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 // Home matches only itself; every other link also matches its sub-pages.
 function isActivePath(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-// /dashboard/settings (no tab) opens the General tab, so treat it as General.
-function normalisePath(pathname: string) {
-  return pathname === "/dashboard/settings" ? "/dashboard/settings/general" : pathname;
 }
 
 function closeMobileSidebar() {
@@ -117,11 +100,9 @@ function BranchConnector({ count, activeIndex }: { count: number; activeIndex: n
 }
 
 export default function Sidebar() {
-  const rawPathname = usePathname();
-  const pathname = normalisePath(rawPathname);
+  const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const { resolvedTheme, setTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -135,11 +116,10 @@ export default function Sidebar() {
     queryLimit: 500,
   });
 
-  // Groups start open, except Settings, which opens only when you are in it.
+  // Groups start open.
   const [open, setOpen] = useState<Record<string, boolean>>({
     Knowledge: true,
     Workspace: true,
-    Settings: pathname.startsWith("/dashboard/settings"),
   });
 
   // Opening a page inside a closed group opens that group.
@@ -191,7 +171,6 @@ export default function Sidebar() {
     router.refresh();
   };
 
-  const isDark = resolvedTheme === "dark";
   const planLabel = usage.isEnterprise
     ? "Enterprise"
     : (usage.plan || "Free").replace(/^\w/, c => c.toUpperCase());
@@ -309,7 +288,7 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Footer: plan, theme, account, log out */}
+          {/* Footer: plan, log out, account */}
           <div className="db-sidebar-footer">
             <div className="db-plan-card">
               <div className="db-plan-head">
@@ -328,21 +307,6 @@ export default function Sidebar() {
                 <div className="db-plan-bar-fill" style={{ width: `${Math.min(100, usage.usagePercent)}%`, background: barColor }} />
               </div>
             </div>
-
-            <button
-              type="button"
-              className="db-theme-row"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              role="switch"
-              aria-checked={isDark}
-              title={isDark ? "Dark mode" : "Light mode"}
-            >
-              <span className="db-theme-row-label">
-                {isDark ? <Moon strokeWidth={2} /> : <Sun strokeWidth={2} />}
-                <span className="db-theme-row-text">{isDark ? "Dark mode" : "Light mode"}</span>
-              </span>
-              <span className="db-switch" data-on={isDark ? "true" : "false"} aria-hidden="true" />
-            </button>
 
             <button type="button" className="db-logout-row" onClick={logout} title="Log out">
               <LogOut strokeWidth={2} />

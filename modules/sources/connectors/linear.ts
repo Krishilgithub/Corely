@@ -14,6 +14,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";
 
 const LINEAR_API = "https://api.linear.app/graphql";
 
@@ -67,10 +68,12 @@ const ISSUES_QUERY = `
           name
         }
         team {
+          id
           name
           key
         }
         project {
+          id
           name
         }
         labels {
@@ -131,8 +134,8 @@ export async function syncLinear(sourceId: string): Promise<void> {
             priority: number;
             state?: { name: string; type: string };
             assignee?: { name: string };
-            team?: { name: string; key: string };
-            project?: { name: string };
+            team?: { id: string; name: string; key: string };
+            project?: { id: string; name: string };
             labels?: { nodes: Array<{ name: string }> };
             comments?: {
               nodes: Array<{
@@ -194,12 +197,17 @@ export async function syncLinear(sourceId: string): Promise<void> {
         const docTitle = `${identifier}: ${title}`;
         const docExternalId = `linear-issue-${id}`;
         const contentHash = crypto.createHash("md5").update(rawContent).digest("hex");
+        const metadata = scopeMetadata("linear", [
+          team?.id ? { type: "linear_team", id: team.id, name: team.name } : null,
+          project?.id ? { type: "linear_project", id: project.id, name: project.name } : null,
+        ]);
 
         const existingDoc = await prisma.document.findUnique({
           where: { sourceId_externalId: { sourceId, externalId: docExternalId } },
         });
 
         if (existingDoc && existingDoc.contentHash === contentHash) {
+          await ensureDocumentMetadata(existingDoc.id, metadata);
           continue; // Unmodified
         }
 
@@ -211,6 +219,7 @@ export async function syncLinear(sourceId: string): Promise<void> {
             rawContent,
             contentHash,
             url,
+            metadata,
             indexedAt: new Date(),
             updatedAt: new Date(updatedAt),
           },
@@ -223,6 +232,7 @@ export async function syncLinear(sourceId: string): Promise<void> {
             url,
             rawContent,
             contentHash,
+            metadata,
             indexedAt: new Date(),
             updatedAt: new Date(updatedAt),
           },
@@ -241,21 +251,13 @@ export async function syncLinear(sourceId: string): Promise<void> {
         for (const chunk of chunks) {
           const embedding = await generateEmbedding(chunk.content);
 
-          const dbChunk = await prisma.documentChunk.create({
-            data: {
-              workspaceId: source.workspaceId,
-              sourceId,
-              documentId: doc.id,
-              content: chunk.content,
-              chunkIndex: chunk.chunkIndex,
-            },
-          });
-
           const { error: insertErr } = await supabaseAdmin.from("document_chunks").insert({
-            id: dbChunk.id,
             document_id: doc.id,
             workspace_id: source.workspaceId,
+            source_id: sourceId,
             content: chunk.content,
+            chunk_index: chunk.chunkIndex,
+            token_count: chunk.tokenCount,
             embedding,
             metadata: {
               source: "linear",

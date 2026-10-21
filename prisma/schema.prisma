@@ -32,6 +32,7 @@ model Workspace {
   apiKeys            ApiKey[]
   auditLogs          AuditLog[]
   notifications      Notification[]
+  projects           Project[]
 
   @@map("workspaces")
 }
@@ -67,6 +68,7 @@ model User {
   teams         Team[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  ownedProjects Project[]      @relation("ProjectOwner")
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceRole WorkspaceRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
@@ -90,6 +92,7 @@ model Source {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
   documents    Document[]
+  projectLinks ProjectSourceLink[]
   user         User       @relation(fields: [userId], references: [id])
   workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -108,7 +111,11 @@ model Document {
   indexedAt   DateTime?       @map("indexed_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
   contentHash String?         @map("content_hash")
+  // Where the document lives in its tool (channel, repo, folder…). See lib/document-scope.ts.
+  metadata    Json            @default("{}")
   chunks      DocumentChunk[]
+  projects    DocumentProject[]
+  memories    OrgMemory[]
   source      Source          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -202,8 +209,18 @@ model OrgMemory {
   avatarUrl   String?  @map("avatar_url")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Project memory. type: decision | risk | milestone | question | fact
+  projectId        String?   @map("project_id") @db.Uuid
+  type             String?
+  sourceDocumentId String?   @map("source_document_id") @db.Uuid
+  occurredAt       DateTime? @map("occurred_at")
+  confidence       Float?
 
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceDocument Document? @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, occurredAt])
   @@map("org_memories")
 }
 
@@ -316,8 +333,80 @@ model Team {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   users     User[]
+  projects  Project[]
 
   @@map("teams")
+}
+
+// ── Projects ─────────────────────────────────────────────────────────────
+// A project groups everything Corely knows about one piece of work.
+model Project {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  name        String
+  key         String?   // short code, e.g. "ATL"
+  description String?
+  aliases     Json      @default("[]") // other names and code names (array of strings)
+  status      String    @default("active") // planning | active | on_hold | completed | archived
+  phase       String?   // discovery | build | beta | launch | maintenance
+  ownerId     String?   @map("owner_id") @db.Uuid
+  teamId      String?   @map("team_id") @db.Uuid
+  startDate   DateTime? @map("start_date")
+  targetDate  DateTime? @map("target_date")
+  summary     String?
+  summaryAt   DateTime? @map("summary_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User?               @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  team      Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  links     ProjectSourceLink[]
+  documents DocumentProject[]
+  memories  OrgMemory[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId, status])
+  @@map("projects")
+}
+
+// "This Slack channel / repo / folder belongs to this project."
+model ProjectSourceLink {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  sourceId    String   @map("source_id") @db.Uuid
+  scopeType   String   @map("scope_type") // see ScopeType in lib/document-scope.ts
+  scopeId     String   @map("scope_id")
+  scopeName   String   @map("scope_name")
+  // Drive only: sub-folder ids found under the linked folder.
+  childScopes Json     @default("[]") @map("child_scopes")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  source  Source  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, sourceId, scopeType, scopeId])
+  @@map("project_source_links")
+}
+
+// Which documents belong to which project, and how we know.
+model DocumentProject {
+  documentId String   @map("document_id") @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  method     String   // linked | rule | ai | manual
+  confidence Float    @default(1)
+  status     String   @default("confirmed") // suggested | confirmed | rejected
+  // Content hash of the document when its project memory was last extracted.
+  extractedHash String? @map("extracted_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([documentId, projectId])
+  @@index([projectId, status])
+  @@map("document_projects")
 }
 
 model Notification {

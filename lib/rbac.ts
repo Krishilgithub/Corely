@@ -10,6 +10,8 @@ export const Permissions = {
   TEAMS_MANAGE: "teams:manage",
   SOURCES_READ: "sources:read",
   SOURCES_WRITE: "sources:write",
+  PROJECTS_READ: "projects:read",
+  PROJECTS_MANAGE: "projects:manage",
 } as const;
 
 export type Permission = typeof Permissions[keyof typeof Permissions];
@@ -30,6 +32,8 @@ export const DefaultRoles = {
       Permissions.SOURCES_WRITE,
       Permissions.INSIGHTS_READ,
       Permissions.TEAMS_READ,
+      Permissions.PROJECTS_READ,
+      Permissions.PROJECTS_MANAGE,
     ],
   },
   PRODUCT_MANAGER: {
@@ -41,6 +45,8 @@ export const DefaultRoles = {
       Permissions.INSIGHTS_WRITE,
       Permissions.SOURCES_READ,
       Permissions.TEAMS_READ,
+      Permissions.PROJECTS_READ,
+      Permissions.PROJECTS_MANAGE,
     ],
   },
   VIEWER: {
@@ -51,6 +57,7 @@ export const DefaultRoles = {
       Permissions.INSIGHTS_READ,
       Permissions.TEAMS_READ,
       Permissions.SOURCES_READ,
+      Permissions.PROJECTS_READ,
     ],
   },
 };

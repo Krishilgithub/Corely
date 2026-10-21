@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corely Feature Gap</title>
+<meta name="description" content="What Corely needs to match the business scope we agreed (enterprise memory with trustworthy answers), what exists today, and a phased plan to close the gap. Written 2026-10-21.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f9; --border:#e3e6eb; --text:#1a1d23; --muted:#5b6472;
+  --accent:#ea580c; --accent-soft:#fff3ea;
+  --built:#16a34a; --partial:#ca8a04; --broken:#dc2626; --missing:#6b7280; --claimed:#9333ea;
+  --p0:#dc2626; --p1:#ea580c; --p2:#2563eb; --p3:#6b7280;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1115; --surface:#171a21; --border:#2a2f3a; --text:#e6e8ec; --muted:#9aa3b2;
+    --accent:#fb923c; --accent-soft:rgba(251,146,60,.12);
+    --built:#4ade80; --partial:#facc15; --broken:#f87171; --missing:#9ca3af; --claimed:#c084fc;
+    --p0:#f87171; --p1:#fb923c; --p2:#60a5fa; --p3:#9ca3af;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;overflow-x:hidden}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.82em;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.05em .35em;overflow-wrap:anywhere}
+h1,h2,h3{line-height:1.25}
+h2{margin-top:2.8rem;padding-top:.8rem;border-top:1px solid var(--border)}
+h3{margin-top:1.8rem}
+[id]{scroll-margin-top:72px}
+.muted{color:var(--muted)}
+
+/* Top navbar: topics of this page only */
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:nowrap;align-items:center;gap:1rem;padding:0 16px;height:56px;background:var(--bg);border-bottom:1px solid var(--border)}
+.topbar .brand{font-weight:700;white-space:nowrap;flex:none}
+.topbar .topics{display:flex;flex-wrap:nowrap;gap:.25rem;overflow-x:auto;white-space:nowrap;scrollbar-width:none;flex:1;min-width:0}
+.topbar .topics::-webkit-scrollbar{display:none}
+.topbar .topics a{flex:none;text-decoration:none;color:var(--muted);padding:.35rem .65rem;border-radius:6px;font-size:.9rem}
+.topbar .topics a:hover{background:var(--surface);color:var(--text)}
+.topbar .topics a.active{background:var(--accent);color:#fff}
+@media (max-width:640px){.topbar .brand{display:none}}
+
+main{max-width:960px;margin:0 auto;padding:0 16px}
+header.hero h1{font-size:2.1rem;margin:1.8rem 0 .3rem}
+.lead{font-size:1.05rem;color:var(--muted);max-width:760px}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1.4rem 0}
+.tile{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:.8rem 1rem;border-top:4px solid var(--c)}
+.tile .n{font-size:2rem;font-weight:700;line-height:1.1}
+.tile .l{color:var(--muted);font-size:.9rem}
+
+.callout{border:1px solid var(--border);border-left:4px solid var(--accent);background:var(--surface);border-radius:8px;padding:.8rem 1rem;margin:1rem 0}
+.callout.warn{border-left-color:var(--p0)}
+.callout p{margin:.3rem 0}
+
+.legend{display:flex;gap:.6rem 1.2rem;flex-wrap:wrap;font-size:.88rem;color:var(--muted);margin:.6rem 0}
+.legend span{display:inline-flex;align-items:center;gap:.4rem}
+
+/* Status and priority badges */
+.st,.pr,.ef{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:4px;padding:.1rem .45rem;white-space:nowrap}
+.st{color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.st.built{--c:var(--built)} .st.partial{--c:var(--partial)} .st.broken{--c:var(--broken)} .st.missing{--c:var(--missing)} .st.claimed{--c:var(--claimed)}
+.pr{color:#fff;background:var(--c)} .pr.p0{--c:var(--p0)} .pr.p1{--c:var(--p1)} .pr.p2{--c:var(--p2)} .pr.p3{--c:var(--p3)}
+@media (prefers-color-scheme: dark){.pr{color:#111}}
+.ef{font-family:var(--mono);border:1px solid var(--border);color:var(--muted);text-transform:none}
+
+/* Filters */
+.filter{position:sticky;top:56px;z-index:10;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.6rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+.filter .grp{display:flex;gap:.3rem;flex-wrap:wrap;align-items:center}
+.filter .grp b{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:.2rem}
+.filter button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:.25rem .7rem;cursor:pointer;font:inherit;font-size:.85rem}
+.filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter input{flex:1;min-width:160px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:.35rem .6rem;font:inherit;font-size:.9rem}
+.filter .count{color:var(--muted);font-size:.85rem;width:100%}
+
+/* Gap rows */
+.pillar{margin-top:1.6rem}
+.pillar h3{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.pillar h3 small{font-weight:500;color:var(--muted);font-size:.9rem}
+.gap{border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin:.6rem 0;background:var(--bg);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem 1rem}
+.gap .t{font-weight:700}
+.gap .meta{display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start}
+.gap .d{grid-column:1/-1;margin:.1rem 0;color:var(--text)}
+.gap .d b{font-weight:600}
+.gap .refs{grid-column:1/-1;font-size:.85rem;color:var(--muted)}
+@media (max-width:640px){.gap{grid-template-columns:1fr}.gap .meta{justify-content:flex-start}}
+.hidden{display:none!important}
+
+/* Coverage bars */
+.cov{display:grid;gap:.55rem;margin:1rem 0}
+.cov-row{display:grid;grid-template-columns:200px minmax(0,1fr) 54px;gap:.8rem;align-items:center;font-size:.9rem}
+.cov-bar{display:flex;height:14px;border-radius:999px;overflow:hidden;background:var(--surface);border:1px solid var(--border)}
+.cov-bar i{display:block;height:100%}
+.cov-row .pct{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+@media (max-width:640px){.cov-row{grid-template-columns:1fr 54px}.cov-row .cov-bar{grid-column:1/-1;grid-row:2}}
+
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+
+/* Plan */
+.phase{border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin:1rem 0;background:var(--surface)}
+.phase h3{margin:0 0 .15rem;font-size:1.12rem}
+.phase .goal{margin:.2rem 0 .5rem}
+.phase .est{color:var(--muted);font-size:.9rem}
+.phase ol{margin:.4rem 0;padding-left:1.4rem}
+.phase li{margin:.35rem 0}
+.phase .done{margin:.6rem 0 0;padding:.5rem .7rem;border-radius:8px;background:var(--bg);border:1px dashed var(--border);font-size:.9rem}
+.milestone{display:inline-block;font-size:.75rem;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:999px;padding:.05rem .55rem;margin-left:.4rem;vertical-align:2px}
+
+figure{margin:1.2rem 0;border:1px solid var(--border);border-radius:10px;padding:.8rem;background:var(--surface);overflow-x:auto}
+figure svg{display:block;width:100%;min-width:640px;height:auto}
+figcaption{color:var(--muted);font-size:.88rem;margin-top:.4rem}
+.svg-text{fill:var(--text);font-family:var(--font)}
+.svg-muted{fill:var(--muted);font-family:var(--font)}
+.svg-line{stroke:var(--border)}
+
+footer{border-top:1px solid var(--border);margin-top:3rem;padding:1.2rem 16px;color:var(--muted);font-size:.88rem;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Corely &middot; Feature Gap</span>
+  <nav class="topics" aria-label="On this page">
+    <a href="#summary">Summary</a>
+    <a href="#scope">Agreed scope</a>
+    <a href="#coverage">Coverage</a>
+    <a href="#gaps">Feature gaps</a>
+    <a href="#plan">Implementation plan</a>
+    <a href="#metrics">Success metrics</a>
+    <a href="#risks">Risks</a>
+  </nav>
+</header>
+
+<main>
+<header class="hero" id="summary">
+  <h1>Corely feature gap</h1>
+  <p class="muted">Written 2026-10-21 · Based on the code on branch <code>master</code> and the business scope agreed in our product discussion.</p>
+  <p class="lead">
+    This page compares what Corely needs in order to be sold as <b>"your company's memory, with answers you can trust"</b> with what the code actually does today.
+    Each gap has a status, a priority and a size. The page ends with a phased plan to close the gaps.
+  </p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="callout warn">
+    <p><b>The short version.</b> The basic "connect tools and ask questions" flow works for Notion, Google Drive, Gmail and GitHub.
+    But Corely is <b>not ready to sell</b>. It has security holes, two connectors that never become searchable, and permissions that don't restrict anything.
+    The website also claims things that don't exist yet.</p>
+    <p>The features that would make Corely <b>different</b> from Glean and others are almost all missing: automatic decision memory, stale-knowledge alerts, weekly digests, the learning loop and a Slack bot.</p>
+  </div>
+</header>
+
+<!-- ============ SCOPE ============ -->
+<section id="scope">
+<h2>The scope we agreed</h2>
+<p>These are the decisions from our product discussion. Every gap below is measured against them.</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Area</th><th>What we decided</th></tr></thead>
+  <tbody>
+    <tr><td><b>Positioning</b></td><td>Not "enterprise search" (Glean's ground). Corely is <b>enterprise memory</b>: it remembers what the company decided and why, and tells you when knowledge is out of date.</td></tr>
+    <tr><td><b>Ideal customer</b></td><td>50–1,000 employees, tech or tech-enabled, already on Slack plus Notion or Drive plus GitHub or Linear. The buyer is the Head of Operations, CTO, VP Engineering or Head of People.</td></tr>
+    <tr><td><b>Core product</b></td><td>Connect sources, then ask with citations and freshness. Organisational memory (decisions, facts). Weekly digest and stale-knowledge alerts. A Slack bot. Admin controls: permissions, audit log, SSO.</td></tr>
+    <tr><td><b>Moat</b></td><td>Memory that builds up per customer. A learning loop from feedback. Living inside Slack and Teams. A niche focus. Self-hosted or EU-hosted options.</td></tr>
+    <tr><td><b>Connectors</b></td><td>In order: HubSpot, then Jira and Confluence, then Microsoft 365, then meeting transcripts, then Zendesk or Intercom, then Salesforce. LinkedIn and X are <b>not core</b>; maybe one "company mentions" add-on later.</td></tr>
+    <tr><td><b>Commercial</b></td><td>Free tier, then a per-seat team plan, then an Enterprise plan (SSO, audit, self-hosting, data residency). Paid pilots with measured results.</td></tr>
+    <tr><td><b>Out of scope</b></td><td>Project management, a CRM, a general chatbot, and autonomous agents that take actions in other tools (until they exist, remove the claims).</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<!-- ============ COVERAGE ============ -->
+<section id="coverage">
+<h2>Coverage by area</h2>
+<p>How much of each area exists today. A green "built" share means the feature works end to end. Partial or broken features are counted separately.</p>
+<div class="legend">
+  <span><span class="st built">Built</span> works end to end</span>
+  <span><span class="st partial">Partial</span> exists, but key parts are missing</span>
+  <span><span class="st broken">Broken</span> built, but doesn't work</span>
+  <span><span class="st claimed">Claimed</span> on the website or UI, not in the code</span>
+  <span><span class="st missing">Missing</span> not built</span>
+</div>
+<div class="cov" id="cov"></div>
+<div class="legend">
+  <span><span class="pr p0">P0</span> must fix before selling</span>
+  <span><span class="pr p1">P1</span> the moat, our difference</span>
+  <span><span class="pr p2">P2</span> needed to win the ideal customer</span>
+  <span><span class="pr p3">P3</span> later</span>
+  <span><span class="ef">S</span> under 1 day · <span class="ef">M</span> 1–3 days · <span class="ef">L</span> 1 week or more (one developer)</span>
+</div>
+</section>
+
+<!-- ============ GAPS ============ -->
+<section id="gaps">
+<h2>Feature gaps</h2>
+
+<div class="filter" role="group" aria-label="Filter the gaps">
+  <div class="grp" id="f-pr"><b>Priority</b>
+    <button type="button" data-v="all" aria-pressed="true">All</button>
+    <button type="button" data-v="p0" aria-pressed="false">P0</button>
+    <button type="button" data-v="p1" aria-pressed="false">P1</button>
+    <button type="button" data-v="p2" aria-pressed="false">P2</button>
+    <button type="button" data-v="p3" aria-pressed="false">P3</button>
+  </div>
+  <div class="grp" id="f-st"><b>Status</b>
+    <button type="button" data-v="all" aria-pressed="true">All</button>
+    <button type="button" data-v="broken" aria-pressed="false">Broken</button>
+    <button type="button" data-v="partial" aria-pressed="false">Partial</button>
+    <button type="button" data-v="claimed" aria-pressed="false">Claimed</button>
+    <button type="button" data-v="missing" aria-pressed="false">Missing</button>
+  </div>
+  <input type="search" id="q" placeholder="Search gaps…" aria-label="Search gaps">
+  <div class="count" id="count"></div>
+</div>
+
+<div id="pillars"></div>
+</section>
+
+<!-- ============ PLAN ============ -->
+<section id="plan">
+<h2>Implementation plan</h2>
+<p>
+  The plan follows the business order. First make it <b>safe to sell</b>, then make the answers <b>trustworthy</b>, then build the <b>moat</b>.
+  After that, meet people <b>where they work</b>, add the <b>connectors</b> the ideal customer needs, and finally make it <b>enterprise-ready</b>.
+  Estimates assume one full-time developer. With two developers, Phases 3–5 can run in parallel.
+</p>
+
+<figure>
+<svg viewBox="0 0 900 250" role="img" aria-label="Timeline of the six phases over about 22 weeks">
+  <g font-size="12">
+    <line x1="150" y1="20" x2="150" y2="215" class="svg-line"/>
+    <g class="svg-muted">
+      <text x="150" y="235">Week 0</text><text x="300" y="235">4</text><text x="450" y="235">8</text><text x="600" y="235">12</text><text x="750" y="235">16</text><text x="870" y="235">22</text>
+    </g>
+    <g stroke-dasharray="3 4">
+      <line x1="300" y1="20" x2="300" y2="215" class="svg-line"/><line x1="450" y1="20" x2="450" y2="215" class="svg-line"/>
+      <line x1="600" y1="20" x2="600" y2="215" class="svg-line"/><line x1="750" y1="20" x2="750" y2="215" class="svg-line"/>
+    </g>
+    <!-- 1 week = 37.5px -->
+    <text x="10" y="40" class="svg-text">0 · Safe to sell</text>
+    <rect x="150" y="27" width="75" height="20" rx="5" fill="var(--p0)"/>
+    <text x="10" y="70" class="svg-text">1 · Trustworthy answers</text>
+    <rect x="225" y="57" width="112" height="20" rx="5" fill="var(--p0)" opacity=".75"/>
+    <text x="10" y="100" class="svg-text">2 · Memory moat</text>
+    <rect x="337" y="87" width="150" height="20" rx="5" fill="var(--p1)"/>
+    <text x="10" y="130" class="svg-text">3 · Where people work</text>
+    <rect x="487" y="117" width="94" height="20" rx="5" fill="var(--p1)" opacity=".75"/>
+    <text x="10" y="160" class="svg-text">4 · Connectors</text>
+    <rect x="581" y="147" width="188" height="20" rx="5" fill="var(--p2)"/>
+    <text x="10" y="190" class="svg-text">5 · Enterprise &amp; billing</text>
+    <rect x="675" y="177" width="150" height="20" rx="5" fill="var(--p2)" opacity=".75"/>
+    <!-- milestones -->
+    <g font-weight="700" class="svg-text">
+      <circle cx="337" cy="210" r="5" fill="var(--accent)"/><text x="345" y="214">Pilot-ready</text>
+      <circle cx="581" cy="210" r="5" fill="var(--accent)"/><text x="589" y="214">Paid pilots</text>
+      <circle cx="825" cy="210" r="5" fill="var(--accent)"/><text x="790" y="200">Sell broadly</text>
+    </g>
+  </g>
+</svg>
+<figcaption>About 22 weeks for one developer. Phase 5 overlaps Phase 4 because billing and SSO don't depend on the new connectors.</figcaption>
+</figure>
+
+<div id="phases"></div>
+</section>
+
+<!-- ============ METRICS ============ -->
+<section id="metrics">
+<h2>Success metrics</h2>
+<p>Track these from the first pilot. Real numbers from pilots are the best sales material. Some of them need features from the plan (shown in the last column).</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Metric</th><th>Why it matters</th><th>Needs</th></tr></thead>
+  <tbody>
+    <tr><td>Questions answered per active user per week</td><td>Shows the product is part of daily work.</td><td>Usage analytics (Phase 5)</td></tr>
+    <tr><td>Share of answers rated helpful</td><td>Measures answer quality and trust.</td><td>Feedback fix (Phase 1)</td></tr>
+    <tr><td>Share of questions with "no knowledge"</td><td>Shows missing sources or a threshold that is too strict.</td><td>Usage analytics (Phase 5)</td></tr>
+    <tr><td>Decisions captured per week</td><td>Proves the memory moat is growing.</td><td>Decision extraction (Phase 2)</td></tr>
+    <tr><td>Stale docs flagged and fixed</td><td>Proves the freshness promise.</td><td>Stale-knowledge alerts (Phase 2)</td></tr>
+    <tr><td>Weekly active users / seats paid</td><td>Retention and expansion.</td><td>Billing and seats (Phase 5)</td></tr>
+    <tr><td>Self-reported time saved per answer</td><td>The headline ROI number for sales.</td><td>A one-question survey in the answer card (Phase 5)</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<!-- ============ RISKS ============ -->
+<section id="risks">
+<h2>Risks and open decisions</h2>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Risk or decision</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td>The website claims SOC 2 Type II, SSO/SAML, Claude 3.5, a Jira connector and autonomous agents</td><td>Remove the claims in Phase 0. Add each one back only when it is true. A false SOC 2 claim is a legal risk.</td></tr>
+    <tr><td>Competitors (Glean, Onyx, Supermemory, Coworker AI, ZeroForget AI) already cover "connect and ask"</td><td>Don't compete on search. Ship the Phase 2 memory features first and lead every demo with them.</td></tr>
+    <tr><td>Decision extraction costs money (one LLM call per new document)</td><td>Run it only on new or changed content. Use a small, cheap model to sort content and the main model only for real decisions. Set a monthly cost cap per workspace.</td></tr>
+    <tr><td>Microsoft Teams messages may need tenant-admin consent</td><td>Start Microsoft 365 with Outlook, OneDrive and SharePoint. Add Teams when a pilot customer's IT team can give consent.</td></tr>
+    <tr><td>Sync runs inside the web request today</td><td>Move to the BullMQ worker in Phase 1, before adding more connectors. Otherwise big syncs time out on serverless hosting.</td></tr>
+    <tr><td>LinkedIn and X APIs are restricted or paid</td><td>Keep them out of the core product. Revisit only if pilots ask for "company mentions".</td></tr>
+    <tr><td>One developer, about 22 weeks</td><td>The first paid pilots can start after Phase 2 (about week 9). Plan sales around that, not around the full plan.</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+</main>
+
+<footer>Generated 2026-10-21 from a read-only review of the Corely repository (branch master) against the agreed business scope.</footer>
+
+<script>
+(function(){
+  // ── Data ────────────────────────────────────────────────────────────────
+  // s: status (built | partial | broken | claimed | missing)
+  // p: priority (p0 | p1 | p2 | p3), e: effort (S | M | L), ph: plan phase
+  var PILLARS = [
+    { id:"trust", name:"Trust foundation", sub:"must be true before anyone pays", items:[
+      {t:"Security holes in the API", s:"broken", p:"p0", e:"M", ph:0,
+       d:"Seven routes have <b>no login check</b>, so anyone can read or delete other companies' chats, documents and sources. Login also lets anyone claim an account that has no password yet. And the invite flow emails a plain-text password.",
+       r:"chats/[sessionId], documents/[documentId], sources/[sourceId] (+config, folders, status), auth/login:72-78, teams/members"},
+      {t:"Leaked email password and fallback secrets", s:"broken", p:"p0", e:"S", ph:0,
+       d:"A real Gmail app password is committed in <code>lib/email.ts</code>. The JWT secret has a public fallback value, so sessions can be forged if <code>JWT_SECRET</code> is not set.",
+       r:"lib/email.ts:6-7, lib/auth-server.ts:6"},
+      {t:"Permission-aware answers", s:"partial", p:"p0", e:"M", ph:1,
+       d:"The code filters sources by permission, but every default role has <code>sources:read</code>, which unlocks <b>every</b> source. Legal and IT teams will reject this in a security review.",
+       r:"lib/rbac.ts:26-55, app/api/ask/route.ts:146"},
+      {t:"Slack and Linear content is searchable", s:"broken", p:"p0", e:"S", ph:0,
+       d:"Both connectors save chunks <b>without embeddings</b> (duplicate-key error), so their content never appears in answers. Both are on the website as working connectors.",
+       r:"modules/sources/connectors/slack.ts:243-266, linear.ts:244-272"},
+      {t:"Reliable syncing", s:"broken", p:"p0", e:"M", ph:0,
+       d:"A sync can get stuck on \"syncing\" forever after an early error. Slack and Linear show \"synced\" without syncing. Gmail only ever indexes the newest 100 threads.",
+       r:"app/api/sources/[sourceId]/sync/route.ts, gmail.ts:136-150"},
+      {t:"Honest website claims", s:"claimed", p:"p0", e:"S", ph:0,
+       d:"The marketing pages claim SOC 2 Type II, SSO/SAML, Claude 3.5, a Jira connector, sub-50ms search and autonomous agents. None of these exist.",
+       r:"app/pricing/page.tsx, components/landing/FeaturesSection.tsx"},
+      {t:"Fake numbers in the product", s:"claimed", p:"p0", e:"M", ph:0,
+       d:"The Home activity feed, trend labels, workflow KPIs and team metrics are made up. Buyers spot this in a demo. Show real values, or hide the panel.",
+       r:"ActivityFeedPanel.tsx, WorkflowsMain.tsx, api/teams/route.ts"}
+    ]},
+    { id:"answers", name:"Trustworthy answers", sub:"the core \"ask\" experience", items:[
+      {t:"Ask with citations", s:"built", p:"p1", e:"S", ph:null,
+       d:"Streaming answers with numbered sources work. One gap: citations carry no chunk ID or snippet, so you can't jump to the exact passage.",
+       r:"app/api/ask/route.ts:232-247"},
+      {t:"\"I don't know\" guard", s:"built", p:"p1", e:"S", ph:null,
+       d:"Below 0.55 similarity, Corely refuses instead of guessing. The UI used to spin forever on this case; the redesign handles it in the new Ask page.",
+       r:"app/api/ask/route.ts:191"},
+      {t:"Freshness based on the real document date", s:"partial", p:"p1", e:"S", ph:1,
+       d:"The freshness score is the headline feature, but it uses the <b>date Corely indexed the file</b>, not the date it changed upstream (except for Slack and Linear). Gmail and uploads get the default decay rate.",
+       r:"prisma/schema.prisma:109, ask/route.ts:221"},
+      {t:"Follow-up questions", s:"missing", p:"p1", e:"S", ph:1,
+       d:"Only the latest message is searched, so \"what about the second one?\" fetches the wrong context. Rewrite follow-ups into a standalone question first.",
+       r:"app/api/ask/route.ts:158"},
+      {t:"Hybrid search and re-ranking", s:"missing", p:"p1", e:"M", ph:1,
+       d:"Vector search only. Exact names, ticket IDs and error codes are often missed. Add keyword search (Postgres <code>tsvector</code>), merge the results, remove duplicate chunks, and re-rank.",
+       r:"app/api/ask/route.ts:162-179, app/api/search/route.ts"},
+      {t:"Feedback that is saved and used", s:"broken", p:"p1", e:"S", ph:1,
+       d:"Thumbs up/down on a new answer fails (404), because the UI never receives the saved message ID. Nothing aggregates feedback yet.",
+       r:"AskMain.tsx, chats/[sessionId]/messages/[messageId]/feedback"},
+      {t:"Scheduled and incremental sync", s:"missing", p:"p1", e:"L", ph:1,
+       d:"Sources only sync when you click the button. The schedule setting is thrown away. Every sync downloads everything again, and items deleted upstream are never removed (except in Notion).",
+       r:"config/route.ts:20, lib/redis.ts (queue unused), workers/index.ts"}
+    ]},
+    { id:"memory", name:"Memory moat", sub:"what makes Corely different", items:[
+      {t:"Manual \"save to memory\"", s:"partial", p:"p1", e:"S", ph:2,
+       d:"You can pin an answer to Memory. But saved memories are <b>not used as context</b> in later answers. Also, the Memory page deletes items titled \"Decision Captured\" every time it loads.",
+       r:"app/api/memory/route.ts:23-32"},
+      {t:"Automatic decision and fact extraction", s:"missing", p:"p1", e:"L", ph:2,
+       d:"The core of \"enterprise memory\". After each sync, find decisions (\"we chose X because Y\"), owners and dates in new content, and save them as memory with a link to the source.",
+       r:"new: modules/memory/extract.ts, worker job"},
+      {t:"Decision log page", s:"missing", p:"p1", e:"M", ph:2,
+       d:"A timeline of what the company decided, who decided it, when, and the source. You can filter it by team or topic. This is the page that sells the product in a demo.",
+       r:"new: app/dashboard/memory (decisions tab)"},
+      {t:"Stale-knowledge and contradiction alerts", s:"missing", p:"p1", e:"L", ph:2,
+       d:"Flag documents that are old, or that disagree with a newer decision (\"the onboarding doc says X, last week's Slack decision says Y\"). Send the alert to the doc owner.",
+       r:"new: insights rule + LLM check"},
+      {t:"Weekly digest: \"what changed\"", s:"missing", p:"p1", e:"M", ph:2,
+       d:"An email or Slack summary of new decisions, changed docs and stale items. The \"email digest\" setting is saved today, but nothing sends it.",
+       r:"SettingsMain.tsx (emailNotifications unused), lib/email.ts"},
+      {t:"Learning loop", s:"missing", p:"p1", e:"M", ph:2,
+       d:"Use feedback and \"this is outdated\" flags to change ranking per workspace: boost trusted sources and demote flagged chunks.",
+       r:"ChatMessage.feedback (stored, unused)"},
+      {t:"Real snapshots", s:"partial", p:"p3", e:"M", ph:null,
+       d:"Snapshots save only a title. Make them capture the memory state, or remove the feature.",
+       r:"prisma MemorySnapshot, api/memory/snapshots"}
+    ]},
+    { id:"where", name:"Where people work", sub:"daily habit and lock-in", items:[
+      {t:"Slack bot", s:"missing", p:"p1", e:"L", ph:3,
+       d:"Ask Corely in a thread with <code>/corely</code> or an @mention. Answers come back with citations. A \"capture this decision\" message action saves to memory. This is the most important habit feature.",
+       r:"new: app/api/slack/events, commands"},
+      {t:"Microsoft Teams bot", s:"missing", p:"p2", e:"L", ph:4,
+       d:"The same as the Slack bot, for companies on Microsoft. Build it after the Microsoft 365 connector.",
+       r:"new"},
+      {t:"Browser extension or quick-ask", s:"missing", p:"p3", e:"M", ph:null,
+       d:"Ask Corely from any tab. A nice-to-have after the Slack bot.",
+       r:"new"}
+    ]},
+    { id:"connectors", name:"Connectors", sub:"sources the ideal customer uses", items:[
+      {t:"Notion, Google Drive, Gmail, GitHub", s:"partial", p:"p2", e:"M", ph:1,
+       d:"They work, but with gaps. Drive skips shared drives, Slides and xlsx. GitHub reads only the README, issue bodies and PR bodies. Gmail skips attachments. Notion skips database properties. And GitHub has no card in the Add-source popup.",
+       r:"modules/sources/connectors/*.ts, SourcesMain.tsx"},
+      {t:"Slack and Linear coverage", s:"partial", p:"p2", e:"M", ph:1,
+       d:"After the embedding fix: add Slack thread replies, private channels and more than 200 channels. Add Linear comments after the first page, plus projects and docs.",
+       r:"slack.ts:127-186, linear.ts:81-120"},
+      {t:"HubSpot", s:"missing", p:"p2", e:"M", ph:4,
+       d:"Contacts, companies, deals, notes and emails. It opens up sales and account-management use cases. Scoped in August: standard OAuth and REST, no blockers.",
+       r:"new: modules/sources/connectors/hubspot.ts"},
+      {t:"Jira and Confluence", s:"claimed", p:"p2", e:"L", ph:4,
+       d:"Needed to sell beyond startups. Jira is already mentioned in the pricing FAQ. One Atlassian OAuth app covers both.",
+       r:"new: jira.ts, confluence.ts"},
+      {t:"Microsoft 365", s:"missing", p:"p2", e:"L", ph:4,
+       d:"Outlook, OneDrive, SharePoint, then Teams, through one Microsoft Graph app. It has the highest enterprise value.",
+       r:"new: microsoft.ts"},
+      {t:"Meeting transcripts", s:"missing", p:"p2", e:"M", ph:4,
+       d:"Zoom, Google Meet, Gong or Fireflies transcripts. Meetings are where most decisions happen, so this feeds the decision log directly.",
+       r:"new"},
+      {t:"Zendesk or Intercom", s:"missing", p:"p3", e:"M", ph:null,
+       d:"Support tickets and help-centre articles, for support teams.",
+       r:"new"},
+      {t:"Salesforce", s:"claimed", p:"p3", e:"L", ph:null,
+       d:"It appears as a filter on the Insights page, but no connector exists. Build it when larger sales teams ask.",
+       r:"app/dashboard/insights/page.tsx:448"},
+      {t:"LinkedIn and X", s:"missing", p:"p3", e:"L", ph:null,
+       d:"<b>Not core.</b> The APIs are restricted or paid, and the data is public or personal, not company memory. Revisit only as a \"company mentions\" add-on.",
+       r:"decision from the product discussion"}
+    ]},
+    { id:"enterprise", name:"Enterprise and admin", sub:"needed for a security review", items:[
+      {t:"Real roles and member management", s:"partial", p:"p2", e:"M", ph:5,
+       d:"Roles exist, but any member can create roles, rename the workspace or create API keys. You can't change a member's role or remove someone from the workspace.",
+       r:"teams/roles, settings, settings/api-keys"},
+      {t:"Invite flow with an accept link", s:"broken", p:"p2", e:"M", ph:0,
+       d:"Invites email a plain-text password and return it in the API response. Replace this with a token link where the invitee sets their own password.",
+       r:"app/api/teams/members/route.ts:51-105"},
+      {t:"SSO / SAML and 2FA", s:"claimed", p:"p2", e:"L", ph:5,
+       d:"The settings page has a \"Configure SSO\" button and a 2FA toggle, but neither does anything. Enterprise plans need both. Start with Google and Microsoft sign-in, then SAML.",
+       r:"SettingsMain.tsx (Security tab)"},
+      {t:"Audit log", s:"partial", p:"p2", e:"M", ph:5,
+       d:"Only password changes are recorded. Add logins, invites, role changes, source connect/disconnect/sync, key creation and exports. Make CSV export work.",
+       r:"app/api/settings/password/route.ts:51"},
+      {t:"Data retention", s:"claimed", p:"p2", e:"M", ph:5,
+       d:"The retention setting is shown, but never saved or enforced. Regulated buyers will ask for it.",
+       r:"SettingsMain.tsx (Data & Sources)"},
+      {t:"Self-hosted and EU-hosted options", s:"partial", p:"p2", e:"L", ph:5,
+       d:"A Docker setup exists. It still needs startup checks for env variables, database migrations, a worker container, an install guide, and a region choice for cloud customers.",
+       r:"Dockerfile, docker-compose.yml"},
+      {t:"Public API with API keys", s:"claimed", p:"p3", e:"M", ph:5,
+       d:"You can create keys, but nothing accepts them. The settings page shows a curl example for an API that doesn't exist.",
+       r:"app/api/settings/api-keys, SettingsMain.tsx:557"}
+    ]},
+    { id:"commercial", name:"Commercial", sub:"so you can charge and grow", items:[
+      {t:"Plans, billing and seats", s:"missing", p:"p2", e:"L", ph:5,
+       d:"There is no Stripe and no upgrade path. Billing always says \"Enterprise\". Add Free, Team and Enterprise plans, a checkout, seat counting and invoices.",
+       r:"Workspace.plan, SettingsMain.tsx (Billing)"},
+      {t:"Usage limits enforced", s:"partial", p:"p2", e:"M", ph:5,
+       d:"Limits are shown in the sidebar but enforced nowhere, and \"queries\" counts chat sessions, not questions. Count correctly and enforce limits per plan.",
+       r:"app/api/usage/route.ts:30-33"},
+      {t:"Trial with an end date", s:"partial", p:"p2", e:"S", ph:5,
+       d:"New workspaces get <code>plan: \"trial\"</code>, which never ends. The signup page promises a 14-day trial.",
+       r:"app/api/auth/register/route.ts:50"},
+      {t:"Guided onboarding", s:"partial", p:"p2", e:"M", ph:1,
+       d:"The Home page shows steps, but two of them can never be completed. Guide new workspaces through: connect the first source, ask a first question, invite the team.",
+       r:"DashboardClient.tsx"},
+      {t:"Pilot analytics", s:"partial", p:"p2", e:"M", ph:5,
+       d:"<code>/api/analytics</code> exists, but nothing uses it. Show admins questions per user, helpful rate, \"no knowledge\" rate and active users. These are the pilot success metrics.",
+       r:"app/api/analytics/route.ts"},
+      {t:"Contact and sales capture", s:"claimed", p:"p2", e:"S", ph:0,
+       d:"The \"Talk to sales\" form fakes a submit and sends nothing. Leads are being lost.",
+       r:"app/contact/page.tsx:12-20"}
+    ]},
+    { id:"platform", name:"Platform readiness", sub:"so the product stays up", items:[
+      {t:"Background worker in use", s:"partial", p:"p1", e:"M", ph:1,
+       d:"A BullMQ worker exists for all 6 connectors, but nothing sends it jobs. Move syncing and the new memory jobs onto it.",
+       r:"lib/redis.ts:27, workers/index.ts:76-111"},
+      {t:"Tests and CI", s:"missing", p:"p2", e:"M", ph:0,
+       d:"There is no test runner and no CI. Start with auth, <code>/api/ask</code> and each connector's pipeline.",
+       r:"package.json"},
+      {t:"Migrations, env checks and monitoring", s:"missing", p:"p2", e:"M", ph:5,
+       d:"The schema only changes through <code>db push</code>. All env variables fall back to dummy values. There is no error tracking.",
+       r:"prisma/, lib/*.ts"},
+      {t:"Stronger token encryption", s:"partial", p:"p2", e:"M", ph:5,
+       d:"OAuth tokens are encrypted with crypto-js AES-CBC with no tamper check. Move to Node AES-256-GCM and re-encrypt.",
+       r:"lib/crypto.ts"}
+    ]}
+  ];
+
+  var PHASES = [
+    {n:0, name:"Safe to sell", weeks:"about 2 weeks", tone:"p0",
+     goal:"Nothing a buyer's security review or a demo would catch.",
+     tasks:[
+      "Close the 7 open API routes. Remove the passwordless login path, the leaked email password and the fallback secrets. Add <code>middleware.ts</code> route protection. <span class='ef'>M</span>",
+      "Fix the Slack and Linear embedding bug, then re-sync. <span class='ef'>S</span>",
+      "Stop syncs getting stuck. Make Slack and Linear actually sync after connecting. Lift the Gmail 100-thread limit. <span class='ef'>M</span>",
+      "Replace the invite password email with an accept-link flow. <span class='ef'>M</span>",
+      "Remove false claims from the website (SOC 2, SSO, Claude, Jira, agents). Make the contact form send leads. <span class='ef'>S</span>",
+      "Hide or replace the fake numbers (activity feed, trends, workflow and team metrics). <span class='ef'>M</span>",
+      "Set up Vitest and GitHub Actions with tests for auth and <code>/api/ask</code>. <span class='ef'>M</span>"
+     ],
+     done:"Done when: a security checklist passes, all 6 connectors return answers in a demo, and the website contains no claim we can't show."},
+    {n:1, name:"Trustworthy answers", weeks:"about 3 weeks", tone:"p0", milestone:"Pilot-ready",
+     goal:"Answers people trust, from sources that stay up to date by themselves.",
+     tasks:[
+      "Make permissions real: a Viewer role with limited source access, and per-source visibility respected in <code>/api/ask</code> and <code>/api/search</code>. <span class='ef'>M</span>",
+      "Use each document's real change date for the freshness score. Fix the source-type mapping. <span class='ef'>S</span>",
+      "Rewrite follow-up questions before searching. <span class='ef'>S</span>",
+      "Add hybrid search (keyword + vector), remove duplicate chunks, re-rank, and give citations a chunk ID and snippet. <span class='ef'>M</span>",
+      "Fix feedback: return the saved message ID and store helpful/not-helpful correctly. <span class='ef'>S</span>",
+      "Move syncing to the BullMQ worker. Add scheduled syncs, incremental sync and removal of deleted items. <span class='ef'>L</span>",
+      "Fill connector gaps: GitHub card and repo picker, Slack threads and private channels, Drive shared drives and Slides. <span class='ef'>M</span>",
+      "Make the guided onboarding steps completable. <span class='ef'>S</span>"
+     ],
+     done:"Done when: a pilot workspace syncs by itself every day, and 70% or more of answers are rated helpful in internal testing."},
+    {n:2, name:"Memory moat", weeks:"about 4 weeks", tone:"p1",
+     goal:"The features that make Corely different from enterprise search.",
+     tasks:[
+      "Build automatic decision and fact extraction as a worker job after each sync. Use a cheap model to sort content and the main model only for real decisions. <span class='ef'>L</span>",
+      "Build a Decision log page: timeline, owner, date and source link, filtered by team or topic. <span class='ef'>M</span>",
+      "Use saved memories and decisions as context in answers. Remove the memory-deleting bug. <span class='ef'>S</span>",
+      "Add stale-knowledge and contradiction alerts, sent to the document owner. <span class='ef'>L</span>",
+      "Add a weekly \"what changed\" digest by email, wired to the existing notification setting. <span class='ef'>M</span>",
+      "Build the learning loop: feedback and \"outdated\" flags adjust ranking per workspace. <span class='ef'>M</span>"
+     ],
+     done:"Done when: a demo shows the decision log filling from real Slack and Notion content, and a stale-doc alert firing."},
+    {n:3, name:"Where people work", weeks:"about 2–3 weeks", tone:"p1", milestone:"Paid pilots",
+     goal:"Make Corely a daily habit inside Slack.",
+     tasks:[
+      "Slack bot: <code>/corely</code> and @mention answers with citations, in the thread. <span class='ef'>L</span>",
+      "Slack message action \"Save as decision\" that writes to memory. <span class='ef'>M</span>",
+      "Post the weekly digest to a chosen Slack channel. <span class='ef'>S</span>"
+     ],
+     done:"Done when: pilot users ask more questions in Slack than in the web app."},
+    {n:4, name:"Connectors for the ideal customer", weeks:"about 5 weeks", tone:"p2",
+     goal:"Cover the tools that sales, support and larger companies use.",
+     tasks:[
+      "HubSpot: contacts, companies, deals, notes and emails. <span class='ef'>M</span>",
+      "Jira and Confluence through one Atlassian app. <span class='ef'>L</span>",
+      "Microsoft 365: Outlook, OneDrive and SharePoint first, then Teams (needs admin consent). <span class='ef'>L</span>",
+      "Meeting transcripts (start with one: Google Meet or Fireflies) feeding the decision log. <span class='ef'>M</span>",
+      "Microsoft Teams bot, reusing the Slack bot logic. <span class='ef'>L</span>"
+     ],
+     done:"Done when: each new connector follows the standard pipeline, has tests, and shows up correctly in the Add-source popup."},
+    {n:5, name:"Enterprise-ready and billing", weeks:"about 4 weeks (overlaps Phase 4)", tone:"p2", milestone:"Sell broadly",
+     goal:"Pass procurement and start charging.",
+     tasks:[
+      "Stripe plans (Free, Team, Enterprise), checkout, seats, trial end date, and usage limits enforced per plan. <span class='ef'>L</span>",
+      "Roles and members: change role, remove member, admin-only settings and keys. <span class='ef'>M</span>",
+      "Google and Microsoft sign-in, then SAML SSO. Real 2FA. <span class='ef'>L</span>",
+      "Full audit log with CSV export. Data retention that is actually enforced. <span class='ef'>M</span>",
+      "Admin analytics for pilots: questions per user, helpful rate, \"no knowledge\" rate, active users. <span class='ef'>M</span>",
+      "Self-host package: env checks, migrations, worker container, install guide. Error tracking. AES-256-GCM token encryption. <span class='ef'>L</span>",
+      "Public API (<code>/api/v1/ask</code>, <code>/api/v1/search</code>) that accepts API keys. <span class='ef'>M</span>"
+     ],
+     done:"Done when: a customer can sign up, pay, invite their team and pass a standard security questionnaire without us stepping in."}
+  ];
+
+  // ── Render gaps ─────────────────────────────────────────────────────────
+  var esc = function(s){ return s; }; // content above is authored HTML
+  var stLabel = {built:"Built", partial:"Partial", broken:"Broken", claimed:"Claimed", missing:"Missing"};
+  var host = document.getElementById("pillars");
+  var all = [];
+  PILLARS.forEach(function(pl){
+    var sec = document.createElement("div");
+    sec.className = "pillar"; sec.id = "pillar-" + pl.id;
+    sec.innerHTML = "<h3>" + pl.name + " <small>" + pl.sub + "</small></h3>";
+    pl.items.forEach(function(it){
+      var el = document.createElement("div");
+      el.className = "gap"; el.dataset.s = it.s; el.dataset.p = it.p;
+      var phase = it.ph === null || it.ph === undefined ? "Later" : "Phase " + it.ph;
+      el.innerHTML =
+        "<div class='t'>" + esc(it.t) + "</div>" +
+        "<div class='meta'><span class='st " + it.s + "'>" + stLabel[it.s] + "</span><span class='pr " + it.p + "'>" + it.p.toUpperCase() + "</span><span class='ef'>" + it.e + "</span><span class='ef'>" + phase + "</span></div>" +
+        "<p class='d'>" + it.d + "</p>" +
+        "<div class='refs'>Evidence: <code>" + it.r + "</code></div>";
+      sec.appendChild(el); all.push(el);
+    });
+    host.appendChild(sec);
+  });
+
+  // ── Tiles ───────────────────────────────────────────────────────────────
+  var count = function(fn){ var n=0; PILLARS.forEach(function(p){ p.items.forEach(function(i){ if(fn(i)) n++; }); }); return n; };
+  var tiles = [
+    ["Features in scope", count(function(){return true;}), "var(--accent)"],
+    ["Built", count(function(i){return i.s==="built";}), "var(--built)"],
+    ["Partial", count(function(i){return i.s==="partial";}), "var(--partial)"],
+    ["Broken", count(function(i){return i.s==="broken";}), "var(--broken)"],
+    ["Claimed, not built", count(function(i){return i.s==="claimed";}), "var(--claimed)"],
+    ["Missing", count(function(i){return i.s==="missing";}), "var(--missing)"],
+    ["Must fix before selling (P0)", count(function(i){return i.p==="p0";}), "var(--p0)"]
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(function(t){
+    return "<div class='tile' style='--c:" + t[2] + "'><div class='n'>" + t[1] + "</div><div class='l'>" + t[0] + "</div></div>";
+  }).join("");
+
+  // ── Coverage bars (built = 1, partial = 0.5) ────────────────────────────
+  var order = ["built","partial","broken","claimed","missing"];
+  var colors = {built:"var(--built)",partial:"var(--partial)",broken:"var(--broken)",claimed:"var(--claimed)",missing:"var(--missing)"};
+  document.getElementById("cov").innerHTML = PILLARS.map(function(pl){
+    var n = pl.items.length, c = {};
+    pl.items.forEach(function(i){ c[i.s] = (c[i.s]||0) + 1; });
+    var score = Math.round(((c.built||0) + 0.5*(c.partial||0)) / n * 100);
+    var bar = order.filter(function(k){return c[k];}).map(function(k){
+      return "<i style='width:" + (c[k]/n*100) + "%;background:" + colors[k] + "' title='" + stLabel[k] + ": " + c[k] + "'></i>";
+    }).join("");
+    return "<div class='cov-row'><span>" + pl.name + "</span><span class='cov-bar' role='img' aria-label='" + pl.name + ": " + score + "% covered'>" + bar + "</span><span class='pct'>" + score + "%</span></div>";
+  }).join("");
+
+  // ── Phases ──────────────────────────────────────────────────────────────
+  document.getElementById("phases").innerHTML = PHASES.map(function(ph){
+    var gaps = []; PILLARS.forEach(function(pl){ pl.items.forEach(function(i){ if(i.ph===ph.n) gaps.push(i.t); }); });
+    return "<div class='phase' id='phase-" + ph.n + "'>" +
+      "<h3><span class='pr " + ph.tone + "'>Phase " + ph.n + "</span> " + ph.name + (ph.milestone ? "<span class='milestone'>" + ph.milestone + "</span>" : "") + "</h3>" +
+      "<div class='est'>" + ph.weeks + "</div>" +
+      "<p class='goal'><b>Goal:</b> " + ph.goal + "</p>" +
+      "<ol>" + ph.tasks.map(function(t){ return "<li>" + t + "</li>"; }).join("") + "</ol>" +
+      (gaps.length ? "<p class='muted' style='font-size:.88rem;margin:.4rem 0 0'><b>Closes gaps:</b> " + gaps.join(" · ") + "</p>" : "") +
+      "<p class='done'>" + ph.done + "</p></div>";
+  }).join("");
+
+  // ── Filters ─────────────────────────────────────────────────────────────
+  var fp = "all", fs = "all", q = document.getElementById("q"), cnt = document.getElementById("count");
+  function apply(){
+    var term = q.value.trim().toLowerCase(), shown = 0;
+    all.forEach(function(el){
+      var ok = (fp==="all"||el.dataset.p===fp) && (fs==="all"||el.dataset.s===fs) && (!term||el.textContent.toLowerCase().indexOf(term)!==-1);
+      el.classList.toggle("hidden", !ok); if(ok) shown++;
+    });
+    document.querySelectorAll(".pillar").forEach(function(s){ s.classList.toggle("hidden", !s.querySelector(".gap:not(.hidden)")); });
+    cnt.textContent = "Showing " + shown + " of " + all.length + " features";
+  }
+  function wire(id, set){
+    var btns = [].slice.call(document.querySelectorAll("#" + id + " button"));
+    btns.forEach(function(b){ b.addEventListener("click", function(){
+      set(b.dataset.v); btns.forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true" : "false"); }); apply();
+    }); });
+  }
+  wire("f-pr", function(v){ fp = v; }); wire("f-st", function(v){ fs = v; });
+  q.addEventListener("input", apply); apply();
+
+  // ── Active topic in the navbar ──────────────────────────────────────────
+  var links = [].slice.call(document.querySelectorAll(".topbar .topics a"));
+  var targets = links.map(function(a){ return document.getElementById(a.getAttribute("href").slice(1)); });
+  function upd(){
+    var y = window.scrollY + 90, cur = 0;
+    targets.forEach(function(t,i){ if(t && t.getBoundingClientRect().top + window.scrollY <= y) cur = i; });
+    links.forEach(function(a,i){ a.classList.toggle("active", i===cur); });
+  }
+  window.addEventListener("scroll", upd, {passive:true}); window.addEventListener("resize", upd); upd();
+})();
+</script>
+</body>
+</html>

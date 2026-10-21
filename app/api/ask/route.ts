@@ -6,6 +6,7 @@ import { errorResponse } from "@/lib/api-response";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { calculateTemporalConfidence } from "@/lib/freshness";
 
 interface ChatCompletionMessageParam {
   role: "system" | "user" | "assistant";
@@ -29,36 +30,9 @@ const askSchema = z.object({
   question: z.string().min(1, "Question cannot be empty"),
   workspaceId: z.string().optional(),
   sessionId: z.string().optional(),
+  /** When set, only this project's documents and memory are used. */
+  projectId: z.string().uuid().optional(),
 });
-
-/**
- * Temporal confidence using the document's source_updated_at (actual content date)
- * falling back to chunk created_at. Content-type-aware decay rates.
- */
-function calculateTemporalConfidence(
-  sourceUpdatedAt: Date | null,
-  createdAt: Date,
-  sourceType?: string
-): { score: number; label: "Fresh" | "Stale" | "Aged" } {
-  const referenceDate = sourceUpdatedAt ?? createdAt;
-  const ageInDays = (Date.now() - referenceDate.getTime()) / (1000 * 60 * 60 * 24);
-
-  // Content-type-aware decay rates
-  let decayRate = 0.5; // Default: 0.5 pts/day → 200 days to zero
-  if (sourceType === "slack_channel") decayRate = 2.0;      // Slack is highly ephemeral
-  else if (sourceType === "github_issue" || sourceType === "github_pr") decayRate = 0.3;
-  else if (sourceType === "notion_page" || sourceType === "google_doc") decayRate = 0.2;
-  else if (sourceType === "linear_issue") decayRate = 0.4;
-
-  let score = 100 - (ageInDays * decayRate);
-  if (score < 0) score = 0;
-
-  let label: "Fresh" | "Stale" | "Aged" = "Fresh";
-  if (score < 50) label = "Stale";
-  else if (score < 80) label = "Aged";
-
-  return { score: Math.round(score), label };
-}
 
 const NO_KNOWLEDGE_RESPONSE = `I don't have enough information about that in the connected knowledge base.
 
@@ -97,8 +71,16 @@ export async function POST(request: NextRequest) {
       return errorResponse("Invalid payload", 400);
     }
 
-    const { question, sessionId } = result.data;
+    const { question, sessionId, projectId } = result.data;
     const workspaceId = workspace.id;
+
+    // Project scope: the project must belong to this workspace.
+    const project = projectId
+      ? await prisma.project.findFirst({ where: { id: projectId, workspaceId }, select: { id: true, name: true } })
+      : null;
+    if (projectId && !project) {
+      return errorResponse("Project not found", 404);
+    }
 
     if (sessionId) {
       await prisma.chatMessage.create({
@@ -173,6 +155,9 @@ export async function POST(request: NextRequest) {
       LEFT JOIN documents d ON d.id = dc.document_id
       WHERE dc.workspace_id = ${workspaceId}::uuid
         AND dc.source_id::text IN (${Prisma.join(allowedSourceIds)})
+        ${project
+          ? Prisma.sql`AND dc.document_id IN (SELECT document_id FROM document_projects WHERE project_id = ${project.id}::uuid AND status = 'confirmed')`
+          : Prisma.empty}
         AND 1 - (dc.embedding <=> ${vectorQuery}::vector) > 0.55
       ORDER BY dc.embedding <=> ${vectorQuery}::vector
       LIMIT 8;
@@ -260,9 +245,31 @@ CRITICAL INSTRUCTIONS:
 5. Format your response in clean Markdown.`,
     };
 
+    // Project questions also get the project's recorded decisions, risks and milestones.
+    let projectMemoryBlock = "";
+    if (project) {
+      const memories = await prisma.orgMemory.findMany({
+        where: {
+          projectId: project.id,
+          OR: [{ sourceDocumentId: null }, { sourceDocument: { sourceId: { in: allowedSourceIds } } }],
+        },
+        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+        take: 15,
+        select: { type: true, title: true, content: true, occurredAt: true, createdAt: true },
+      });
+      if (memories.length) {
+        projectMemoryBlock =
+          `Recorded memory for project "${project.name}" (newest first):\n` +
+          memories
+            .map(m => `- [${m.type ?? "fact"} · ${(m.occurredAt ?? m.createdAt).toISOString().slice(0, 10)}] ${m.title}: ${m.content}`)
+            .join("\n") +
+          "\n\n---\n\n";
+      }
+    }
+
     const userMessage: ChatCompletionMessageParam = {
       role: "user",
-      content: `Context from company knowledge base:\n\n${context}\n\n---\n\nQuestion: ${question}`,
+      content: `${project ? `The user is asking about the project "${project.name}". Answer about this project only.\n\n` : ""}${projectMemoryBlock}Context from company knowledge base:\n\n${context}\n\n---\n\nQuestion: ${question}`,
     };
 
     const apiMessages = [

@@ -14,6 +14,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";
 
 async function slackFetch(url: string, token: string): Promise<Record<string, unknown>> {
   const res = await fetch(url, {
@@ -187,12 +188,14 @@ export async function syncSlack(sourceId: string): Promise<void> {
         const docUrl = `slack://channel?id=${channelId}&team=${(source.config as Record<string, string>)?.teamId || ""}`;
 
         const contentHash = crypto.createHash("md5").update(rawContent).digest("hex");
+        const metadata = scopeMetadata("slack", [{ type: "channel", id: channelId, name: `#${channelName}` }]);
 
         const existingDoc = await prisma.document.findUnique({
           where: { sourceId_externalId: { sourceId, externalId: docExternalId } },
         });
 
         if (existingDoc && existingDoc.contentHash === contentHash) {
+          await ensureDocumentMetadata(existingDoc.id, metadata);
           console.log(`[Slack] Channel ${docTitle} unmodified, skipping.`);
           continue;
         }
@@ -210,6 +213,7 @@ export async function syncSlack(sourceId: string): Promise<void> {
             rawContent,
             contentHash,
             url: docUrl,
+            metadata,
             indexedAt: new Date(),
             updatedAt: lastMessageDate,
           },
@@ -222,6 +226,7 @@ export async function syncSlack(sourceId: string): Promise<void> {
             url: docUrl,
             rawContent,
             contentHash,
+            metadata,
             indexedAt: new Date(),
             updatedAt: lastMessageDate,
           },
@@ -240,21 +245,13 @@ export async function syncSlack(sourceId: string): Promise<void> {
         for (const chunk of chunks) {
           const embedding = await generateEmbedding(chunk.content);
 
-          const dbChunk = await prisma.documentChunk.create({
-            data: {
-              workspaceId: source.workspaceId,
-              sourceId,
-              documentId: doc.id,
-              content: chunk.content,
-              chunkIndex: chunk.chunkIndex,
-            },
-          });
-
           const { error: insertErr } = await supabaseAdmin.from("document_chunks").insert({
-            id: dbChunk.id,
             document_id: doc.id,
             workspace_id: source.workspaceId,
+            source_id: sourceId,
             content: chunk.content,
+            chunk_index: chunk.chunkIndex,
+            token_count: chunk.tokenCount,
             embedding,
             metadata: {
               source: "slack",

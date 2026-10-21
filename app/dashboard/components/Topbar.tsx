@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
-  Menu, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
+  Menu, Sun, Moon, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
   FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle, LogOut, User
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
+import { useTheme } from "@/components/ThemeProvider";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -101,6 +102,8 @@ const chipStyle = (selected: boolean): React.CSSProperties => ({
 
 export default function Topbar() {
   const { user, workspace } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -391,6 +394,17 @@ export default function Topbar() {
           aria-label="Help and shortcuts"
         >
           <HelpCircle size={18} />
+        </button>
+
+        {/* Light / dark mode */}
+        <button
+          type="button"
+          className="ui-icon-btn"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
         {/* Notifications */}

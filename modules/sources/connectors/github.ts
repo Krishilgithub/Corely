@@ -20,6 +20,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generateEmbedding } from "@/lib/openai";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
+import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";
 
 // ── Main sync entry point ──────────────────────────────────────────────────────
 
@@ -252,6 +253,8 @@ async function indexDocument(
   if (!doc.rawContent || doc.rawContent.trim().length < 10) return false;
 
   const contentHash = crypto.createHash("sha256").update(doc.rawContent).digest("hex");
+  const repo = typeof doc.metadata.repo === "string" ? doc.metadata.repo : null;
+  const metadata = scopeMetadata("github", [repo ? { type: "repo", id: repo, name: repo } : null]);
 
   const existing = await prisma.document.findUnique({
     where: { sourceId_externalId: { sourceId, externalId: doc.externalId } },
@@ -259,6 +262,7 @@ async function indexDocument(
   });
 
   if (existing?.contentHash === contentHash) {
+    await ensureDocumentMetadata(existing.id, metadata);
     return false; // unchanged
   }
 
@@ -273,6 +277,7 @@ async function indexDocument(
       url: doc.url,
       rawContent: doc.rawContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
     update: {
@@ -281,6 +286,7 @@ async function indexDocument(
       url: doc.url,
       rawContent: doc.rawContent,
       contentHash,
+      metadata,
       indexedAt: new Date(),
     },
   });
