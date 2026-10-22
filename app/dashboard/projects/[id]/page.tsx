@@ -11,6 +11,9 @@ import { useAuth } from "../../../lib/auth-context";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AnimatedTabs } from "@/components/ui/animated-tabs";
+import { Gauge } from "@/components/ui/gauge";
+import { ActivityHeatmap } from "@/components/ui/activity-heatmap";
 import ProjectFormModal from "../components/ProjectFormModal";
 import ProjectSources from "../components/ProjectSources";
 import ProjectMemory from "../components/ProjectMemory";
@@ -147,19 +150,24 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      <div className="pj-tabs" role="tablist" aria-label="Project sections">
-        <button type="button" role="tab" aria-selected={tab === "overview"} onClick={() => setTab("overview")}><LayoutDashboard /> Overview</button>
-        <button type="button" role="tab" aria-selected={tab === "memory"} onClick={() => setTab("memory")}>
-          <Brain /> Memory <span className="ui-badge ui-badge--neutral">{project.counts.memories}</span>
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")}><MessageSquare /> Ask</button>
-        <button type="button" role="tab" aria-selected={tab === "sources"} onClick={() => setTab("sources")}>
-          <Link2 /> Sources
-          {project.counts.suggestions > 0
-            ? <span className="ui-badge ui-badge--accent" title="Documents to review">{project.counts.suggestions}</span>
-            : <span className="ui-badge ui-badge--neutral">{project.links.length}</span>}
-        </button>
-      </div>
+      <AnimatedTabs<Tab>
+        label="Project sections"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { value: "overview", label: "Overview", icon: <LayoutDashboard /> },
+          { value: "memory", label: "Memory", icon: <Brain />, badge: <span className="ui-badge ui-badge--neutral">{project.counts.memories}</span> },
+          { value: "ask", label: "Ask", icon: <MessageSquare /> },
+          {
+            value: "sources",
+            label: "Sources",
+            icon: <Link2 />,
+            badge: project.counts.suggestions > 0
+              ? <span className="ui-badge ui-badge--accent" title="Documents to review">{project.counts.suggestions}</span>
+              : <span className="ui-badge ui-badge--neutral">{project.links.length}</span>,
+          },
+        ]}
+      />
 
       {tab === "overview" && (
         <>
@@ -175,6 +183,31 @@ export default function ProjectDetailPage() {
           </div>
 
           <ProjectHighlights projectId={project.id} refreshKey={refreshKey} onOpenMemory={() => setTab("memory")} />
+
+          <div className="pj-insight-row">
+            <div className="ui-card pj-gauge-card">
+              <div className="ui-card-header"><span className="type-heading">Memory coverage</span></div>
+              <div className="ui-card-body" style={{ display: "flex", justifyContent: "center" }}>
+                <Gauge
+                  value={project.counts.documents ? Math.round(((project.counts.documents - (project.counts.unread ?? 0)) / project.counts.documents) * 100) : 0}
+                  caption={project.counts.documents
+                    ? `${project.counts.documents - (project.counts.unread ?? 0)} of ${project.counts.documents} documents read`
+                    : "No documents yet"}
+                />
+              </div>
+            </div>
+            <div className="ui-card">
+              <div className="ui-card-header">
+                <div>
+                  <div className="type-heading">Activity</div>
+                  <div className="type-caption">Documents updated and memories recorded each day.</div>
+                </div>
+              </div>
+              <div className="ui-card-body">
+                <ActivityHeatmap data={project.activity ?? []} unit="update" />
+              </div>
+            </div>
+          </div>
 
           <div className="pj-two-col">
             <div className="ui-card">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, X, Loader2 } from "lucide-react";
+import { TagInput } from "@/components/ui/tag-input";
 import { PHASES, STATUS_LABEL, type ProjectOptions, type ProjectStatus, type ProjectSummary } from "../types";
 
 type Props = {
@@ -23,7 +24,7 @@ export default function ProjectFormModal({ open, project, onClose, onSaved }: Pr
     name: "",
     key: "",
     description: "",
-    aliases: "",
+    aliases: [] as string[],
     status: "active" as ProjectStatus,
     phase: "",
     ownerId: "",
@@ -40,7 +41,7 @@ export default function ProjectFormModal({ open, project, onClose, onSaved }: Pr
       name: project?.name ?? "",
       key: project?.key ?? "",
       description: project?.description ?? "",
-      aliases: (project?.aliases ?? []).join(", "),
+      aliases: project?.aliases ?? [],
       status: project?.status ?? "active",
       phase: project?.phase ?? "",
       ownerId: project?.ownerId ?? "",
@@ -143,8 +144,8 @@ export default function ProjectFormModal({ open, project, onClose, onSaved }: Pr
 
           <div className="pj-field">
             <label htmlFor="pj-aliases">Other names</label>
-            <input id="pj-aliases" className="ui-input" value={form.aliases} onChange={set("aliases")} placeholder="Atlas, Project A, mobile-v2" />
-            <span className="pj-hint">Code names or old names, separated by commas.</span>
+            <TagInput id="pj-aliases" value={form.aliases} onChange={aliases => setForm(f => ({ ...f, aliases }))} placeholder="Type a name, then press Enter" />
+            <span className="pj-hint">Code names or old names. Corely uses them to find the project&apos;s documents.</span>
           </div>
 
           <div className="pj-row">

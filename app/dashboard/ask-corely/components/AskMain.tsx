@@ -31,6 +31,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import CorelyLogo from "@/components/icons/corely-logo";
 
@@ -137,7 +138,7 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
           transition={{ duration: 0.15 }}
         >
           <StepIcon state={step1} />
-          <span>Analyzing query scope...</span>
+          {step1 === "active" ? <TextShimmer>Analyzing query scope...</TextShimmer> : <span>Analyzing query scope...</span>}
         </motion.div>
 
         <motion.div
@@ -147,11 +148,9 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
           transition={{ duration: 0.15 }}
         >
           <StepIcon state={step2} />
-          <span>
-            {hasSources
-              ? `Retrieved ${sources.length} document references`
-              : "Scanning workspace semantic vectors..."}
-          </span>
+          {step2 === "active"
+            ? <TextShimmer>Scanning workspace semantic vectors...</TextShimmer>
+            : <span>{hasSources ? `Retrieved ${sources.length} document references` : "Scanning workspace semantic vectors..."}</span>}
         </motion.div>
 
         <motion.div
@@ -161,7 +160,7 @@ function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
           transition={{ duration: 0.15 }}
         >
           <StepIcon state={step3} />
-          <span>Synthesizing intelligence response...</span>
+          {step3 === "active" ? <TextShimmer>Synthesizing intelligence response...</TextShimmer> : <span>Synthesizing intelligence response...</span>}
         </motion.div>
       </div>
 

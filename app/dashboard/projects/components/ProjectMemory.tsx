@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AnimatedTabs } from "@/components/ui/animated-tabs";
 import { SOURCE_LABEL } from "../types";
 
 type MemoryType = "decision" | "risk" | "milestone" | "question" | "fact";
@@ -144,14 +145,18 @@ export default function ProjectMemory({ projectId, canManage, onChanged }: Props
       {error && <div className="pj-error" role="alert">{error}</div>}
 
       <div className="pj-toolbar">
-        <div className="pj-seg" role="group" aria-label="Filter by type">
-          <button type="button" aria-pressed={type === "all"} onClick={() => setType("all")}>All <span className="pj-count">{total}</span></button>
-          {(Object.keys(MEMORY_META) as MemoryType[]).map(t => (
-            <button key={t} type="button" aria-pressed={type === t} onClick={() => setType(t)}>
-              {MEMORY_META[t].plural} <span className="pj-count">{counts[t] ?? 0}</span>
-            </button>
-          ))}
-        </div>
+        <AnimatedTabs<"all" | MemoryType>
+          variant="pill"
+          label="Filter by type"
+          value={type}
+          onChange={setType}
+          items={[
+            { value: "all", label: "All", badge: <span className="pj-count">{total}</span> },
+            ...(Object.keys(MEMORY_META) as MemoryType[]).map(t => ({
+              value: t, label: MEMORY_META[t].plural, badge: <span className="pj-count">{counts[t] ?? 0}</span>,
+            })),
+          ]}
+        />
         <div className="pj-search">
           <Search />
           <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search memory" aria-label="Search memory" />

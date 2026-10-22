@@ -36,6 +36,26 @@ export async function GET(_req: Request, { params }: Ctx) {
     const lastActivity = await lastActivityByProject([id]);
     const { _count, ...rest } = project;
 
+    // Daily activity for the heatmap: documents updated and memories recorded, last 18 weeks.
+    const activityRows = await prisma.$queryRaw<Array<{ day: string; n: bigint }>>`
+      SELECT day, SUM(n)::bigint AS n FROM (
+        SELECT to_char(d.updated_at, 'YYYY-MM-DD') AS day, COUNT(*) AS n
+        FROM document_projects dp JOIN documents d ON d.id = dp.document_id
+        WHERE dp.project_id = ${id}::uuid AND dp.status = 'confirmed' AND d.updated_at > now() - interval '126 days'
+        GROUP BY 1
+        UNION ALL
+        SELECT to_char(COALESCE(m.occurred_at, m.created_at), 'YYYY-MM-DD') AS day, COUNT(*) AS n
+        FROM org_memories m
+        WHERE m.project_id = ${id}::uuid AND COALESCE(m.occurred_at, m.created_at) > now() - interval '126 days'
+        GROUP BY 1
+      ) t GROUP BY day`;
+
+    // How many confirmed documents Corely has not read for memory yet.
+    const unreadRows = await prisma.$queryRaw<Array<{ n: bigint }>>`
+      SELECT COUNT(*) AS n FROM document_projects dp JOIN documents d ON d.id = dp.document_id
+      WHERE dp.project_id = ${id}::uuid AND dp.status = 'confirmed' AND d.raw_content IS NOT NULL
+        AND dp.extracted_hash IS DISTINCT FROM COALESCE(d.content_hash, md5(d.raw_content))`;
+
     return successResponse({
       ...rest,
       counts: {
@@ -43,7 +63,9 @@ export async function GET(_req: Request, { params }: Ctx) {
         memories: _count.memories,
         suggestions,
         byType: Object.fromEntries(memoryByType.map(m => [m.type ?? "other", m._count._all])),
+        unread: Number(unreadRows[0]?.n ?? 0),
       },
+      activity: activityRows.map(r => ({ date: r.day, count: Number(r.n) })),
       lastActivityAt: lastActivity.get(id) ?? null,
     });
   } catch (error) {

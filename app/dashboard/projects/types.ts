@@ -17,7 +17,7 @@ export type ProjectSummary = {
   owner: { id: string; name: string | null; email: string } | null;
   team: { id: string; name: string } | null;
   sourceTypes?: string[];
-  counts: { links?: number; documents: number; memories: number; suggestions: number; byType?: Record<string, number> };
+  counts: { links?: number; documents: number; memories: number; suggestions: number; byType?: Record<string, number>; unread?: number };
   lastActivityAt: string | null;
 };
 
@@ -31,7 +31,7 @@ export type ProjectLink = {
   source: { id: string; name: string; type: string; status: string };
 };
 
-export type ProjectDetail = ProjectSummary & { links: ProjectLink[] };
+export type ProjectDetail = ProjectSummary & { links: ProjectLink[]; activity: Array<{ date: string; count: number }> };
 
 export type ProjectOptions = {
   members: Array<{ id: string; name: string | null; email: string }>;

@@ -1856,3 +1856,84 @@ body {
   .landing-orbit,
   .landing-orbit-counter { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION & EFFECTS (components/ui: gauge, tabs, tag input,
+   heatmap, text shimmer, theme switch transition)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Text shimmer: a soft light sweeping across "working" labels */
+.ui-shimmer {
+  background: linear-gradient(90deg, var(--text-tertiary) 0%, var(--text-tertiary) 40%, var(--text-primary) 50%, var(--text-tertiary) 60%, var(--text-tertiary) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ui-shimmer 1.8s linear infinite;
+}
+@keyframes ui-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+
+/* Gauge */
+.ui-gauge { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.ui-gauge__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 6%; }
+.ui-gauge__status { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+.ui-gauge__caption { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; margin-top: -6px; }
+
+/* Animated tabs */
+.ui-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.ui-tabs::-webkit-scrollbar { display: none; }
+.ui-tabs__tab {
+  position: relative; flex-shrink: 0; border: none; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-secondary);
+  transition: color 150ms ease-out;
+}
+.ui-tabs__tab:hover { color: var(--text-primary); }
+.ui-tabs__tab[aria-selected="true"] { color: var(--accent-text); font-weight: 600; }
+.ui-tabs__content { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ui-tabs__content svg { width: 16px; height: 16px; }
+.ui-tabs__indicator { position: absolute; pointer-events: none; }
+.ui-tabs--underline { border-bottom: 1px solid var(--hairline); }
+.ui-tabs--underline .ui-tabs__tab { height: 40px; padding: 0 12px; }
+.ui-tabs--underline .ui-tabs__indicator { left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent-fill); }
+.ui-tabs--pill { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-secondary); border: 1px solid var(--hairline); max-width: 100%; }
+.ui-tabs--pill .ui-tabs__tab { height: 30px; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 600; }
+.ui-tabs--pill .ui-tabs__indicator { inset: 0; border-radius: 7px; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-border); }
+
+/* Tag input */
+.ui-tag-input { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; height: auto; min-height: 40px; padding: 6px 8px; cursor: text; }
+.ui-tag-input input { flex: 1; min-width: 120px; border: none; outline: none; background: transparent; font: inherit; font-size: 14px; color: var(--text-primary); padding: 2px 4px; box-shadow: none !important; }
+.ui-tag-input input::placeholder { color: var(--text-disabled); }
+.ui-tag-input:focus-within { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-wash); }
+.ui-tag {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 4px 0 8px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent-text); border: 1px solid var(--accent-border);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.ui-tag button { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; border: none; background: transparent; color: inherit; cursor: pointer; }
+.ui-tag button:hover { background: color-mix(in srgb, var(--accent-fill) 18%, transparent); }
+
+/* Activity heatmap */
+.ui-heatmap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ui-heatmap__grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
+.ui-heatmap__col { display: flex; flex-direction: column; gap: 3px; }
+.ui-heatmap__cell { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--surface-secondary); border: 1px solid var(--hairline); }
+.ui-heatmap__cell[data-level="1"] { background: color-mix(in srgb, var(--accent-fill) 25%, var(--surface)); border-color: transparent; }
+.ui-heatmap__cell[data-level="2"] { background: color-mix(in srgb, var(--accent-fill) 50%, var(--surface)); border-color: transparent; }
+.ui-heatmap__cell[data-level="3"] { background: color-mix(in srgb, var(--accent-fill) 75%, var(--surface)); border-color: transparent; }
+.ui-heatmap__cell[data-level="4"] { background: var(--accent-fill); border-color: transparent; }
+.ui-heatmap__cell[data-level="future"] { background: transparent; border-style: dashed; opacity: 0.5; }
+.ui-heatmap__legend { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ui-heatmap__scale { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--text-tertiary); }
+
+/* Theme switch: the new theme grows as a circle from the click point */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-theme::view-transition-new(root) { animation: vt-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes vt-reveal {
+  from { clip-path: circle(0 at var(--vt-x) var(--vt-y)); }
+  to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-shimmer { animation: none; color: var(--text-tertiary); background: none; }
+}

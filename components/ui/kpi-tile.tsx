@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "./animated-number";
 
 export type WellTone = "neutral" | "success" | "warning" | "muted" | "accent";
 
@@ -41,7 +42,7 @@ export function KpiTile({
         )}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span className="type-metric">{value}</span>
+        <span className="type-metric">{typeof value === "number" ? <AnimatedNumber value={value} /> : value}</span>
         <span className="type-caption">{label}</span>
       </div>
     </div>

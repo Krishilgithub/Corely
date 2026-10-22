@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AnimatedTabs } from "@/components/ui/animated-tabs";
 import ProjectFormModal from "./components/ProjectFormModal";
 import { STATUS_LABEL, STATUS_TONE, SOURCE_LABEL, projectInitials, personName, type ProjectStatus, type ProjectSummary } from "./types";
 import "./projects.css";
@@ -98,13 +99,13 @@ export default function ProjectsPage() {
       </div>
 
       <div className="pj-toolbar">
-        <div className="pj-seg" role="group" aria-label="Filter by status">
-          {FILTERS.map(f => (
-            <button key={f.value} type="button" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>
-              {f.label} <span className="pj-count">{counts[f.value] ?? 0}</span>
-            </button>
-          ))}
-        </div>
+        <AnimatedTabs
+          variant="pill"
+          label="Filter by status"
+          value={filter}
+          onChange={setFilter}
+          items={FILTERS.map(f => ({ value: f.value, label: f.label, badge: <span className="pj-count">{counts[f.value] ?? 0}</span> }))}
+        />
         <div className="pj-search">
           <Search />
           <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search projects" aria-label="Search projects" />

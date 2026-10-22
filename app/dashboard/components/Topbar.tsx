@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HelpModal from "./HelpModal";
+import { switchThemeWithTransition } from "@/lib/theme-transition";
 
 interface AppNotification {
   id: string;
@@ -400,7 +401,10 @@ export default function Topbar() {
         <button
           type="button"
           className="ui-icon-btn"
-          onClick={() => setTheme(isDark ? "light" : "dark")}
+          onClick={e => {
+            const next = isDark ? "light" : "dark";
+            switchThemeWithTransition(next, () => setTheme(next), { x: e.clientX, y: e.clientY });
+          }}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
         >

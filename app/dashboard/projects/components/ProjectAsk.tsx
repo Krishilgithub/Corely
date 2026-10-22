@@ -6,6 +6,7 @@ import { ArrowUp, ExternalLink, Loader2, MessageSquare } from "lucide-react";
 import CorelyLogo from "@/components/icons/corely-logo";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 type Source = { title: string; url: string | null; type: string; confidenceScore: number; confidenceLabel: "Fresh" | "Aged" | "Stale" };
 type Turn = { role: "user" | "corely"; text: string; sources?: Source[]; pending?: boolean; notice?: boolean };
@@ -103,7 +104,8 @@ export default function ProjectAsk({ projectId, projectName }: { projectId: stri
                 <span className="db-logo-tile" aria-hidden="true"><CorelyLogo size={16} /></span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   {t.pending ? (
-                    <div className="pj-stack" aria-label="Corely is thinking">
+                    <div className="pj-stack" role="status">
+                      <TextShimmer className="type-body">Reading {projectName}&apos;s documents and memory…</TextShimmer>
                       <div className="ui-skeleton" style={{ height: 12, width: "70%" }} />
                       <div className="ui-skeleton" style={{ height: 12, width: "45%" }} />
                     </div>
