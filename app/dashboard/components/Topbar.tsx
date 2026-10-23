@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
   Menu, Sun, Moon, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
-  FileText, GitBranch, Hash, MessageSquare, RefreshCw, ExternalLink, Loader2, Settings, HelpCircle, LogOut, User
+  ExternalLink, Loader2, Settings, HelpCircle, LogOut, User
 } from "lucide-react";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme } from "@/components/ThemeProvider";
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HelpModal from "./HelpModal";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { switchThemeWithTransition } from "@/lib/theme-transition";
 
 interface AppNotification {
@@ -36,24 +37,6 @@ interface SearchResult {
     source_type?: string;
     file_type?: string;
   };
-}
-
-const SOURCE_TYPE_ICONS: Record<string, React.ReactNode> = {
-  github: <GitBranch size={13} />,
-  slack: <Hash size={13} />,
-  notion: <FileText size={13} />,
-  google_drive: <FileText size={13} />,
-  linear: <RefreshCw size={13} />,
-  gmail: <MessageSquare size={13} />,
-};
-
-function getSourceIcon(type?: string) {
-  if (!type) return <Database size={13} />;
-  const normalized = type.toLowerCase().replace(/_/g, "");
-  for (const [k, v] of Object.entries(SOURCE_TYPE_ICONS)) {
-    if (normalized.includes(k)) return v;
-  }
-  return <FileText size={13} />;
 }
 
 const SUGGESTED_SEARCHES = [
@@ -694,7 +677,7 @@ export default function Topbar() {
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                                 <span style={chipStyle(isSelected)}>
-                                  {getSourceIcon(sourceType)}
+                                  <SourceLogo type={meta.source_type || meta.file_type} size={14} tile={false} />
                                   {sourceType.replace(/_/g, " ")}
                                 </span>
                                 <span className="type-body" style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

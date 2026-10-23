@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Search,
   Plus,
-  SlidersHorizontal,
   ChevronDown,
   Trash2,
   FileText,
@@ -14,12 +13,19 @@ import {
   Zap,
   Users,
   CheckCircle2,
+  AlertTriangle,
+  Flag,
+  HelpCircle,
+  Info,
   Database,
   Download,
   FilterX,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { MemoryStatsGrid } from "./components/MemoryStatsGrid";
 import { MemoryRightSidebar } from "./components/MemoryRightSidebar";
 import { AddMemoryModal } from "./components/AddMemoryModal";
@@ -37,7 +43,6 @@ export default function MemoryPage() {
   const [selectedMemory, setSelectedMemory] = useState<TimelineItem | null>(null);
 
   // ── Filter Bar states ──────────────────────────────────────────────────────
-  const [showFilterBar, setShowFilterBar] = useState<boolean>(false);
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
@@ -61,7 +66,7 @@ export default function MemoryPage() {
             interface ApiMemory {
               id: string;
               createdAt: string;
-              category: "decision" | "discussion" | "document" | "insight" | "knowledge";
+              category: TimelineItem["category"];
               title: string;
               content: string;
               badges: string[];
@@ -168,22 +173,18 @@ export default function MemoryPage() {
         return { icon: <Zap size={16} />, label: "Insight" };
       case "knowledge":
         return { icon: <Users size={16} />, label: "Knowledge" };
-    }
-  };
-
-  // Small neutral tile with the first letter of the source.
-  const getSourceIcon = (name: string) => {
-    switch (name.toLowerCase()) {
-      case "notion":
-        return <span className="mem-source-mark">N</span>;
-      case "slack":
-        return <span className="mem-source-mark">S</span>;
-      case "google drive":
-        return <span className="mem-source-mark">▲</span>;
-      case "corely ai":
-        return <span className="mem-source-mark">C</span>;
+      // Project memory types
+      case "risk":
+        return { icon: <AlertTriangle size={16} />, label: "Risk" };
+      case "milestone":
+        return { icon: <Flag size={16} />, label: "Milestone" };
+      case "question":
+        return { icon: <HelpCircle size={16} />, label: "Question" };
+      case "fact":
+        return { icon: <Info size={16} />, label: "Fact" };
+      // Never crash on a category added later
       default:
-        return <span className="mem-source-mark">H</span>;
+        return { icon: <Info size={16} />, label: String(category || "Memory").replace(/^\w/, c => c.toUpperCase()) };
     }
   };
 
@@ -516,116 +517,54 @@ export default function MemoryPage() {
           {/* ── Left Column: Timeline and Tabs ── */}
           <div className="mem-left-column">
 
-            {/* Tabs */}
-            <div className="mem-tabs-bar">
-              <div className="mem-tabs-list">
-                {["timeline", "decisions", "discussions", "documents", "knowledge sets", "snapshots"].map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    className={`mem-tab-item ${activeTab === tab ? "active" : ""}`}
-                    onClick={() => handleTabChange(tab)}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    {activeTab === tab && (
-                      <motion.div
-                        layoutId="tab-line"
-                        className="mem-tab-active-line"
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Tabs: pick one view. Each shows how many entries it holds. */}
+            <SegmentedControl
+              label="Memory view"
+              className="mem-tabs-list"
+              segments={[
+                { value: "timeline", label: "Timeline", count: stats.totalMemories },
+                { value: "decisions", label: "Decisions", count: stats.totalDecisions },
+                { value: "discussions", label: "Discussions", count: stats.totalDiscussions },
+                { value: "documents", label: "Documents", count: stats.totalDocuments },
+                { value: "knowledge sets", label: "Knowledge sets", count: stats.totalKnowledge },
+                { value: "snapshots", label: "Snapshots", count: stats.totalInsight },
+              ]}
+              value={activeTab}
+              onChange={handleTabChange}
+            />
 
-            {/* Search + filters toggle */}
-            <div className="mem-toolbar">
-              <div className="mem-search">
-                <Search size={16} />
-                <input
-                  type="text"
-                  className="ui-input"
-                  placeholder="Search Memory"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                className={`ui-btn ui-btn--secondary mem-filter-btn ${showFilterBar ? "active" : ""}`}
-                onClick={() => setShowFilterBar((prev) => !prev)}
-              >
-                <SlidersHorizontal />
-                <span>Filters</span>
-              </button>
-            </div>
-
-            {/* Filter Bar */}
-            <AnimatePresence>
-              {showFilterBar && (
-                <motion.div
-                  className="mem-filter-bar"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  style={{ overflow: "hidden" }}
-                >
-                  <div className="mem-filter-row-inner">
-                    <div className="mem-filter-group">
-                      <label className="type-label">Source</label>
-                      <div className="mem-select-wrap">
-                        <select
-                          className="ui-input"
-                          value={selectedSource}
-                          onChange={(e) => setSelectedSource(e.target.value)}
-                        >
-                          <option value="all">All Sources</option>
-                          {uniqueSources.map(source => (
-                            <option key={source} value={source}>{source}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
-
-                    <div className="mem-filter-group">
-                      <label className="type-label">Category</label>
-                      <div className="mem-select-wrap">
-                        <select
-                          className="ui-input"
-                          value={selectedCategory}
-                          onChange={(e) => handleCategoryChange(e.target.value)}
-                        >
-                          <option value="all">All Categories</option>
-                          <option value="decision">Decision Captured</option>
-                          <option value="discussion">Discussion Summary</option>
-                          <option value="document">Document Added</option>
-                          <option value="insight">Insight Generated</option>
-                          <option value="knowledge">Knowledge Update</option>
-                        </select>
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
-
-                    {(selectedSource !== "all" || selectedCategory !== "all") && (
-                      <button
-                        type="button"
-                        className="ui-btn ui-btn--secondary mem-filter-clear-btn"
-                        onClick={() => {
-                          setSelectedSource("all");
-                          handleCategoryChange("all");
-                        }}
-                      >
-                        <FilterX />
-                        Clear filters
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Search + filter chips */}
+            <FilterToolbar
+              search={{ value: searchQuery, onChange: setSearchQuery, placeholder: "Search Memory" }}
+              filters={[
+                {
+                  id: "source",
+                  label: "Source",
+                  options: uniqueSources.map(source => ({
+                    value: source,
+                    label: source,
+                    icon: <SourceLogo type={source} size={14} tile={false} />,
+                  })),
+                  value: selectedSource,
+                  onChange: setSelectedSource,
+                  emptyValue: "all",
+                },
+                {
+                  id: "category",
+                  label: "Category",
+                  options: [
+                    { value: "decision", label: "Decision Captured" },
+                    { value: "discussion", label: "Discussion Summary" },
+                    { value: "document", label: "Document Added" },
+                    { value: "insight", label: "Insight Generated" },
+                    { value: "knowledge", label: "Knowledge Update" },
+                  ].map(o => ({ ...o, icon: getCategoryDetails(o.value as TimelineItem["category"]).icon })),
+                  value: selectedCategory,
+                  onChange: handleCategoryChange,
+                  emptyValue: "all",
+                },
+              ]}
+            />
 
             {/* Timeline: one hairline table card with a header and an optional footer */}
             <div className="ui-table-wrap mem-timeline-list">
@@ -729,7 +668,7 @@ export default function MemoryPage() {
                               </td>
                               <td className="mem-td-source">
                                 <div className="mem-source-badge">
-                                  {getSourceIcon(item.sourceName)}
+                                  <SourceLogo type={item.sourceName} size={14} tileSize={24} />
                                   <span className="type-caption mem-source-name">{item.sourceName}</span>
                                 </div>
                               </td>

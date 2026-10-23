@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { Select } from "@/components/ui/select";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { TimelineItem } from "../types";
 import "../memory.css";
 
@@ -53,21 +54,20 @@ export function AddMemoryModal({
 
         <form onSubmit={handleAddMemorySubmit} className="mem-form">
           <div className="mem-form-group">
-            <label className="mem-form-label">Event category</label>
-            <div className="mem-select-wrap">
-              <select
-                className="ui-input"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value as TimelineItem["category"])}
-              >
-                <option value="decision">Decision Captured</option>
-                <option value="discussion">Discussion Summary</option>
-                <option value="document">Document Added</option>
-                <option value="insight">Insight Generated</option>
-                <option value="knowledge">Knowledge Update</option>
-              </select>
-              <ChevronDown size={16} />
-            </div>
+            <label className="mem-form-label" htmlFor="mem-new-category">Event category</label>
+            <Select
+              id="mem-new-category"
+              aria-label="Event category"
+              value={newCategory}
+              onChange={(v) => setNewCategory(v as TimelineItem["category"])}
+              options={[
+                { value: "decision", label: "Decision Captured" },
+                { value: "discussion", label: "Discussion Summary" },
+                { value: "document", label: "Document Added" },
+                { value: "insight", label: "Insight Generated" },
+                { value: "knowledge", label: "Knowledge Update" },
+              ]}
+            />
           </div>
 
           <div className="mem-form-group">
@@ -111,21 +111,18 @@ export function AddMemoryModal({
           </div>
 
           <div className="mem-form-group">
-            <label className="mem-form-label">Data source</label>
-            <div className="mem-select-wrap">
-              <select
-                className="ui-input"
-                value={newSource}
-                onChange={(e) => setNewSource(e.target.value)}
-              >
-                <option value="Notion">Notion</option>
-                <option value="Slack">Slack</option>
-                <option value="Google Drive">Google Drive</option>
-                <option value="Corely AI">Corely AI</option>
-                <option value="HR System">HR System</option>
-              </select>
-              <ChevronDown size={16} />
-            </div>
+            <label className="mem-form-label" htmlFor="mem-new-source">Data source</label>
+            <Select
+              id="mem-new-source"
+              aria-label="Data source"
+              value={newSource}
+              onChange={(v) => setNewSource(v)}
+              options={["Notion", "Slack", "Google Drive", "Corely AI", "HR System"].map((v) => ({
+                value: v,
+                label: v,
+                icon: <SourceLogo type={v} size={14} tile={false} />,
+              }))}
+            />
           </div>
 
           <div className="mem-modal-actions">

@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Check, ExternalLink, Link2, Loader2, Plus, RefreshCw, RotateCcw, Search, X, FileText } from "lucide-react";
+import { Check, ExternalLink, Link2, Loader2, Plus, RefreshCw, RotateCcw, X, FileText } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SourceLogo } from "@/components/ui/source-logo";
 import LinkSourcesModal from "./LinkSourcesModal";
 import { SOURCE_LABEL, type ProjectLink } from "../types";
 
@@ -142,7 +145,7 @@ export default function ProjectSources({ projectId, links, canManage, onChanged 
             {links.map(l => (
               <div key={l.id} className="pj-list-row">
                 <div className="pj-ident">
-                  <span className="pj-tile">{(SOURCE_LABEL[l.source.type] ?? l.source.type).slice(0, 2)}</span>
+                  <SourceLogo type={l.source.type} />
                   <div>
                     <span className="pj-name">{l.scopeName}</span>
                     <span className="pj-sub">{SOURCE_LABEL[l.source.type] ?? l.source.type} · {SCOPE_LABEL[l.scopeType] ?? l.scopeType} · {l.source.name}</span>
@@ -166,20 +169,22 @@ export default function ProjectSources({ projectId, links, canManage, onChanged 
             <div className="type-heading">Documents</div>
             <div className="type-caption">What Corely counts as part of this project, and how it knows.</div>
           </div>
-          <div className="pj-toolbar">
-            <div className="pj-seg" role="group" aria-label="Filter documents">
-              {(["confirmed", "suggested", "rejected"] as DocStatus[]).map(s => (
-                <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>
-                  {s === "confirmed" ? "In project" : s === "suggested" ? "To review" : "Rejected"}
-                  <span className="pj-count">{counts[s] ?? 0}</span>
-                </button>
-              ))}
-            </div>
-            <div className="pj-search">
-              <Search />
-              <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search titles" aria-label="Search documents" />
-            </div>
-          </div>
+          <FilterToolbar
+            leading={
+              <SegmentedControl<DocStatus>
+                label="Filter documents"
+                size="sm"
+                value={status}
+                onChange={setStatus}
+                segments={(["confirmed", "suggested", "rejected"] as DocStatus[]).map(s => ({
+                  value: s,
+                  label: s === "confirmed" ? "In project" : s === "suggested" ? "To review" : "Rejected",
+                  count: counts[s] ?? 0,
+                }))}
+              />
+            }
+            search={{ value: query, onChange: setQuery, placeholder: "Search titles" }}
+          />
         </div>
 
         {rows === null ? (
@@ -202,7 +207,7 @@ export default function ProjectSources({ projectId, links, canManage, onChanged 
             {rows.map(r => (
               <div key={r.documentId} className="pj-list-row pj-doc-row">
                 <div className="pj-ident">
-                  <span className="pj-tile">{(SOURCE_LABEL[r.source.type] ?? r.source.type).slice(0, 2)}</span>
+                  <SourceLogo type={r.source.type} />
                   <div>
                     {r.url ? (
                       <a className="pj-name" href={r.url} target="_blank" rel="noreferrer">{r.title} <ExternalLink size={12} style={{ verticalAlign: -1 }} /></a>

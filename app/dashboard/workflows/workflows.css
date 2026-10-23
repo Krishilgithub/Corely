@@ -1,54 +1,5 @@
-/* Workflows: filter drawer, grid cards, row menu, modals and toast.
+/* Workflows: grid cards, row menu, modals and toast.
    Colours are tokens only, so dark mode follows automatically. */
-
-/* Filter drawer under the toolbar */
-.wf-filter-bar {
-  background: var(--surface-secondary);
-  border-bottom: 1px solid var(--hairline);
-  width: 100%;
-  overflow: hidden;
-}
-.wf-filter-row-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-}
-.wf-filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.wf-filter-label {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-.wf-filter-group .wf-select { width: 180px; max-width: 100%; }
-.wf-filter-clear-btn { margin-left: auto; }
-
-/* Native select with our own chevron */
-.wf-select { position: relative; }
-.wf-select select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 36px;
-  cursor: pointer;
-}
-.wf-select svg {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--icon-secondary);
-  pointer-events: none;
-}
 
 /* Grid view */
 .wf-grid-layout {
@@ -272,8 +223,5 @@
 
 @media (max-width: 640px) {
   .wf-form-row { grid-template-columns: minmax(0, 1fr); }
-  .wf-filter-group { width: 100%; }
-  .wf-filter-group .wf-select { flex: 1; width: auto; }
-  .wf-filter-clear-btn { margin-left: 0; }
   .wf-toast-container { right: 16px; bottom: 16px; }
 }

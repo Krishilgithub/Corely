@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Target,
   Zap,
-  Search,
   List,
   Grid,
   MoreHorizontal,
@@ -22,7 +21,6 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   X,
   CheckCircle2,
 } from "lucide-react";
@@ -31,6 +29,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "../components/DataTable";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Select } from "@/components/ui/select";
 import "./teams.css";
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -542,53 +543,40 @@ export default function TeamsPage() {
       </div>
 
       {/* ── Controls Row ── */}
-      <div className="tm-controls-row">
-        <div className="tm-seg">
-          {tabs.map((tab) => (
-            <div
-              key={tab}
-              className={`tm-seg__item ${activeTab === tab ? "active" : ""}`}
-              onClick={() => {
-                setActiveTab(tab);
-                setCurrentPage(1);
-              }}
-            >
-              {tabLabel(tab)}
-            </div>
-          ))}
-        </div>
-        <div className="tm-filters">
-          <div className="tm-search">
-            <Search size={16} />
-            <input
-              type="text"
-              className="ui-input"
-              placeholder="Search teams..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-          <div className="tm-seg">
-            <button
-              className={`tm-seg__item tm-seg__item--icon ${viewMode === "list" ? "active" : ""}`}
-              aria-label="List view"
-              onClick={() => setViewMode("list")}
-            >
-              <List size={16} />
-            </button>
-            <button
-              className={`tm-seg__item tm-seg__item--icon ${viewMode === "grid" ? "active" : ""}`}
-              aria-label="Grid view"
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        leading={
+          <SegmentedControl
+            label="Filter teams"
+            size="sm"
+            value={activeTab}
+            onChange={(tab) => {
+              setActiveTab(tab);
+              setCurrentPage(1);
+            }}
+            segments={tabs.map((tab) => ({ value: tab, label: tabLabel(tab) }))}
+          />
+        }
+        search={{
+          value: searchQuery,
+          onChange: (v) => {
+            setSearchQuery(v);
+            setCurrentPage(1);
+          },
+          placeholder: "Search teams",
+        }}
+        actions={
+          <SegmentedControl
+            label="View"
+            size="sm"
+            value={viewMode}
+            onChange={setViewMode}
+            segments={[
+              { value: "list", label: <span className="sr-only">List view</span>, icon: <List size={16} aria-hidden="true" /> },
+              { value: "grid", label: <span className="sr-only">Grid view</span>, icon: <Grid size={16} aria-hidden="true" /> },
+            ]}
+          />
+        }
+      />
 
       {/* ── Main Layout ── */}
       <div className="tm-main-grid">
@@ -957,31 +945,23 @@ export default function TeamsPage() {
                 <div className="tm-compare-fields">
                   <div>
                     <label className="tm-field-label">Team 1</label>
-                    <div className="tm-select">
-                      <select
-                        className="ui-input"
-                        value={compareTeam1}
-                        onChange={(e) => setCompareTeam1(e.target.value)}
-                      >
-                        <option value="">Select a team...</option>
-                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
+                    <Select
+                      aria-label="Team 1"
+                      value={compareTeam1}
+                      onChange={setCompareTeam1}
+                      placeholder="Select a team"
+                      options={teams.map(t => ({ value: String(t.id), label: t.name }))}
+                    />
                   </div>
                   <div>
                     <label className="tm-field-label">Team 2</label>
-                    <div className="tm-select">
-                      <select
-                        className="ui-input"
-                        value={compareTeam2}
-                        onChange={(e) => setCompareTeam2(e.target.value)}
-                      >
-                        <option value="">Select a team...</option>
-                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
+                    <Select
+                      aria-label="Team 2"
+                      value={compareTeam2}
+                      onChange={setCompareTeam2}
+                      placeholder="Select a team"
+                      options={teams.map(t => ({ value: String(t.id), label: t.name }))}
+                    />
                   </div>
                 </div>
 
@@ -1091,14 +1071,14 @@ export default function TeamsPage() {
                     </div>
                     <div>
                       <label className="tm-field-label">Role</label>
-                      <div className="tm-select">
-                        <select className="ui-input"
-                                value={inviteRoleId} onChange={(e) => setInviteRoleId(e.target.value)} required>
-                          <option value="">Select a role...</option>
-                          {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                        <ChevronDown size={16} />
-                      </div>
+                      <Select
+                        aria-label="Role"
+                        value={inviteRoleId}
+                        onChange={setInviteRoleId}
+                        placeholder="Select a role"
+                        required
+                        options={roles.map(r => ({ value: String(r.id), label: r.name }))}
+                      />
                     </div>
                     <div>
                       <label className="tm-field-label">Assign to teams <span className="tm-field-hint">(optional)</span></label>

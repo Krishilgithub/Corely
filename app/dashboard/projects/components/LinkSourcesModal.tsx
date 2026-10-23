@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Check, ChevronRight, Loader2, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Loader2, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { SOURCE_LABEL, type ProjectLink } from "../types";
 
 type Source = { id: string; name: string; type: string; status: string; itemsIndexed?: number };
@@ -129,7 +131,7 @@ export default function LinkSourcesModal({ open, projectId, existing, onClose, o
                 {sources.map(s => (
                   <button key={s.id} type="button" className="pj-list-row pj-pick" onClick={() => pickSource(s)}>
                     <span className="pj-ident">
-                      <span className="pj-tile">{(SOURCE_LABEL[s.type] ?? s.type).slice(0, 2)}</span>
+                      <SourceLogo type={s.type} />
                       <span>
                         <span className="pj-name">{s.name}</span>
                         <span className="pj-sub">{SOURCE_LABEL[s.type] ?? s.type}</span>
@@ -144,15 +146,14 @@ export default function LinkSourcesModal({ open, projectId, existing, onClose, o
 
           {source && (
             <>
-              <div className="pj-toolbar">
-                <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm" onClick={() => { setSource(null); setScopes(null); }}>
-                  <ArrowLeft /> All sources
-                </button>
-                <div className="pj-search" style={{ maxWidth: "none" }}>
-                  <Search />
-                  <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" aria-label="Search items" />
-                </div>
-              </div>
+              <FilterToolbar
+                leading={
+                  <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm" onClick={() => { setSource(null); setScopes(null); }}>
+                    <ArrowLeft /> All sources
+                  </button>
+                }
+                search={{ value: query, onChange: setQuery, placeholder: "Search items" }}
+              />
 
               {scopes === null ? (
                 <div className="pj-stack">{[0, 1, 2, 3].map(i => <div key={i} className="ui-skeleton" style={{ height: 48 }} />)}</div>

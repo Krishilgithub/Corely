@@ -10,9 +10,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AnimatedTabs } from "@/components/ui/animated-tabs";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SourceLogo } from "@/components/ui/source-logo";
 import ProjectFormModal from "./components/ProjectFormModal";
-import { STATUS_LABEL, STATUS_TONE, SOURCE_LABEL, projectInitials, personName, type ProjectStatus, type ProjectSummary } from "./types";
+import { STATUS_LABEL, STATUS_TONE, projectInitials, personName, type ProjectStatus, type ProjectSummary } from "./types";
 import "./projects.css";
 
 const FILTERS: Array<{ value: "all" | ProjectStatus; label: string }> = [
@@ -98,23 +100,30 @@ export default function ProjectsPage() {
         <KpiTile icon={<Inbox />} label="Suggestions to review" value={loading ? "–" : totals.suggestions.toLocaleString()} />
       </div>
 
-      <div className="pj-toolbar">
-        <AnimatedTabs
-          variant="pill"
-          label="Filter by status"
-          value={filter}
-          onChange={setFilter}
-          items={FILTERS.map(f => ({ value: f.value, label: f.label, badge: <span className="pj-count">{counts[f.value] ?? 0}</span> }))}
-        />
-        <div className="pj-search">
-          <Search />
-          <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search projects" aria-label="Search projects" />
-        </div>
-        <div className="pj-view-toggle">
-          <button type="button" className="ui-icon-btn" aria-pressed={view === "table"} onClick={() => setView("table")} aria-label="Table view"><List size={18} /></button>
-          <button type="button" className="ui-icon-btn" aria-pressed={view === "grid"} onClick={() => setView("grid")} aria-label="Card view"><LayoutGrid size={18} /></button>
-        </div>
-      </div>
+      <FilterToolbar
+        leading={
+          <SegmentedControl
+            label="Filter by status"
+            size="sm"
+            value={filter}
+            onChange={setFilter}
+            segments={FILTERS.map(f => ({ value: f.value, label: f.label, count: counts[f.value] ?? 0 }))}
+          />
+        }
+        search={{ value: query, onChange: setQuery, placeholder: "Search projects" }}
+        actions={
+          <SegmentedControl
+            label="View"
+            size="sm"
+            value={view}
+            onChange={setView}
+            segments={[
+              { value: "table", label: <span className="sr-only">Table view</span>, icon: <List size={16} aria-hidden="true" /> },
+              { value: "grid", label: <span className="sr-only">Card view</span>, icon: <LayoutGrid size={16} aria-hidden="true" /> },
+            ]}
+          />
+        }
+      />
 
       {error && <div className="pj-error" role="alert">{error}</div>}
 
@@ -167,7 +176,9 @@ export default function ProjectsPage() {
                   <td>
                     {p.sourceTypes && p.sourceTypes.length > 0 ? (
                       <div className="pj-chips">
-                        {p.sourceTypes.map(t => <span key={t} className="ui-badge ui-badge--neutral">{SOURCE_LABEL[t] ?? t}</span>)}
+                        {p.sourceTypes.map(t => (
+                          <SourceLogo key={t} type={t} size={14} tileSize={24} />
+                        ))}
                       </div>
                     ) : <span className="pj-sub">Not linked</span>}
                   </td>

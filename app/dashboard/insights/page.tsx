@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -12,7 +11,6 @@ import {
   Search,
   ChevronDown,
   Calendar,
-  Filter,
   ChevronRight,
   MoreHorizontal,
   TrendingUp,
@@ -47,23 +45,15 @@ import { PageHeader } from "@/components/ui/page-header";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SourceLogo } from "@/components/ui/source-logo";
 import "./insights.css";
 
 
 
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function getSourceIcon(sourceName: string) {
-  if (!sourceName) return <Database size={14} />;
-  const s = sourceName.toLowerCase();
-  if (s.includes("slack")) return <img src="/slack.png" alt="Slack" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  if (s.includes("gmail") || s.includes("mail")) return <img src="/gmail.png" alt="Gmail" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  if (s.includes("notion")) return <img src="/notion.png" alt="Notion" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  if (s.includes("drive")) return <img src="/drive.png" alt="Drive" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  if (s.includes("linear")) return <img src="/linear.png" alt="Linear" style={{ width: 14, height: 14, objectFit: "contain" }} />;
-  return <Database size={14} />;
-}
-
 // Priority word → badge tone, any letter case.
 // Critical and High read as errors, Medium as a warning, everything else neutral.
 function priorityTone(priority?: string): StatusTone {
@@ -292,9 +282,7 @@ export default function InsightsPage() {
         const item = row.original;
         return (
           <div className="in-sources">
-            <div className="in-source-avatar">
-              {getSourceIcon(item.source)}
-            </div>
+            <SourceLogo type={item.source} size={14} tileSize={24} />
             {item.source && <span className="type-caption in-source-name">{item.source}</span>}
           </div>
         );
@@ -383,68 +371,56 @@ export default function InsightsPage() {
 
       {/* ── Tabs + Filters ── */}
       <div className="in-filters">
-        <div className="in-tabs">
-          {tabs.map((tab) => (
-            <div
-              key={tab}
-              className={`in-tab ${activeTab === tab ? "active" : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </div>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Insight category"
+          segments={tabs.map(tab => ({
+            value: tab,
+            label: tab,
+            count: tab === "All Insights" ? insights.length : insights.filter(i => i.category === tab).length,
+          }))}
+          value={activeTab}
+          onChange={setActiveTab}
+          className="in-tabs"
+        />
 
-        <div className="in-filters-bar">
-          <div className="in-search-box">
-            <Search size={16} />
-            <input
-              type="text"
-              className="ui-input"
-              placeholder="Search insights..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="in-select">
-            <select className="ui-input" value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)}>
-              <option>All Priority</option>
-              <option>Critical</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-            <ChevronDown size={16} />
-          </div>
-          <div className="in-select">
-            <select className="ui-input" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-              <option>All Categories</option>
-              <option>Operational</option>
-              <option>Activity</option>
-              <option>Product</option>
-              <option>People</option>
-              <option>Risk</option>
-            </select>
-            <ChevronDown size={16} />
-          </div>
-          <div className="in-select">
-            <select className="ui-input" value={selectedSource} onChange={e => setSelectedSource(e.target.value)}>
-              <option>All Sources</option>
-              <option>Salesforce</option>
-              <option>GitHub</option>
-              <option>Google Drive</option>
-              <option>Slack</option>
-              <option>Corely AI</option>
-            </select>
-            <ChevronDown size={16} />
-          </div>
-          <div className="ui-btn ui-btn--secondary in-filter-btn in-filter-btn--push">
-            <Calendar /> This Month <ChevronDown />
-          </div>
-          <div className="ui-btn ui-btn--secondary in-filter-btn">
-            <Filter /> Filters
-          </div>
-        </div>
+        <FilterToolbar
+          search={{ value: searchQuery, onChange: setSearchQuery, placeholder: "Search insights..." }}
+          filters={[
+            {
+              id: "priority",
+              label: "Priority",
+              options: ["Critical", "High", "Medium", "Low"].map(v => ({ value: v, label: v })),
+              value: selectedPriority,
+              onChange: setSelectedPriority,
+              emptyValue: "All Priority",
+            },
+            {
+              id: "category",
+              label: "Category",
+              options: ["Operational", "Activity", "Product", "People", "Risk"].map(v => ({ value: v, label: v })),
+              value: selectedCategory,
+              onChange: setSelectedCategory,
+              emptyValue: "All Categories",
+            },
+            {
+              id: "source",
+              label: "Source",
+              options: ["Salesforce", "GitHub", "Google Drive", "Slack", "Corely AI"].map(v => ({
+                value: v,
+                label: v,
+                icon: <SourceLogo type={v} size={14} tile={false} />,
+              })),
+              value: selectedSource,
+              onChange: setSelectedSource,
+              emptyValue: "All Sources",
+            },
+          ]}
+          actions={
+            <div className="ui-btn ui-btn--secondary in-filter-btn">
+              <Calendar /> This Month <ChevronDown />
+            </div>
+          }
+        />
       </div>
 
       {/* ── Main Layout ── */}

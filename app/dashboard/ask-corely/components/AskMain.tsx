@@ -34,6 +34,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import CorelyLogo from "@/components/icons/corely-logo";
+import { SourceLogo } from "@/components/ui/source-logo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -772,7 +773,7 @@ export default function AskMain({
                                 <span className="ac-source-title">{src.title}</span>
                                 <span className="ac-source-meta">
                                   <span className="ac-source-type">
-                                    <FileText size={12} />
+                                    <SourceLogo type={src.type} size={14} tile={false} />
                                     {formatSourceType(src.type)}
                                   </span>
                                   {src.confidenceLabel && (

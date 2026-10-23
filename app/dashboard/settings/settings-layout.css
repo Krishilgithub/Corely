@@ -280,30 +280,9 @@ label.settings-row { cursor: pointer; }
 }
 .settings-input-icon-btn:hover { background: var(--surface-hover); color: var(--icon-primary); }
 
-/* Native select styled as .ui-input with a chevron */
-.settings-select-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 240px;
-  max-width: 100%;
-}
-.settings-select-wrapper.settings-input-wrap { width: 320px; }
-.settings-select {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  padding-right: 36px;
-  cursor: pointer;
-}
-.settings-select option { background: var(--surface); color: var(--text-primary); }
-.settings-select-chevron {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--icon-secondary);
-}
+/* Custom dropdown (components/ui/select.tsx) used in a settings row. */
+.settings-select { width: 240px; max-width: 100%; }
+.settings-select--wide { width: 320px; }
 
 /* Neutral switch: 36x20 track, orange when on */
 .settings-toggle {
@@ -630,7 +609,7 @@ label.settings-row { cursor: pointer; }
   }
   .settings-row-control > .settings-control-input,
   .settings-row-control > .settings-input-wrap,
-  .settings-row-control > .settings-select-wrapper {
+  .settings-row-control > .settings-select {
     width: 100%;
   }
   .settings-row-control > .settings-toggle,

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { BookOpen, Database } from "lucide-react";
+import { BookOpen } from "lucide-react";
+import { SourceLogo } from "@/components/ui/source-logo";
 
 import { useAuth } from "../../../lib/auth-context";
 
@@ -18,10 +18,16 @@ interface Source {
   createdAt: string;
 }
 
-// ── Google Drive Mini Icon ───────────────────────────────────────────────────
-const GoogleDriveIcon = ({ size = 16 }: { size?: number }) => (
-  <Image src="/drive.png" alt="Google Drive" width={size} height={size} style={{ objectFit: 'contain' }} />
-);
+/** Readable name for a source type, e.g. "manual_upload" becomes "Manual upload". */
+function sourceTypeLabel(type: string) {
+  const known: Record<string, string> = {
+    google_drive: "Google Drive", gmail: "Gmail", github: "GitHub", slack: "Slack",
+    notion: "Notion", linear: "Linear", manual_upload: "Manual upload",
+  };
+  if (known[type]) return known[type];
+  const t = type.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 export default function SourcesRightSidebar() {
   const { workspaceId } = useAuth();
@@ -309,15 +315,11 @@ export default function SourcesRightSidebar() {
               .map((source) => (
               <div key={source.id} className="src-recent-item">
                 <div className="src-recent-left">
-                  {source.type === "google_drive" ? (
-                    <span className="src-logo-tile src-logo-tile--sm"><GoogleDriveIcon size={16} /></span>
-                  ) : (
-                    <span className="src-glyph-tile src-glyph-tile--sm"><Database size={16} /></span>
-                  )}
+                  <SourceLogo type={source.type} size={18} tileSize={32} />
                   <div className="src-recent-text">
                     <div className="src-recent-name" title={source.name}>{source.name}</div>
                     <div className="type-caption src-recent-type">
-                      {source.type === "google_drive" ? "Google Drive" : source.type}
+                      {sourceTypeLabel(source.type)}
                     </div>
                   </div>
                 </div>

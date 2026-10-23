@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { TagInput } from "@/components/ui/tag-input";
+import { Select } from "@/components/ui/select";
 import { PHASES, STATUS_LABEL, type ProjectOptions, type ProjectStatus, type ProjectSummary } from "../types";
 
 type Props = {
@@ -61,15 +62,18 @@ export default function ProjectFormModal({ open, project, onClose, onSaved }: Pr
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    // A dropdown menu that handles Escape itself marks the event, so the modal stays open.
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open || typeof document === "undefined") return null;
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const pick = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,45 +155,43 @@ export default function ProjectFormModal({ open, project, onClose, onSaved }: Pr
           <div className="pj-row">
             <div className="pj-field">
               <label htmlFor="pj-status">Status</label>
-              <div className="pj-select">
-                <select id="pj-status" className="ui-input" value={form.status} onChange={set("status")}>
-                  {(Object.keys(STATUS_LABEL) as ProjectStatus[]).map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                </select>
-                <ChevronDown />
-              </div>
+              <Select
+                id="pj-status"
+                value={form.status}
+                onChange={pick("status")}
+                options={(Object.keys(STATUS_LABEL) as ProjectStatus[]).map(s => ({ value: s, label: STATUS_LABEL[s] }))}
+              />
             </div>
             <div className="pj-field">
               <label htmlFor="pj-phase">Phase</label>
-              <div className="pj-select">
-                <select id="pj-phase" className="ui-input" value={form.phase} onChange={set("phase")}>
-                  <option value="">Not set</option>
-                  {PHASES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-                <ChevronDown />
-              </div>
+              <Select
+                id="pj-phase"
+                value={form.phase}
+                onChange={pick("phase")}
+                options={[{ value: "", label: "Not set" }, ...PHASES.map(p => ({ value: p.value, label: p.label }))]}
+              />
             </div>
           </div>
 
           <div className="pj-row">
             <div className="pj-field">
               <label htmlFor="pj-owner">Owner</label>
-              <div className="pj-select">
-                <select id="pj-owner" className="ui-input" value={form.ownerId} onChange={set("ownerId")}>
-                  <option value="">No owner</option>
-                  {options?.members.map(m => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
-                </select>
-                <ChevronDown />
-              </div>
+              <Select
+                id="pj-owner"
+                value={form.ownerId}
+                onChange={pick("ownerId")}
+                searchable
+                options={[{ value: "", label: "No owner" }, ...(options?.members ?? []).map(m => ({ value: m.id, label: m.name || m.email, description: m.name ? m.email : undefined }))]}
+              />
             </div>
             <div className="pj-field">
               <label htmlFor="pj-team">Team</label>
-              <div className="pj-select">
-                <select id="pj-team" className="ui-input" value={form.teamId} onChange={set("teamId")}>
-                  <option value="">No team</option>
-                  {options?.teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-                <ChevronDown />
-              </div>
+              <Select
+                id="pj-team"
+                value={form.teamId}
+                onChange={pick("teamId")}
+                options={[{ value: "", label: "No team" }, ...(options?.teams ?? []).map(t => ({ value: t.id, label: t.name }))]}
+              />
             </div>
           </div>
 

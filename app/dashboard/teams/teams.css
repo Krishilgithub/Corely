@@ -172,84 +172,6 @@
   color: var(--success);
 }
 
-/* ── Filter bar ──────────────────────────────────────────── */
-.tm-controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.tm-filters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Segmented control: used for the filter tabs and the view toggle. */
-.tm-seg {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 40px;
-  padding: 3px;
-  border-radius: 8px;
-  background: var(--surface-secondary);
-  border: 1px solid var(--hairline);
-  max-width: 100%;
-  overflow-x: auto;
-}
-.tm-seg__item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
-}
-.tm-seg__item:hover { color: var(--text-primary); }
-.tm-seg__item.active {
-  background: var(--accent-soft);
-  border-color: var(--accent-border);
-  color: var(--accent-text);
-  font-weight: 600;
-}
-.tm-seg__item--icon { width: 32px; padding: 0; color: var(--icon-secondary); }
-/* The view toggle is a minor choice, so its selected state stays neutral. */
-.tm-seg__item--icon.active {
-  background: var(--surface);
-  border-color: var(--hairline);
-  color: var(--text-primary);
-}
-
-.tm-search {
-  position: relative;
-  width: 240px;
-  max-width: 100%;
-}
-.tm-search svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--icon-secondary);
-  pointer-events: none;
-}
-.tm-search .ui-input { padding-left: 36px; }
-
 /* ── Main split: table/grid on the left, insight cards on the right ── */
 .tm-main-grid {
   display: grid;
@@ -627,23 +549,6 @@
   color: var(--text-tertiary);
 }
 
-/* Native select with our own chevron */
-.tm-select { position: relative; }
-.tm-select select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 36px;
-  cursor: pointer;
-}
-.tm-select svg {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--icon-secondary);
-  pointer-events: none;
-}
-
 /* Team chips in the invite form */
 .tm-chips {
   display: flex;
@@ -858,7 +763,5 @@
 }
 @media (max-width: 640px) {
   .tm-stats-grid { grid-template-columns: minmax(0, 1fr); }
-  .tm-search { width: 100%; }
-  .tm-filters { width: 100%; }
   .tm-compare-fields { grid-template-columns: minmax(0, 1fr); }
 }

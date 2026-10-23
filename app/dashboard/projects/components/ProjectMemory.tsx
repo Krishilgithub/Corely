@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
-  AlertTriangle, Brain, CheckCircle2, ExternalLink, Flag, HelpCircle, Info, Loader2, Plus, RefreshCw, Search, Sparkles, Trash2, X,
+  AlertTriangle, Brain, CheckCircle2, ExternalLink, Flag, HelpCircle, Info, Loader2, Plus, RefreshCw, Sparkles, Trash2, X,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { AnimatedTabs } from "@/components/ui/animated-tabs";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Select } from "@/components/ui/select";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { SOURCE_LABEL } from "../types";
 
 type MemoryType = "decision" | "risk" | "milestone" | "question" | "fact";
@@ -144,29 +147,26 @@ export default function ProjectMemory({ projectId, canManage, onChanged }: Props
 
       {error && <div className="pj-error" role="alert">{error}</div>}
 
-      <div className="pj-toolbar">
-        <AnimatedTabs<"all" | MemoryType>
-          variant="pill"
-          label="Filter by type"
-          value={type}
-          onChange={setType}
-          items={[
-            { value: "all", label: "All", badge: <span className="pj-count">{total}</span> },
-            ...(Object.keys(MEMORY_META) as MemoryType[]).map(t => ({
-              value: t, label: MEMORY_META[t].plural, badge: <span className="pj-count">{counts[t] ?? 0}</span>,
-            })),
-          ]}
-        />
-        <div className="pj-search">
-          <Search />
-          <input className="ui-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search memory" aria-label="Search memory" />
-        </div>
-        {canManage && (
-          <button type="button" className="ui-btn ui-btn--secondary" onClick={() => setAdding(v => !v)} style={{ marginLeft: "auto" }}>
+      <FilterToolbar
+        leading={
+          <SegmentedControl<"all" | MemoryType>
+            label="Filter by type"
+            size="sm"
+            value={type}
+            onChange={setType}
+            segments={[
+              { value: "all", label: "All", count: total },
+              ...(Object.keys(MEMORY_META) as MemoryType[]).map(t => ({ value: t, label: MEMORY_META[t].plural, count: counts[t] ?? 0 })),
+            ]}
+          />
+        }
+        search={{ value: query, onChange: setQuery, placeholder: "Search memory" }}
+        actions={canManage && (
+          <button type="button" className="ui-btn ui-btn--secondary" onClick={() => setAdding(v => !v)}>
             <Plus /> Add memory
           </button>
         )}
-      </div>
+      />
 
       {adding && (
         <form className="ui-card" onSubmit={save}>
@@ -178,9 +178,12 @@ export default function ProjectMemory({ projectId, canManage, onChanged }: Props
             <div className="pj-row">
               <div className="pj-field">
                 <label htmlFor="mem-type">Type</label>
-                <select id="mem-type" className="ui-input" value={draft.type} onChange={e => setDraft(d => ({ ...d, type: e.target.value as MemoryType }))}>
-                  {(Object.keys(MEMORY_META) as MemoryType[]).map(t => <option key={t} value={t}>{MEMORY_META[t].label}</option>)}
-                </select>
+                <Select
+                  id="mem-type"
+                  value={draft.type}
+                  onChange={v => setDraft(d => ({ ...d, type: v as MemoryType }))}
+                  options={(Object.keys(MEMORY_META) as MemoryType[]).map(t => ({ value: t, label: MEMORY_META[t].label }))}
+                />
               </div>
               <div className="pj-field">
                 <label htmlFor="mem-date">Date</label>
@@ -240,10 +243,11 @@ export default function ProjectMemory({ projectId, canManage, onChanged }: Props
                             <span className="ui-badge ui-badge--neutral">Added by {m.source.name}</span>
                           ) : m.source.url ? (
                             <a className="pj-source-chip" href={m.source.url} target="_blank" rel="noreferrer">
+                              <SourceLogo type={m.source.type} size={12} tile={false} />
                               {SOURCE_LABEL[m.source.type] ?? m.source.type} · {m.source.title} <ExternalLink size={11} />
                             </a>
                           ) : (
-                            <span className="pj-source-chip">{SOURCE_LABEL[m.source.type] ?? m.source.type} · {m.source.title}</span>
+                            <span className="pj-source-chip"><SourceLogo type={m.source.type} size={12} tile={false} />{SOURCE_LABEL[m.source.type] ?? m.source.type} · {m.source.title}</span>
                           )}
                           {!m.manual && <StatusBadge tone={FRESH_TONE[m.freshness.label]} dot>{m.freshness.label} · {m.freshness.score}%</StatusBadge>}
                           {m.confidence !== null && m.confidence < 0.6 && <span className="pj-sub">Low confidence</span>}

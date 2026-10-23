@@ -1,15 +1,20 @@
 "use client";
 
-import { Activity, MoreHorizontal, X, GitPullRequest, FileText, UserPlus, Database, Search } from "lucide-react";
+import { Activity, MoreHorizontal, X, UserPlus, Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { SourceLogo } from "@/components/ui/source-logo";
 
-const activities = [
+// Each event shows either a source logo (`source`) or a plain icon (`icon`).
+type FeedItem = { id: number; type: string; title: string; desc: string; time: string; source?: string; icon?: LucideIcon };
+
+const activities: FeedItem[] = [
   {
     id: 1,
     type: "sync",
     title: "Google Drive synced",
     desc: "450 new documents indexed from /Engineering/Specs",
     time: "2m ago",
-    icon: Database,
+    source: "google_drive",
   },
   {
     id: 2,
@@ -25,7 +30,7 @@ const activities = [
     title: "New pull request merged",
     desc: "corely/frontend-v2 #492 by @johndoe",
     time: "3h ago",
-    icon: GitPullRequest,
+    source: "github",
   },
   {
     id: 4,
@@ -41,7 +46,7 @@ const activities = [
     title: "High-value document detected",
     desc: "'Q3 OKRs & Strategy.pdf' added to Notion",
     time: "1d ago",
-    icon: FileText,
+    source: "notion",
   }
 ];
 
@@ -69,9 +74,13 @@ export default function ActivityFeedPanel() {
         <div className="db-feed-list">
           {activities.map((activity) => (
             <div key={activity.id} className="db-feed-row">
-              <span className="db-row-icon" aria-hidden="true">
-                <activity.icon strokeWidth={2} />
-              </span>
+              {activity.source ? (
+                <SourceLogo type={activity.source} size={18} tileSize={32} />
+              ) : activity.icon ? (
+                <span className="db-row-icon" aria-hidden="true">
+                  <activity.icon strokeWidth={2} />
+                </span>
+              ) : null}
               <div className="db-feed-main">
                 <div className="db-feed-top">
                   <span className="db-feed-title">{activity.title}</span>

@@ -1,7 +1,8 @@
 export interface TimelineItem {
   id: string;
   time: string;
-  category: "decision" | "discussion" | "document" | "insight" | "knowledge";
+  // The last four come from project memory (see lib/project-memory.ts).
+  category: "decision" | "discussion" | "document" | "insight" | "knowledge" | "risk" | "milestone" | "question" | "fact";
   title: string;
   content: string;
   badges: string[];

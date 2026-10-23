@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { SourceLogo, normaliseSourceType } from "@/components/ui/source-logo";
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
@@ -37,6 +38,10 @@ function formatTimeAgo(dateString: string) {
   return `${diffInDays}d ago`;
 }
 import * as React from "react";
+
+// Insight "source" can be a connected source name or a word like "System".
+// Only real source names get a logo.
+const KNOWN_SOURCES = new Set(["google_drive", "gmail", "github", "slack", "notion", "linear", "manual_upload"]);
 
 // Icon names come from the insights generator. All tiles are neutral.
 const iconMap: Record<string, LucideIcon> = {
@@ -115,7 +120,12 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
                   <div className="db-insight-desc">{ins.description}</div>
                   <div className="db-insight-meta type-caption">
                     <StatusBadge tone={priorityTone(ins.priority)}>{ins.priority}</StatusBadge>
-                    <span>{ins.source}</span>
+                    <span className="db-insight-source" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      {KNOWN_SOURCES.has(normaliseSourceType(ins.source)) && (
+                        <SourceLogo type={ins.source} size={14} tile={false} />
+                      )}
+                      {ins.source}
+                    </span>
                     <span aria-hidden="true">·</span>
                     <span>{formatTimeAgo(ins.createdAt)}</span>
                   </div>

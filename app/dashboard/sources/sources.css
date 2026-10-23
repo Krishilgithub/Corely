@@ -36,16 +36,7 @@
 .src-kpi__hint--warning { color: var(--warning); }
 .src-kpi__hint--error { color: var(--error); }
 
-/* ── Filter bar ───────────────────────────────────────────── */
-.src-filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.src-filter-bar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
+/* ── Search fields ────────────────────────────────────────── */
 .src-search { position: relative; width: 260px; max-width: 100%; }
 .src-search > svg {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
@@ -54,41 +45,10 @@
 .src-search .ui-input { padding-left: 36px; }
 .src-search--sm .ui-input { height: 36px; }
 
-.src-filter-btn { height: 40px; }
-.src-filter-btn.active-filter {
-  background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent-border);
-}
+/* Segmented control that should not stretch inside a column layout. */
+.src-seg-start { align-self: flex-start; }
 
-/* Segmented control: one track, the selected item gets the accent tint. */
-.src-seg {
-  display: inline-flex; align-items: center; gap: 2px;
-  height: 40px; padding: 3px; border-radius: 8px;
-  background: var(--surface-secondary); border: 1px solid var(--hairline);
-  max-width: 100%; overflow-x: auto;
-}
-.src-seg__item {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 32px; padding: 0 12px; border-radius: 6px;
-  border: 1px solid transparent; background: transparent;
-  font-family: inherit; font-size: 13px; line-height: 20px; font-weight: 600;
-  color: var(--text-secondary); cursor: pointer; white-space: nowrap;
-  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
-}
-.src-seg__item:hover { color: var(--text-primary); }
-.src-seg__item.is-active {
-  background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent-border);
-}
-.src-seg__count {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 20px; height: 18px; padding: 0 6px; border-radius: 9999px;
-  background: var(--surface); border: 1px solid var(--hairline);
-  font-size: 12px; line-height: 16px; font-weight: 600; color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-.src-seg__item.is-active .src-seg__count { color: var(--accent-text); border-color: var(--accent-border); }
-
-/* ── Filter dropdown + row menus ──────────────────────────── */
-.src-filter-container { position: relative; }
+/* ── Row menus ────────────────────────────────────────────── */
 .src-menu {
   position: absolute; right: 0; top: 100%; margin-top: 6px; z-index: 50;
   min-width: 200px; padding: 4px;
@@ -103,15 +63,8 @@
 .src-menu-wrap { position: relative; }
 
 /* ── Logo tiles ───────────────────────────────────────────── */
-/* Provider PNGs sit on a light tile in both themes so dark logos stay readable. */
-.src-logo-tile {
-  width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--surface); border: 1px solid var(--hairline);
-  user-select: none;
-}
-.dark .src-logo-tile { background: #FFFFFF; border-color: var(--border-strong); }
-.src-logo-tile--sm { width: 32px; height: 32px; }
+/* Source name with its logo, inline inside a sentence. */
+.src-inline-source { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
 /* Tile for a lucide glyph (no brand logo): stays on theme tokens. */
 .src-glyph-tile {
   width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
@@ -329,16 +282,6 @@
 }
 
 /* ── Add-source popup: category pills + provider cards ────── */
-.src-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.src-pill {
-  height: 32px; padding: 0 12px; border-radius: 9999px;
-  border: 1px solid var(--hairline); background: var(--surface);
-  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary);
-  cursor: pointer; white-space: nowrap;
-  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
-}
-.src-pill:hover { border-color: var(--border-strong); color: var(--text-primary); }
-.src-pill.is-active { background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent-border); }
 
 .src-provider-grid {
   display: grid;
@@ -566,9 +509,6 @@
 }
 @media (max-width: 768px) {
   .src-rail { grid-template-columns: minmax(0, 1fr); }
-  .src-filter-bar { flex-direction: column; align-items: stretch; }
-  .src-filter-bar__right { width: 100%; }
-  .src-filter-bar__right .src-search { flex: 1; width: auto; }
   .src-provider-grid { grid-template-columns: minmax(0, 1fr); }
   .src-modal__header, .src-modal__toolbar, .src-modal__footer { padding-left: 16px; padding-right: 16px; }
   .src-modal__body { padding: 16px; }

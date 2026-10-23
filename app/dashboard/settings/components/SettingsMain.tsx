@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
-  AlignJustify, Lightbulb, ChevronDown, Shield, Key, Settings as SettingsIcon,
+  AlignJustify, Lightbulb, Shield, Key, Settings as SettingsIcon,
   AlertTriangle, Mail, Copy, Plus, Trash2, Eye, EyeOff, Users, Activity,
   Clock, CheckCircle2, XCircle, Building2, Moon, Sun
 } from "lucide-react";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Select } from "@/components/ui/select";
 
 interface SettingsUpdates {
   preferences?: { theme?: string; compactMode?: boolean; onboardingTips?: boolean; [key: string]: unknown };
@@ -102,6 +103,8 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // Only kept on this page for now. It is not saved anywhere yet.
+  const [retentionDays, setRetentionDays] = useState("90");
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -420,16 +423,19 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               </div>
             </div>
             <div className="settings-row-control">
-              <div className="settings-select-wrapper">
-                <select className="ui-input settings-select" value={defaultLlm} onChange={(e) => { setDefaultLlm(e.target.value); saveSettings({ workspaceSettings: { defaultLlm: e.target.value } }); }}>
-                  <option value="gpt-4o">GPT-4o (Recommended)</option>
-                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                  <option value="claude-3-opus">Claude 3 Opus</option>
-                  <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                  <option value="gemini-1-5-pro">Gemini 1.5 Pro</option>
-                </select>
-                <ChevronDown size={16} className="settings-select-chevron" />
-              </div>
+              <Select
+                className="settings-select"
+                aria-label="Default LLM model"
+                value={defaultLlm}
+                onChange={(v) => { setDefaultLlm(v); saveSettings({ workspaceSettings: { defaultLlm: v } }); }}
+                options={[
+                  { value: "gpt-4o", label: "GPT-4o (Recommended)" },
+                  { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+                  { value: "claude-3-opus", label: "Claude 3 Opus" },
+                  { value: "claude-3-sonnet", label: "Claude 3 Sonnet" },
+                  { value: "gemini-1-5-pro", label: "Gemini 1.5 Pro" },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -453,16 +459,19 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               </div>
             </div>
             <div className="settings-row-control">
-              <div className="settings-select-wrapper">
-                <select className="ui-input settings-select" defaultValue="90">
-                  <option value="30">30 days</option>
-                  <option value="90">90 days</option>
-                  <option value="180">6 months</option>
-                  <option value="365">1 year</option>
-                  <option value="0">Forever</option>
-                </select>
-                <ChevronDown size={16} className="settings-select-chevron" />
-              </div>
+              <Select
+                className="settings-select"
+                aria-label="Memory retention period"
+                value={retentionDays}
+                onChange={(v) => setRetentionDays(v)}
+                options={[
+                  { value: "30", label: "30 days" },
+                  { value: "90", label: "90 days" },
+                  { value: "180", label: "6 months" },
+                  { value: "365", label: "1 year" },
+                  { value: "0", label: "Forever" },
+                ]}
+              />
             </div>
           </div>
           <div className="settings-row">

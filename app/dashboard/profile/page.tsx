@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Shield, Camera, Globe, Clock, Palette, Bell, Key, LogOut, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
+import { User, Mail, Shield, Camera, Globe, Clock, Palette, Bell, Key, LogOut, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Select } from "@/components/ui/select";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme } from "../../../components/ThemeProvider";
 
@@ -11,6 +12,9 @@ import { useTheme } from "../../../components/ThemeProvider";
 export default function ProfilePage() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  // Language and timezone only live on this page for now. They are not saved yet.
+  const [language, setLanguage] = useState("English (US)");
+  const [timezone, setTimezone] = useState("Pacific Time (PT)");
   const [activeTab, setActiveTab] = useState<"general" | "security" | "notifications">("general");
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -149,15 +153,14 @@ export default function ProfilePage() {
                     <div><label className="settings-row-label">Language</label></div>
                   </div>
                   <div className="settings-row-control">
-                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
-                      <select className="ui-input settings-select">
-                        <option>English (US)</option>
-                        <option>French (FR)</option>
-                        <option>Spanish (ES)</option>
-                      </select>
-                      <Globe size={16} className="settings-input-lead-icon" />
-                      <ChevronDown size={16} className="settings-select-chevron" />
-                    </div>
+                    <Select
+                      className="settings-select settings-select--wide"
+                      aria-label="Language"
+                      leadingIcon={<Globe size={16} />}
+                      value={language}
+                      onChange={(v) => setLanguage(v)}
+                      options={["English (US)", "French (FR)", "Spanish (ES)"].map((o) => ({ value: o, label: o }))}
+                    />
                   </div>
                 </div>
                 <div className="settings-row">
@@ -165,15 +168,14 @@ export default function ProfilePage() {
                     <div><label className="settings-row-label">Timezone</label></div>
                   </div>
                   <div className="settings-row-control">
-                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
-                      <select className="ui-input settings-select">
-                        <option>Pacific Time (PT)</option>
-                        <option>Eastern Time (ET)</option>
-                        <option>Coordinated Universal Time (UTC)</option>
-                      </select>
-                      <Clock size={16} className="settings-input-lead-icon" />
-                      <ChevronDown size={16} className="settings-select-chevron" />
-                    </div>
+                    <Select
+                      className="settings-select settings-select--wide"
+                      aria-label="Timezone"
+                      leadingIcon={<Clock size={16} />}
+                      value={timezone}
+                      onChange={(v) => setTimezone(v)}
+                      options={["Pacific Time (PT)", "Eastern Time (ET)", "Coordinated Universal Time (UTC)"].map((o) => ({ value: o, label: o }))}
+                    />
                   </div>
                 </div>
                 <div className="settings-row">
@@ -181,19 +183,18 @@ export default function ProfilePage() {
                     <div><label className="settings-row-label">Appearance</label></div>
                   </div>
                   <div className="settings-row-control">
-                    <div className="settings-select-wrapper settings-input-wrap settings-input-wrap--lead">
-                      <select
-                        value={theme}
-                        onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
-                        className="ui-input settings-select"
-                      >
-                        <option value="light">Light Mode</option>
-                        <option value="dark">Dark Mode</option>
-                        <option value="system">System Default</option>
-                      </select>
-                      <Palette size={16} className="settings-input-lead-icon" />
-                      <ChevronDown size={16} className="settings-select-chevron" />
-                    </div>
+                    <Select
+                      className="settings-select settings-select--wide"
+                      aria-label="Appearance"
+                      leadingIcon={<Palette size={16} />}
+                      value={theme}
+                      onChange={(v) => setTheme(v as "light" | "dark" | "system")}
+                      options={[
+                        { value: "light", label: "Light Mode" },
+                        { value: "dark", label: "Dark Mode" },
+                        { value: "system", label: "System Default" },
+                      ]}
+                    />
                   </div>
                 </div>
 

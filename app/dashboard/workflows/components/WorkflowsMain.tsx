@@ -9,7 +9,6 @@ import {
   PlayCircle,
   CheckCircle2,
   Clock,
-  Search,
   Filter,
   LayoutGrid,
   List,
@@ -30,7 +29,6 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowRight,
-  ChevronDown,
   Info
 } from "lucide-react";
 import { useAuth } from "../../../lib/auth-context";
@@ -38,6 +36,9 @@ import { WorkflowItem } from "./WorkflowsLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge, toneForStatus } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Select } from "@/components/ui/select";
 
 /** KPI tile: icon well, big number, label, and the change under the label. */
 const StatTile = ({
@@ -63,13 +64,29 @@ const StatTile = ({
   </div>
 );
 
-/** Native select with a chevron that follows the theme. */
-const SelectField = ({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-  <div className="wf-select">
-    <select className="ui-input" {...props}>{children}</select>
-    <ChevronDown size={16} />
-  </div>
-);
+/** Choices for the trigger type field in the forms. */
+const TRIGGER_OPTIONS = [
+  { value: "Schedule", label: "Schedule (Daily, Hourly, etc.)" },
+  { value: "Event", label: "Event (When something happens)" },
+  { value: "Condition", label: "Condition (Logical evaluation)" },
+];
+
+/** Choices for the status field in the forms. */
+const STATUS_OPTIONS = [
+  { value: "Draft", label: "Draft" },
+  { value: "Active", label: "Active" },
+  { value: "Inactive", label: "Inactive" },
+];
+
+/** Choices for the owner field in the forms. */
+const OWNER_OPTIONS = [
+  { value: "KS", label: "Krishil Shah (You)" },
+  { value: "JD", label: "Jane Doe" },
+  { value: "AM", label: "Alex Morgan" },
+  { value: "TR", label: "Taylor Rogers" },
+];
+
+const TABS = ["all workflows", "active", "draft", "scheduled", "inactive"];
 
 /** Icon choices for the forms. Values are unchanged; labels no longer name colours. */
 const ICON_OPTIONS = [
@@ -128,7 +145,6 @@ export default function WorkflowsMain({
   const [activeTab, setActiveTab] = useState<string>("all workflows");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [showFilterBar, setShowFilterBar] = useState(false);
 
   // ── Filters State ──────────────────────────────────────────────────────────
   const [selectedTrigger, setSelectedTrigger] = useState("all");
@@ -439,108 +455,54 @@ export default function WorkflowsMain({
       {/* ── 3. Table/Grid Card ── */}
       <div className="wf-table-card">
         {/* Table Header Controls */}
-        <div className="wf-toolbar">
-          <div className="wf-seg">
-            {["all workflows", "active", "draft", "scheduled", "inactive"].map((tab) => (
-              <div
-                key={tab}
-                className={`wf-seg__item ${activeTab === tab ? "active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </div>
-            ))}
-          </div>
-
-          <div className="wf-toolbar__right">
-            <div className="wf-search">
-              <Search size={16} />
-              <input
-                type="text"
-                className="ui-input"
-                placeholder="Search workflows..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button
-              className={`ui-btn ui-btn--secondary wf-filter-toggle ${showFilterBar ? "is-active" : ""}`}
-              onClick={() => setShowFilterBar((prev) => !prev)}
-            >
-              <Filter size={16} /> Filter
-            </button>
-            <div className="wf-seg">
-              <button
-                className={`wf-seg__item wf-seg__item--icon ${viewMode === "grid" ? "active" : ""}`}
-                aria-label="Grid view"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                className={`wf-seg__item wf-seg__item--icon ${viewMode === "list" ? "active" : ""}`}
-                aria-label="List view"
-                onClick={() => setViewMode("list")}
-              >
-                <List size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Sliding Filter Bar Drawer */}
-        <AnimatePresence>
-          {showFilterBar && (
-            <motion.div
-              className="wf-filter-bar"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <div className="wf-filter-row-inner">
-                <div className="wf-filter-group">
-                  <label className="wf-filter-label">Trigger type</label>
-                  <SelectField
-                    value={selectedTrigger}
-                    onChange={(e) => setSelectedTrigger(e.target.value)}
-                  >
-                    <option value="all">All Triggers</option>
-                    <option value="Schedule">Schedule</option>
-                    <option value="Event">Event</option>
-                    <option value="Condition">Condition</option>
-                  </SelectField>
-                </div>
-
-                <div className="wf-filter-group">
-                  <label className="wf-filter-label">Owner</label>
-                  <SelectField
-                    value={selectedOwner}
-                    onChange={(e) => setSelectedOwner(e.target.value)}
-                  >
-                    <option value="all">All Owners</option>
-                    <option value="KS">{user?.name || "User"}</option>
-                    <option value="JD">Jane Doe</option>
-                    <option value="AM">Alex Morgan</option>
-                    <option value="TR">Taylor Rogers</option>
-                  </SelectField>
-                </div>
-
-                {(selectedTrigger !== "all" || selectedOwner !== "all") && (
-                  <button
-                    className="ui-btn ui-btn--ghost ui-btn--sm wf-filter-clear-btn"
-                    onClick={() => {
-                      setSelectedTrigger("all");
-                      setSelectedOwner("all");
-                    }}
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <FilterToolbar
+          className="wf-toolbar"
+          leading={
+            <SegmentedControl
+              label="Filter workflows"
+              size="sm"
+              value={activeTab}
+              onChange={setActiveTab}
+              segments={TABS.map((tab) => ({ value: tab, label: tab.charAt(0).toUpperCase() + tab.slice(1) }))}
+            />
+          }
+          search={{ value: searchQuery, onChange: setSearchQuery, placeholder: "Search workflows" }}
+          filters={[
+            {
+              id: "trigger",
+              label: "Trigger",
+              icon: <Zap size={14} />,
+              options: TRIGGER_OPTIONS.map((o) => ({ value: o.value, label: o.value })),
+              value: selectedTrigger,
+              onChange: setSelectedTrigger,
+              emptyValue: "all",
+            },
+            {
+              id: "owner",
+              label: "Owner",
+              icon: <Users size={14} />,
+              options: [
+                { value: "KS", label: user?.name || "User" },
+                ...OWNER_OPTIONS.filter((o) => o.value !== "KS"),
+              ],
+              value: selectedOwner,
+              onChange: setSelectedOwner,
+              emptyValue: "all",
+            },
+          ]}
+          actions={
+            <SegmentedControl
+              label="View"
+              size="sm"
+              value={viewMode}
+              onChange={setViewMode}
+              segments={[
+                { value: "grid", label: <span className="sr-only">Grid view</span>, icon: <LayoutGrid size={16} aria-hidden="true" /> },
+                { value: "list", label: <span className="sr-only">List view</span>, icon: <List size={16} aria-hidden="true" /> },
+              ]}
+            />
+          }
+        />
 
         {/* ── Table List View ── */}
         {viewMode === "list" ? (
@@ -755,24 +717,22 @@ export default function WorkflowsMain({
                   <div className="wf-form-row">
                     <div className="wf-form-group">
                       <label className="wf-form-label">Icon</label>
-                      <SelectField
+                      <Select
+                        aria-label="Icon"
                         value={formIcon}
-                        onChange={(e) => setFormIcon(e.target.value)}
-                      >
-                        {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </SelectField>
+                        onChange={setFormIcon}
+                        options={ICON_OPTIONS.map((o) => ({ ...o, icon: getLucideIcon(o.value) }))}
+                      />
                     </div>
 
                     <div className="wf-form-group">
                       <label className="wf-form-label">Trigger rule type</label>
-                      <SelectField
+                      <Select
+                        aria-label="Trigger rule type"
                         value={formTriggerType}
-                        onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
-                      >
-                        <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
-                        <option value="Event">Event (When something happens)</option>
-                        <option value="Condition">Condition (Logical evaluation)</option>
-                      </SelectField>
+                        onChange={(v) => setFormTriggerType(v as WorkflowItem["triggerType"])}
+                        options={TRIGGER_OPTIONS}
+                      />
                     </div>
                   </div>
 
@@ -791,27 +751,22 @@ export default function WorkflowsMain({
                   <div className="wf-form-row">
                     <div className="wf-form-group">
                       <label className="wf-form-label">Initial status</label>
-                      <SelectField
+                      <Select
+                        aria-label="Status"
                         value={formStatus}
-                        onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </SelectField>
+                        onChange={(v) => setFormStatus(v as WorkflowItem["status"])}
+                        options={STATUS_OPTIONS}
+                      />
                     </div>
 
                     <div className="wf-form-group">
                       <label className="wf-form-label">Workflow owner</label>
-                      <SelectField
+                      <Select
+                        aria-label="Workflow owner"
                         value={formOwner}
-                        onChange={(e) => setFormOwner(e.target.value)}
-                      >
-                        <option value="KS">Krishil Shah (You)</option>
-                        <option value="JD">Jane Doe</option>
-                        <option value="AM">Alex Morgan</option>
-                        <option value="TR">Taylor Rogers</option>
-                      </SelectField>
+                        onChange={setFormOwner}
+                        options={OWNER_OPTIONS}
+                      />
                     </div>
                   </div>
                 </div>
@@ -866,24 +821,22 @@ export default function WorkflowsMain({
                   <div className="wf-form-row">
                     <div className="wf-form-group">
                       <label className="wf-form-label">Icon</label>
-                      <SelectField
+                      <Select
+                        aria-label="Icon"
                         value={formIcon}
-                        onChange={(e) => setFormIcon(e.target.value)}
-                      >
-                        {ICON_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </SelectField>
+                        onChange={setFormIcon}
+                        options={ICON_OPTIONS.map((o) => ({ ...o, icon: getLucideIcon(o.value) }))}
+                      />
                     </div>
 
                     <div className="wf-form-group">
                       <label className="wf-form-label">Trigger rule type</label>
-                      <SelectField
+                      <Select
+                        aria-label="Trigger rule type"
                         value={formTriggerType}
-                        onChange={(e) => setFormTriggerType(e.target.value as WorkflowItem["triggerType"])}
-                      >
-                        <option value="Schedule">Schedule (Daily, Hourly, etc.)</option>
-                        <option value="Event">Event (When something happens)</option>
-                        <option value="Condition">Condition (Logical evaluation)</option>
-                      </SelectField>
+                        onChange={(v) => setFormTriggerType(v as WorkflowItem["triggerType"])}
+                        options={TRIGGER_OPTIONS}
+                      />
                     </div>
                   </div>
 
@@ -901,27 +854,22 @@ export default function WorkflowsMain({
                   <div className="wf-form-row">
                     <div className="wf-form-group">
                       <label className="wf-form-label">Status</label>
-                      <SelectField
+                      <Select
+                        aria-label="Status"
                         value={formStatus}
-                        onChange={(e) => setFormStatus(e.target.value as WorkflowItem["status"])}
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </SelectField>
+                        onChange={(v) => setFormStatus(v as WorkflowItem["status"])}
+                        options={STATUS_OPTIONS}
+                      />
                     </div>
 
                     <div className="wf-form-group">
                       <label className="wf-form-label">Workflow owner</label>
-                      <SelectField
+                      <Select
+                        aria-label="Workflow owner"
                         value={formOwner}
-                        onChange={(e) => setFormOwner(e.target.value)}
-                      >
-                        <option value="KS">Krishil Shah (You)</option>
-                        <option value="JD">Jane Doe</option>
-                        <option value="AM">Alex Morgan</option>
-                        <option value="TR">Taylor Rogers</option>
-                      </SelectField>
+                        onChange={setFormOwner}
+                        options={OWNER_OPTIONS}
+                      />
                     </div>
                   </div>
                 </div>

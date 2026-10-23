@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, CheckCircle2, AlertCircle, Clock, FileText } from "lucide-react";
+import { SourceLogo } from "@/components/ui/source-logo";
 
 interface HistoryEntry {
   id: string;
@@ -84,13 +85,16 @@ export default function SyncHistoryModal({
         >
           {/* Header */}
           <div className="src-modal__header">
-            <div className="src-modal__titles">
-              <h2 id="src-history-title" className="type-heading">Sync history</h2>
-              {data && (
-                <p className="type-caption">
-                  Activity log for {data.source.name}
-                </p>
-              )}
+            <div className="src-modal__heading">
+              {data && <SourceLogo type={data.source.type} size={22} tileSize={40} />}
+              <div className="src-modal__titles">
+                <h2 id="src-history-title" className="type-heading">Sync history</h2>
+                {data && (
+                  <p className="type-caption">
+                    Activity log for {data.source.name}
+                  </p>
+                )}
+              </div>
             </div>
             <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
               <X size={16} />

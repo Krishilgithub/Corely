@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -11,7 +10,6 @@ import {
   FileText,
   Clock,
   Search,
-  Filter,
   List,
   LayoutGrid,
   MoreHorizontal,
@@ -22,7 +20,6 @@ import {
   Loader2,
   Folder,
   Trash2,
-  UploadCloud,
   Upload,
   Check,
   History,
@@ -36,6 +33,10 @@ import { useAuth } from "../../../lib/auth-context";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { StatusTone } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SourceLogo } from "@/components/ui/source-logo";
+import { Select } from "@/components/ui/select";
+import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import SyncHistoryModal from "./SyncHistoryModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -63,45 +64,6 @@ interface Repo {
   updatedAt: string;
 }
 
-// ── Brand Icons ───────────────────────────────────────────────────────────────
-const GoogleDriveIcon = ({ size = 22 }: { size?: number }) => (
-  <Image src="/drive.png" alt="Google Drive" width={size} height={size} style={{ objectFit: 'contain' }} />
-);
-
-const NotionIcon = ({ size = 22 }: { size?: number }) => (
-  <Image src="/notion.png" alt="Notion" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
-);
-
-const GmailIcon = ({ size = 22 }: { size?: number }) => (
-  <Image src="/gmail.png" alt="Gmail" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
-);
-
-const SlackIcon = ({ size = 22 }: { size?: number }) => (
-  <Image src="/slack.png" alt="Slack" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
-);
-
-const LinearIcon = ({ size = 22 }: { size?: number }) => (
-  <Image src="/linear.png" alt="Linear" width={size} height={size} style={{ objectFit: 'contain', borderRadius: 6 }} />
-);
-
-/** Logo tile for a source type. Brand PNGs sit on a light tile; others get a neutral glyph tile. */
-function SourceLogo({ type, small = false }: { type: string; small?: boolean }) {
-  const size = small ? 18 : 22;
-  const logo =
-    type === "google_drive" ? <GoogleDriveIcon size={size} />
-    : type === "notion" ? <NotionIcon size={size} />
-    : type === "gmail" ? <GmailIcon size={size} />
-    : type === "slack" ? <SlackIcon size={size} />
-    : type === "linear" ? <LinearIcon size={size} />
-    : null;
-  if (logo) return <span className={`src-logo-tile${small ? " src-logo-tile--sm" : ""}`}>{logo}</span>;
-  return (
-    <span className={`src-glyph-tile${small ? " src-glyph-tile--sm" : ""}`}>
-      <Database size={small ? 16 : 18} />
-    </span>
-  );
-}
-
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_META: Record<Source["status"], { label: string; tone: StatusTone }> = {
   idle: { label: "Idle", tone: "neutral" },
@@ -120,6 +82,17 @@ function SourceStatusBadge({ status }: { status: Source["status"] }) {
     );
   }
   return <StatusBadge tone={s.tone} dot>{s.label}</StatusBadge>;
+}
+
+/** Readable name for a source type, e.g. "manual_upload" becomes "Manual upload". */
+function sourceTypeLabel(type: string) {
+  const known: Record<string, string> = {
+    google_drive: "Google Drive", gmail: "Gmail", github: "GitHub", slack: "Slack",
+    notion: "Notion", linear: "Linear", manual_upload: "Manual upload",
+  };
+  if (known[type]) return known[type];
+  const t = type.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 // ── Small display helpers (formatting only) ───────────────────────────────────
@@ -245,19 +218,13 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate, connectedType
                 onChange={(e) => setProviderQuery(e.target.value)}
               />
             </div>
-            <div className="src-pills" role="group" aria-label="Category">
-              {CATEGORY_LABELS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`src-pill ${category === c.id ? "is-active" : ""}`}
-                  aria-pressed={category === c.id}
-                  onClick={() => setCategory(c.id)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Category"
+              size="sm"
+              value={category}
+              onChange={setCategory}
+              segments={CATEGORY_LABELS.map((c) => ({ value: c.id, label: c.label }))}
+            />
           </div>
 
           <div className="src-modal__body">
@@ -287,7 +254,7 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate, connectedType
                       }}
                     >
                       <div className="src-provider__top">
-                        <SourceLogo type={p.type} />
+                        <SourceLogo type={p.type} size={22} tileSize={40} />
                         <div className="src-provider__text">
                           <div className="src-provider__name-row">
                             <span className="src-provider__name">{p.name}</span>
@@ -326,7 +293,7 @@ function ConnectModal({ onClose, existingDriveSource, onDuplicate, connectedType
 
             {/* Manual upload */}
             <div className="src-dropzone">
-              <span className="ui-icon-well ui-icon-well--sm"><UploadCloud /></span>
+              <SourceLogo type="manual_upload" size={18} tileSize={36} />
               <div className="src-dropzone__text">
                 <span className="type-body" style={{ fontWeight: 600 }}>Upload a file</span>
                 <span className="type-caption">PDF, DOC, DOCX, TXT, MD, CSV or JSON</span>
@@ -369,7 +336,6 @@ export default function SourcesMain() {
   const [activeDropdownSourceId, setActiveDropdownSourceId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterType, setFilterType] = useState<string | "all">("all");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [viewingHistorySourceId, setViewingHistorySourceId] = useState<string | null>(null);
   const [disconnectingSource, setDisconnectingSource] = useState<Source | null>(null);
   const [managingSource, setManagingSource] = useState<Source | null>(null);
@@ -388,12 +354,8 @@ export default function SourcesMain() {
 
   // Close active actions dropdown if user clicks anywhere outside in window
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = () => {
       setActiveDropdownSourceId(null);
-      const target = e.target as HTMLElement;
-      if (!target.closest('.src-filter-container')) {
-        setShowFilterDropdown(false);
-      }
     };
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
@@ -574,13 +536,13 @@ export default function SourcesMain() {
       >
         {/* Identity */}
         <div className="src-source__id">
-          <SourceLogo type={source.type} />
+          <SourceLogo type={source.type} size={22} tileSize={40} />
           <div className="src-source__text">
             <div className="src-source__name" title={source.name}>{source.name}</div>
             <div className="src-source__type">
               {(source.config as { email?: string })?.email ??
                 (source.config as { ownerEmail?: string })?.ownerEmail ??
-                source.type.replace("_", " ")}
+                sourceTypeLabel(source.type)}
             </div>
           </div>
         </div>
@@ -800,78 +762,45 @@ export default function SourcesMain() {
       </div>
 
       {/* ── Filter bar ────────────────────────────────────────────── */}
-      <div className="src-filter-bar">
-        <div className="src-seg" role="group" aria-label="Filter by status">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActiveTab(t.id)}
-              className={`src-seg__item ${activeTab === t.id ? "is-active" : ""}`}
-              aria-pressed={activeTab === t.id}
-            >
-              {t.label} <span className="src-seg__count">{t.count}</span>
-            </button>
-          ))}
-        </div>
-        <div className="src-filter-bar__right">
-          <div className="src-search">
-            <Search />
-            <input
-              type="text"
-              className="ui-input"
-              placeholder="Search sources..."
-              aria-label="Search sources"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="src-filter-container">
-            <button
-              type="button"
-              className={`ui-btn ui-btn--secondary src-filter-btn ${filterType !== "all" ? "active-filter" : ""}`}
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              style={{ textTransform: "capitalize" }}
-            >
-              <Filter /> {filterType === "all" ? "Filter" : filterType.replace("_", " ")}
-            </button>
-
-            {showFilterDropdown && (
-              <div className="ui-popover src-menu" style={{ minWidth: 160 }}>
-                <button
-                  type="button"
-                  className={`ui-menu-item ${filterType === "all" ? "is-selected" : ""}`}
-                  onClick={() => { setFilterType("all"); setShowFilterDropdown(false); }}
-                >
-                  All types
-                  {filterType === "all" && <Check className="src-menu__check" />}
-                </button>
-                {Array.from(new Set(sources.map(s => s.type))).map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`ui-menu-item ${filterType === type ? "is-selected" : ""}`}
-                    style={{ textTransform: "capitalize" }}
-                    onClick={() => { setFilterType(type); setShowFilterDropdown(false); }}
-                  >
-                    {type.replace("_", " ")}
-                    {filterType === type && <Check className="src-menu__check" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className="ui-icon-btn"
-            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-            title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
-            aria-label={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
-          >
-            {viewMode === "grid" ? <List size={16} /> : <LayoutGrid size={16} />}
-          </button>
-        </div>
-      </div>
+      <FilterToolbar
+        leading={
+          <SegmentedControl
+            label="Filter by status"
+            value={activeTab}
+            onChange={setActiveTab}
+            segments={tabs.map((t) => ({ value: t.id, label: t.label, count: t.count }))}
+          />
+        }
+        search={{ value: searchQuery, onChange: setSearchQuery, placeholder: "Search sources..." }}
+        filters={[
+          {
+            id: "type",
+            label: "Type",
+            emptyValue: "all",
+            value: filterType,
+            onChange: setFilterType,
+            options: [
+              { value: "all", label: "All types" },
+              ...Array.from(new Set(sources.map((s) => s.type))).map((type) => ({
+                value: type,
+                label: sourceTypeLabel(type),
+                icon: <SourceLogo type={type} size={14} tileSize={20} />,
+              })),
+            ],
+          },
+        ]}
+        actions={
+          <SegmentedControl
+            label="View"
+            value={viewMode}
+            onChange={setViewMode}
+            segments={[
+              { value: "grid", label: <span className="sr-only">Grid view</span>, icon: <LayoutGrid size={16} /> },
+              { value: "list", label: <span className="sr-only">List view</span>, icon: <List size={16} /> },
+            ]}
+          />
+        }
+      />
 
       {/* ── Source list ───────────────────────────────────────────── */}
       {!loading && sources.length === 0 && (
@@ -972,7 +901,11 @@ export default function SourcesMain() {
                   <div className="src-modal__titles">
                     <h3 id="src-disconnect-title" className="type-heading">Disconnect data source?</h3>
                     <p className="type-body" style={{ color: "var(--text-secondary)" }}>
-                      Are you sure you want to disconnect <strong className="src-strong">{disconnectingSource.name}</strong>?
+                      Are you sure you want to disconnect{" "}
+                      <span className="src-inline-source">
+                        <SourceLogo type={disconnectingSource.type} size={14} tile={false} />
+                        <strong className="src-strong">{disconnectingSource.name}</strong>
+                      </span>?
                     </p>
                   </div>
                 </div>
@@ -1256,11 +1189,14 @@ function ConfigureSourceModal({
         >
           {/* Header */}
           <div className="src-modal__header">
-            <div className="src-modal__titles">
-              <h2 id="src-config-title" className="type-heading">Configure source settings</h2>
-              <p className="type-body" style={{ color: "var(--text-secondary)" }}>
-                Manage settings for <strong className="src-strong">{sourceName}</strong>.
-              </p>
+            <div className="src-modal__heading">
+              <SourceLogo type={sourceType} size={22} tileSize={40} />
+              <div className="src-modal__titles">
+                <h2 id="src-config-title" className="type-heading">Configure source settings</h2>
+                <p className="type-body" style={{ color: "var(--text-secondary)" }}>
+                  Manage settings for <strong className="src-strong">{sourceName}</strong>.
+                </p>
+              </div>
             </div>
             <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
               <X size={16} />
@@ -1277,32 +1213,17 @@ function ConfigureSourceModal({
             <div className="src-modal__body">
 
               {(sourceType === "google_drive" || sourceType === "github") && (
-                <div className="src-seg" role="group" aria-label="Settings section" style={{ alignSelf: "flex-start" }}>
-                  <button
-                    type="button"
-                    className={`src-seg__item ${activeConfigTab === "sync" ? "is-active" : ""}`}
-                    aria-pressed={activeConfigTab === "sync"}
-                    onClick={() => setActiveConfigTab("sync")}
-                  >
-                    Scope
-                  </button>
-                  <button
-                    type="button"
-                    className={`src-seg__item ${activeConfigTab === "schedule" ? "is-active" : ""}`}
-                    aria-pressed={activeConfigTab === "schedule"}
-                    onClick={() => setActiveConfigTab("schedule")}
-                  >
-                    Schedule
-                  </button>
-                  <button
-                    type="button"
-                    className={`src-seg__item ${activeConfigTab === "permissions" ? "is-active" : ""}`}
-                    aria-pressed={activeConfigTab === "permissions"}
-                    onClick={() => setActiveConfigTab("permissions")}
-                  >
-                    Permissions
-                  </button>
-                </div>
+                <SegmentedControl
+                  label="Settings section"
+                  className="src-seg-start"
+                  value={activeConfigTab}
+                  onChange={setActiveConfigTab}
+                  segments={[
+                    { value: "sync", label: "Scope" },
+                    { value: "schedule", label: "Schedule" },
+                    { value: "permissions", label: "Permissions" },
+                  ]}
+                />
               )}
 
               {activeConfigTab === "sync" && (sourceType === "google_drive" || sourceType === "github") && (
@@ -1664,16 +1585,19 @@ function ManageDocumentsModal({
       >
         {/* Header */}
         <div className="src-modal__header">
-          <div className="src-modal__titles">
-            <div className="src-modal__title-row">
-              <h2 id="src-docs-title" className="type-heading">
-                Manage source documents
-              </h2>
-              <span className="ui-badge ui-badge--neutral">{source.name}</span>
+          <div className="src-modal__heading">
+            <SourceLogo type={source.type} size={22} tileSize={40} />
+            <div className="src-modal__titles">
+              <div className="src-modal__title-row">
+                <h2 id="src-docs-title" className="type-heading">
+                  Manage source documents
+                </h2>
+                <span className="ui-badge ui-badge--neutral">{source.name}</span>
+              </div>
+              <p className="type-caption">
+                View, add manual contents, or purge documents currently indexed under this connector.
+              </p>
             </div>
-            <p className="type-caption">
-              View, add manual contents, or purge documents currently indexed under this connector.
-            </p>
           </div>
           <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close" title="Close">
             <X size={16} />
@@ -1829,18 +1753,18 @@ function ManageDocumentsModal({
 
                 <div className="src-field">
                   <label className="type-label" htmlFor="src-doc-type">File type label</label>
-                  <select
+                  <Select
                     id="src-doc-type"
-                    className="ui-input"
                     value={newDocType}
-                    onChange={(e) => setNewDocType(e.target.value)}
+                    onChange={(v) => setNewDocType(v)}
                     disabled={submittingDoc}
-                  >
-                    <option value="manual_upload">Manual Upload</option>
-                    <option value="pdf">PDF Document</option>
-                    <option value="txt">Text File (TXT)</option>
-                    <option value="md">Markdown Ingestion</option>
-                  </select>
+                    options={[
+                      { value: "manual_upload", label: "Manual Upload" },
+                      { value: "pdf", label: "PDF Document" },
+                      { value: "txt", label: "Text File (TXT)" },
+                      { value: "md", label: "Markdown Ingestion" },
+                    ]}
+                  />
                 </div>
 
                 <div className="src-field" style={{ flex: 1 }}>
@@ -1890,7 +1814,7 @@ function ManageDocumentsModal({
               <div className="src-form">
                 <div className="src-section-head">
                   <h3 className="type-heading src-section-head__title">
-                    <Database size={16} />
+                    <SourceLogo type={source.type} size={16} tile={false} />
                     Connector overview
                   </h3>
                   <p className="type-caption">

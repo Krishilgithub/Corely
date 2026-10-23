@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { ArrowUp, ExternalLink, Loader2, MessageSquare } from "lucide-react";
 import CorelyLogo from "@/components/icons/corely-logo";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SourceLogo } from "@/components/ui/source-logo";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 
@@ -116,7 +117,7 @@ export default function ProjectAsk({ projectId, projectName }: { projectId: stri
                     <div className="pj-ask__sources">
                       {t.sources.map((s, j) => (
                         <a key={j} className="pj-source-chip" href={s.url ?? undefined} target="_blank" rel="noreferrer" aria-disabled={!s.url}>
-                          <b>{j + 1}</b> {s.title}
+                          <b>{j + 1}</b> <SourceLogo type={s.type} size={12} tile={false} /> {s.title}
                           <StatusBadge tone={FRESH_TONE[s.confidenceLabel]}>{s.confidenceLabel}</StatusBadge>
                           {s.url && <ExternalLink size={11} />}
                         </a>
