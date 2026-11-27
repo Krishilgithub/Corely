@@ -21,6 +21,7 @@ import {
   Download,
   FilterX,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
@@ -51,7 +52,7 @@ export default function MemoryPage() {
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<TimelineItem["category"]>("decision");
   const [newBadge, setNewBadge] = useState("");
-  const [newSource, setNewSource] = useState("Notion");
+  const [newSource, setNewSource] = useState("Added manually");
   const [formErrors, setFormErrors] = useState<{ title?: string; content?: string }>({});
 
   // ── Hydration from Database ────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export default function MemoryPage() {
               sourceName: string;
               avatarUrl: string | null;
               url?: string | null;
+              isSyncedDocument?: boolean;
             }
             const mappedList: TimelineItem[] = data.memories.map((item: ApiMemory) => {
               const dateObj = new Date(item.createdAt);
@@ -101,6 +103,8 @@ export default function MemoryPage() {
                 avatarUrl: item.avatarUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
                 date: `${prefix}${dateStr}`,
                 url: item.url,
+                createdAt: item.createdAt,
+                isSyncedDocument: item.isSyncedDocument === true,
               };
             });
             setTimelineItems(mappedList);
@@ -131,27 +135,6 @@ export default function MemoryPage() {
         }
       } catch (e) {
         console.error("Failed to fetch snapshots:", e);
-      }
-
-      // Fetch retention settings
-      let retentionPeriodStr = "90 Days";
-      try {
-        const settingsRes = await fetch("/api/settings");
-        if (settingsRes.ok) {
-          const sJson = await settingsRes.json();
-          const sData = sJson.data || sJson;
-          if (sData.workspace?.settings?.retentionPeriod) {
-             const rp = sData.workspace.settings.retentionPeriod;
-             retentionPeriodStr = rp === "0" ? "Forever" : `${rp} Days`;
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch settings:", e);
-      }
-
-      // We'll store it on window object temporarily since adding state causes re-renders
-      if (typeof window !== "undefined") {
-        (window as unknown as { __retentionPeriod?: string }).__retentionPeriod = retentionPeriodStr;
       }
 
       setIsLoading(false);
@@ -197,7 +180,7 @@ export default function MemoryPage() {
       discussions: "discussion",
       documents: "document",
       "knowledge sets": "knowledge",
-      snapshots: "insight",
+      insights: "insight",
     };
     setSelectedCategory(tabCategoryMap[tab] || "all");
   };
@@ -210,7 +193,7 @@ export default function MemoryPage() {
       discussion: "discussions",
       document: "documents",
       knowledge: "knowledge sets",
-      insight: "snapshots",
+      insight: "insights",
     };
     setActiveTab(categoryTabMap[category] || "timeline");
   };
@@ -234,7 +217,7 @@ export default function MemoryPage() {
           discussions: "discussion",
           documents: "document",
           "knowledge sets": "knowledge",
-          snapshots: "insight",
+          insights: "insight",
         };
         if (item.category !== tabCategoryMap[activeTab]) return false;
       }
@@ -282,16 +265,10 @@ export default function MemoryPage() {
     const totalInsight = timelineItems.filter(item => item.category === "insight").length;
     const totalActiveKnowledgeSets = totalKnowledge;
 
-    // Calculate how many items have badges (rich context)
-    const richContextItems = timelineItems.filter(item => item.badges && item.badges.length > 0).length;
-    const retentionScore = totalMemories > 0 ? Math.round((richContextItems / totalMemories) * 100) : 0;
-    
-    const retentionStatus = retentionScore >= 80 ? "Excellent" : retentionScore >= 50 ? "Good" : "Needs Improvement";
-    const retentionColor = retentionScore >= 80 ? "#10b981" : retentionScore >= 50 ? "#f59e0b" : "#ef4444";
-
-    // Dynamic trends based on recent items (e.g. simulating last month vs this month)
-    const retentionTrend = Math.max(1, Math.round(retentionScore * 0.05));
-    const activeKnowledgeTrend = Math.max(1, Math.round(totalActiveKnowledgeSets * 0.15));
+    // Real count: entries created since the 1st of the current month.
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const addedThisMonth = timelineItems.filter(item => new Date(item.createdAt).getTime() >= monthStart).length;
 
     return {
       totalMemories,
@@ -301,11 +278,7 @@ export default function MemoryPage() {
       totalKnowledge,
       totalInsight,
       totalActiveKnowledgeSets,
-      retentionScore,
-      retentionStatus,
-      retentionColor,
-      retentionTrend,
-      activeKnowledgeTrend
+      addedThisMonth,
     };
   }, [timelineItems]);
 
@@ -392,75 +365,60 @@ export default function MemoryPage() {
             sourceName: item.sourceName,
             avatarUrl: item.avatarUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
             date: `${prefix}${dateStr}`,
+            createdAt: item.createdAt,
           };
 
           setTimelineItems((prev) => [newItem, ...prev]);
         }
+      } else {
+        // Keep the modal open so the user does not lose what they typed.
+        toast.error("Could not save this memory. Please try again.");
+        return;
       }
     } catch (err) {
       console.error("Failed to add memory", err);
+      toast.error("Could not save this memory. Please try again.");
+      return;
     }
-    
+
+    toast.success("Saved to memory");
+
     // Reset Form
     setNewTitle("");
     setNewContent("");
     setNewBadge("");
     setNewCategory("decision");
-    setNewSource("Notion");
+    setNewSource("Added manually");
     setFormErrors({});
     setShowAddModal(false);
   };
 
   const handleDeleteItem = async (id: string) => {
     try {
-      await fetch(`/api/memory?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/memory?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Could not delete this entry.");
+        return;
+      }
+      // Only remove the row once the server confirms the delete.
       setTimelineItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error("Failed to delete memory", err);
-    }
-  };
-
-  const handleCreateSnapshot = async () => {
-    try {
-      const res = await fetch("/api/memory/snapshots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `${filteredItems[0]?.title || "Workspace"} Snapshot`,
-        }),
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        const data = json.data || json;
-        if (data.snapshot) {
-          const item = data.snapshot;
-          const dateObj = new Date(item.createdAt);
-          const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-          
-          setSnapshots((prev) => [
-            {
-              id: item.id,
-              title: item.title,
-              date: `${dateStr} • ${timeStr}`,
-              isLatest: true,
-            },
-            ...prev.map((s) => ({ ...s, isLatest: false })),
-          ]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to create snapshot", err);
+      toast.error("Could not delete this entry.");
     }
   };
 
   const handleDeleteSnapshot = async (id: string) => {
     try {
-      await fetch(`/api/memory/snapshots?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/memory/snapshots?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Could not delete this snapshot.");
+        return;
+      }
       setSnapshots((prev) => prev.filter((snap) => snap.id !== id));
     } catch (err) {
       console.error("Failed to delete snapshot", err);
+      toast.error("Could not delete this snapshot.");
     }
   };
 
@@ -527,7 +485,7 @@ export default function MemoryPage() {
                 { value: "discussions", label: "Discussions", count: stats.totalDiscussions },
                 { value: "documents", label: "Documents", count: stats.totalDocuments },
                 { value: "knowledge sets", label: "Knowledge sets", count: stats.totalKnowledge },
-                { value: "snapshots", label: "Snapshots", count: stats.totalInsight },
+                { value: "insights", label: "Insights", count: stats.totalInsight },
               ]}
               value={activeTab}
               onChange={handleTabChange}
@@ -676,6 +634,8 @@ export default function MemoryPage() {
                                 <span className="type-caption">{item.time}</span>
                               </td>
                               <td className="mem-td-actions">
+                                {/* Synced documents are removed from Sources, so they have no delete here. */}
+                                {!item.isSyncedDocument && (
                                 <button
                                   type="button"
                                   className="ui-icon-btn ui-icon-btn--sm mem-card-action-btn"
@@ -687,6 +647,7 @@ export default function MemoryPage() {
                                 >
                                   <Trash2 size={16} />
                                 </button>
+                                )}
                               </td>
                             </tr>
                           );
@@ -719,7 +680,6 @@ export default function MemoryPage() {
             stats={stats}
             sourceChartData={sourceChartData}
             snapshots={snapshots}
-            handleCreateSnapshot={handleCreateSnapshot}
             handleDeleteSnapshot={handleDeleteSnapshot}
           />
 

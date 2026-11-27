@@ -4,17 +4,18 @@ import { motion } from "framer-motion";
 import {
   AlignJustify, Lightbulb, Shield, Key, Settings as SettingsIcon,
   AlertTriangle, Mail, Copy, Plus, Trash2, Eye, EyeOff, Users, Activity,
-  Clock, CheckCircle2, XCircle, Building2, Moon, Sun
+  Clock, Building2, Moon, Sun, Download
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/select";
+import { ANSWER_MODELS, DEFAULT_ANSWER_MODEL, normaliseAnswerModel } from "@/lib/llm-models";
 
 interface SettingsUpdates {
-  preferences?: { theme?: string; compactMode?: boolean; onboardingTips?: boolean; [key: string]: unknown };
+  preferences?: { theme?: string; [key: string]: unknown };
   workspaceName?: string;
   workspaceSlug?: string;
   [key: string]: unknown;
@@ -26,7 +27,6 @@ interface ApiKey {
   prefix: string;
   createdAt: string;
   lastUsed: string | null;
-  scopes: string[];
 }
 
 interface Member {
@@ -35,7 +35,6 @@ interface Member {
   email: string;
   role: string;
   joinedAt: string;
-  status: "active" | "invited";
   initials: string;
 }
 
@@ -45,11 +44,40 @@ interface AuditEvent {
   action: string;
   resource: string;
   timestamp: string;
-  status: "success" | "failure";
+  // Full date and time, used for the CSV export
+  createdAt: string;
 }
 
-// ── Dummy Data (replaces API placeholders) ────────────────────────────────────
-// Mock data removed, fetching from real API endpoints now.
+// The Claude models /api/ask can run. Any other saved value (e.g. an old
+// "gpt-4o") falls back to the default.
+const LLM_OPTIONS = ANSWER_MODELS.map((m) => ({ value: m.value as string, label: m.label as string }));
+
+// Wraps a value in quotes for CSV and escapes any quotes inside it.
+function csvCell(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+// Small label for settings that are shown but do not work yet.
+function ComingSoonBadge() {
+  return <span className="ui-badge ui-badge--neutral">Coming soon</span>;
+}
+
+// A switch for a setting that does nothing yet. Always shown off and disabled.
+function ComingSoonToggle({ label }: { label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={false}
+      aria-label={label}
+      disabled
+      title="Not available yet"
+      className="settings-toggle settings-toggle--disabled"
+    >
+      <span className="settings-toggle-knob" />
+    </button>
+  );
+}
 
 // ── Role Badge ────────────────────────────────────────────────────────────────
 // Roles are not a status, so every role uses the same neutral badge.
@@ -77,22 +105,21 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [compactMode, setCompactMode] = useState(false);
-  const [onboardingTips, setOnboardingTips] = useState(true);
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceSlug, setWorkspaceSlug] = useState("");
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [workspacePlan, setWorkspacePlan] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [defaultLlm, setDefaultLlm] = useState("gpt-4o");
+  const [defaultLlm, setDefaultLlm] = useState<string>(DEFAULT_ANSWER_MODEL);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Dynamic state
   const [members, setMembers] = useState<Member[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEvent[]>([]);
+  // True when the audit log API says only admins can see the logs
+  const [auditForbidden, setAuditForbidden] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
   const [showNewKeyModal, setShowNewKeyModal] = useState(false);
@@ -103,8 +130,6 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
 
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  // Only kept on this page for now. It is not saved anywhere yet.
-  const [retentionDays, setRetentionDays] = useState("90");
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -124,17 +149,13 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
         const json = await settingsRes.json();
         const data = json.data || json;
         if (data.preferences) {
-          setCompactMode(data.preferences.compactMode || false);
-          setOnboardingTips(data.preferences.onboardingTips ?? true);
-          setTwoFactorEnabled(data.preferences.twoFactorEnabled || false);
           setEmailNotifications(data.preferences.emailNotifications ?? true);
         }
         if (data.workspace) {
           setWorkspaceName(data.workspace.name || "");
           setWorkspaceSlug(data.workspace.slug || "");
-          if (data.workspace.settings) {
-            setDefaultLlm(data.workspace.settings.defaultLlm || "gpt-4o");
-          }
+          setWorkspacePlan(data.workspace.plan || "");
+          setDefaultLlm(normaliseAnswerModel(data.workspace.settings?.defaultLlm));
         }
       }
 
@@ -143,6 +164,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
         setMembers(d.data?.members || []);
       }
       
+      if (auditRes.status === 403) setAuditForbidden(true);
       if (auditRes.ok) {
         const d = await auditRes.json();
         const mappedLogs = (d.data?.logs || []).map((l: { id: string, action: string, details: string, createdAt: string, user?: { name: string, email: string } }) => ({
@@ -151,7 +173,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           action: l.action,
           resource: l.details,
           timestamp: new Date(l.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-          status: "success"
+          createdAt: new Date(l.createdAt).toISOString(),
         }));
         setAuditLogs(mappedLogs);
       }
@@ -191,6 +213,21 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
     const next = !val;
     setter(next);
     saveSettings({ preferences: { [key]: next } });
+  };
+
+  // Downloads the audit logs shown on this page as a CSV file.
+  const exportAuditCsv = () => {
+    const header = ["timestamp", "user", "action", "details"].join(",");
+    const rows = auditLogs.map((e) =>
+      [e.createdAt, e.actor, e.action, e.resource || ""].map(csvCell).join(",")
+    );
+    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `corely-audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const generateApiKey = async () => {
@@ -248,14 +285,14 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
         <h2 className="type-heading">{activeTab}</h2>
         <p className="type-subtitle">
           {activeTab === "Members" && "Manage team members, roles, and access permissions."}
-          {activeTab === "API Keys" && "Create and manage API keys to access Corely programmatically."}
-          {activeTab === "Audit Logs" && "A full audit trail of all actions performed in your workspace."}
+          {activeTab === "API Keys" && "Create and manage API keys for your workspace."}
+          {activeTab === "Audit Logs" && "A record of actions performed in your workspace."}
           {activeTab === "General" && "Manage your personal display preferences."}
           {activeTab === "Workspace" && "Configure your workspace name and identity."}
           {activeTab === "AI & Intelligence" && "Control how Corely AI behaves across your workspace."}
           {activeTab === "Security" && "Manage authentication and security settings."}
           {activeTab === "Notifications" && "Control how and when you receive notifications."}
-          {activeTab === "Billing" && "Manage your subscription and billing details."}
+          {activeTab === "Billing" && "See which plan your workspace is on."}
           {activeTab === "Data & Sources" && "Configure data retention and source behavior."}
           {activeTab === "Advanced" && "Danger zone — destructive workspace actions."}
         </p>
@@ -268,14 +305,15 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-row-left">
               <div className="settings-row-icon"><AlignJustify size={16} /></div>
               <div>
-                <p className="settings-row-label">Compact Mode</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Compact Mode</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Display more content with reduced spacing.</p>
               </div>
             </div>
             <div className="settings-row-control">
-              <div className={`settings-toggle ${compactMode ? "on" : ""}`} onClick={() => toggle(compactMode, setCompactMode, "compactMode")}>
-                <div className="settings-toggle-knob" />
-              </div>
+              <ComingSoonToggle label="Compact mode" />
             </div>
           </div>
           <div className="settings-row">
@@ -300,14 +338,15 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-row-left">
               <div className="settings-row-icon"><Lightbulb size={16} /></div>
               <div>
-                <p className="settings-row-label">Onboarding Tips</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Onboarding Tips</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Show contextual tips and guided highlights.</p>
               </div>
             </div>
             <div className="settings-row-control">
-              <div className={`settings-toggle ${onboardingTips ? "on" : ""}`} onClick={() => toggle(onboardingTips, setOnboardingTips, "onboardingTips")}>
-                <div className="settings-toggle-knob" />
-              </div>
+              <ComingSoonToggle label="Onboarding tips" />
             </div>
           </div>
         </div>
@@ -354,9 +393,10 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                 <p className="type-heading">Team Members</p>
                 <p className="type-caption">{members.length} members total</p>
               </div>
-              <button className="ui-btn ui-btn--primary">
+              {/* Invites are sent from the Teams page, which opens its invite form */}
+              <Link href="/dashboard/teams?invite=1" className="ui-btn ui-btn--primary">
                 <Plus size={16} /> Invite Member
-              </button>
+              </Link>
             </div>
             <div className="settings-table-scroll">
               <table className="ui-table settings-table">
@@ -364,7 +404,6 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                   <tr>
                     <th>Member</th>
                     <th>Role</th>
-                    <th>Status</th>
                     <th>Joined</th>
                     <th><span className="sr-only">Actions</span></th>
                   </tr>
@@ -374,7 +413,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                     <tr key={m.id}>
                       <td>
                         <div className="settings-member">
-                          <div className={`settings-avatar ${m.status === "invited" ? "settings-avatar--invited" : ""}`}>
+                          <div className="settings-avatar">
                             {m.initials}
                           </div>
                           <div style={{ minWidth: 0 }}>
@@ -384,15 +423,10 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                         </div>
                       </td>
                       <td><RoleBadge role={m.role} /></td>
-                      <td>
-                        <StatusBadge tone={m.status === "invited" ? "warning" : "success"}>
-                          {m.status === "invited" ? "Invited" : "Active"}
-                        </StatusBadge>
-                      </td>
                       <td className="settings-table-muted">{m.joinedAt}</td>
                       <td className="settings-table-actions">
                         {m.role !== "Owner" && (
-                          <button className="ui-btn ui-btn--ghost ui-btn--sm settings-danger-ghost">
+                          <button className="ui-btn ui-btn--ghost ui-btn--sm settings-danger-ghost" disabled title="Not available yet">
                             Remove
                           </button>
                         )}
@@ -401,7 +435,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                   ))}
                   {members.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="settings-table-empty">No members found.</td>
+                      <td colSpan={4} className="settings-table-empty">No members found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -419,7 +453,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               <div className="settings-row-icon"><SettingsIcon size={16} /></div>
               <div>
                 <p className="settings-row-label">Default LLM Model</p>
-                <p className="settings-row-desc">The AI model used for all queries by default.</p>
+                <p className="settings-row-desc">The AI model Corely uses to answer questions in this workspace.</p>
               </div>
             </div>
             <div className="settings-row-control">
@@ -428,13 +462,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                 aria-label="Default LLM model"
                 value={defaultLlm}
                 onChange={(v) => { setDefaultLlm(v); saveSettings({ workspaceSettings: { defaultLlm: v } }); }}
-                options={[
-                  { value: "gpt-4o", label: "GPT-4o (Recommended)" },
-                  { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-                  { value: "claude-3-opus", label: "Claude 3 Opus" },
-                  { value: "claude-3-sonnet", label: "Claude 3 Sonnet" },
-                  { value: "gemini-1-5-pro", label: "Gemini 1.5 Pro" },
-                ]}
+                options={LLM_OPTIONS}
               />
             </div>
           </div>
@@ -447,14 +475,17 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           <div className="ui-card-header">
             <div className="settings-card-heading">
               <p className="type-heading">Data Retention</p>
-              <p className="type-caption">Control how long synced data is retained in your workspace</p>
+              <p className="type-caption">Corely keeps all synced data for now. These options are not available yet.</p>
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
               <div className="settings-row-icon"><Clock size={16} /></div>
               <div>
-                <p className="settings-row-label">Memory Retention Period</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Memory Retention Period</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Automatically archive memory items older than this threshold.</p>
               </div>
             </div>
@@ -462,8 +493,9 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               <Select
                 className="settings-select"
                 aria-label="Memory retention period"
-                value={retentionDays}
-                onChange={(v) => setRetentionDays(v)}
+                value="0"
+                onChange={() => {}}
+                disabled
                 options={[
                   { value: "30", label: "30 days" },
                   { value: "90", label: "90 days" },
@@ -478,14 +510,15 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-row-left">
               <div className="settings-row-icon"><Activity size={16} /></div>
               <div>
-                <p className="settings-row-label">Auto Re-sync</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Auto Re-sync</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Automatically re-sync connected sources on a schedule.</p>
               </div>
             </div>
             <div className="settings-row-control">
-              <div className={`settings-toggle on`}>
-                <div className="settings-toggle-knob" />
-              </div>
+              <ComingSoonToggle label="Auto re-sync" />
             </div>
           </div>
         </div>
@@ -571,7 +604,7 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                 compact
                 icon={<Key />}
                 title="No API keys yet"
-                description="Create your first key to access the Corely API programmatically."
+                description="You can create a key now, but it cannot be used until API access is ready."
               />
             ) : (
               apiKeys.map((key) => (
@@ -613,17 +646,16 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           <div className="ui-card settings-card">
             <div className="ui-card-header">
               <div className="settings-card-heading">
-                <p className="type-heading">API Documentation</p>
+                <div className="settings-card-title-row">
+                  <p className="type-heading">API Access</p>
+                  <ComingSoonBadge />
+                </div>
               </div>
             </div>
             <div className="settings-card-body">
               <p className="settings-text">
-                Use your API key in the Authorization header to authenticate requests:
+                API access is coming soon. Keys you create now cannot be used yet.
               </p>
-              <code className="settings-code-block">
-                curl -H &quot;Authorization: Bearer crl_live_...&quot; \<br />
-                &nbsp;&nbsp;https://api.corely.ai/v1/memory
-              </code>
             </div>
           </div>
         </>
@@ -637,26 +669,30 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
               <div className="settings-row-left">
                 <div className="settings-row-icon"><Shield size={16} /></div>
                 <div>
-                  <p className="settings-row-label">Two-Factor Authentication</p>
-                  <p className="settings-row-desc">Require 2FA for all workspace members.</p>
+                  <div className="settings-card-title-row">
+                    <p className="settings-row-label">Two-Factor Authentication</p>
+                    <ComingSoonBadge />
+                  </div>
+                  <p className="settings-row-desc">Require 2FA for all workspace members. This is not available yet.</p>
                 </div>
               </div>
               <div className="settings-row-control">
-                <div className={`settings-toggle ${twoFactorEnabled ? "on" : ""}`} onClick={() => toggle(twoFactorEnabled, setTwoFactorEnabled, "twoFactorEnabled")}>
-                  <div className="settings-toggle-knob" />
-                </div>
+                <ComingSoonToggle label="Require two-factor authentication" />
               </div>
             </div>
             <div className="settings-row">
               <div className="settings-row-left">
                 <div className="settings-row-icon"><Key size={16} /></div>
                 <div>
-                  <p className="settings-row-label">Single Sign-On (SSO)</p>
+                  <div className="settings-card-title-row">
+                    <p className="settings-row-label">Single Sign-On (SSO)</p>
+                    <ComingSoonBadge />
+                  </div>
                   <p className="settings-row-desc">Configure SAML or OIDC provider for your team.</p>
                 </div>
               </div>
               <div className="settings-row-control">
-                <button className="ui-btn ui-btn--secondary">Configure SSO</button>
+                <button className="ui-btn ui-btn--secondary" disabled title="Not available yet">Configure SSO</button>
               </div>
             </div>
           </div>
@@ -713,6 +749,9 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
       {/* ── NOTIFICATIONS ──────────────────────────────────────────────── */}
       {activeTab === "Notifications" && (
         <div className="ui-card settings-card">
+          <div className="settings-card-body">
+            <p className="settings-text">Corely saves your choice; these emails are not sent yet.</p>
+          </div>
           <div className="settings-row">
             <div className="settings-row-left">
               <div className="settings-row-icon"><Mail size={16} /></div>
@@ -731,28 +770,30 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-row-left">
               <div className="settings-row-icon"><Activity size={16} /></div>
               <div>
-                <p className="settings-row-label">Source Sync Alerts</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Source Sync Alerts</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Get notified when a source sync fails or completes.</p>
               </div>
             </div>
             <div className="settings-row-control">
-              <div className="settings-toggle on">
-                <div className="settings-toggle-knob" />
-              </div>
+              <ComingSoonToggle label="Source sync alerts" />
             </div>
           </div>
           <div className="settings-row">
             <div className="settings-row-left">
               <div className="settings-row-icon"><Users size={16} /></div>
               <div>
-                <p className="settings-row-label">Team Activity</p>
+                <div className="settings-card-title-row">
+                  <p className="settings-row-label">Team Activity</p>
+                  <ComingSoonBadge />
+                </div>
                 <p className="settings-row-desc">Notifications for member joins, role changes, and invitations.</p>
               </div>
             </div>
             <div className="settings-row-control">
-              <div className="settings-toggle">
-                <div className="settings-toggle-knob" />
-              </div>
+              <ComingSoonToggle label="Team activity" />
             </div>
           </div>
         </div>
@@ -764,9 +805,11 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           <div className="ui-card-header">
             <div className="settings-card-heading">
               <p className="type-heading">Audit Trail</p>
-              <p className="type-caption">All workspace actions for compliance and security</p>
+              <p className="type-caption">The most recent actions in your workspace</p>
             </div>
-            <button className="ui-btn ui-btn--secondary">Export CSV</button>
+            <button className="ui-btn ui-btn--secondary" onClick={exportAuditCsv} disabled={auditLogs.length === 0}>
+              <Download size={16} /> Export CSV
+            </button>
           </div>
           <div className="settings-table-scroll">
             <table className="ui-table settings-table">
@@ -775,7 +818,6 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                   <th>Action</th>
                   <th>Resource</th>
                   <th>Actor</th>
-                  <th>Status</th>
                   <th>Date</th>
                 </tr>
               </thead>
@@ -785,18 +827,14 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
                     <td style={{ fontWeight: 500 }}>{event.action}</td>
                     <td className="settings-table-muted" style={{ whiteSpace: "normal" }}>{event.resource}</td>
                     <td className="settings-table-muted">{event.actor}</td>
-                    <td>
-                      <StatusBadge tone={event.status === "success" ? "success" : "error"}>
-                        {event.status === "success" ? <CheckCircle2 /> : <XCircle />}
-                        {event.status === "success" ? "Success" : "Failure"}
-                      </StatusBadge>
-                    </td>
                     <td className="settings-table-muted" style={{ textAlign: "right" }}>{event.timestamp}</td>
                   </tr>
                 ))}
                 {auditLogs.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="settings-table-empty">No audit logs found.</td>
+                    <td colSpan={4} className="settings-table-empty">
+                      {auditForbidden ? "Only workspace admins can view audit logs." : "No audit logs found."}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -812,14 +850,17 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
             <div className="settings-row-left">
               <div className="settings-row-icon"><Building2 size={16} /></div>
               <div>
-                <h3 className="type-heading">Enterprise Plan</h3>
+                {/* The real plan saved on the workspace (for example "free") */}
+                <h3 className="type-heading" style={{ textTransform: "capitalize" }}>
+                  {workspacePlan ? `${workspacePlan} plan` : "Plan unknown"}
+                </h3>
                 <p className="settings-text" style={{ marginTop: 4, maxWidth: 520 }}>
-                  Your billing is managed by your Corely account executive. Contact <strong>billing@corely.ai</strong> for invoice requests.
+                  Online billing and plan changes are not available yet.
                 </p>
               </div>
             </div>
             <div className="settings-row-control">
-              <button className="ui-btn ui-btn--primary">Contact Billing Team</button>
+              <button className="ui-btn ui-btn--secondary" disabled title="Not available yet">Contact Billing Team</button>
             </div>
           </div>
         </div>
@@ -839,23 +880,15 @@ export default function SettingsMain({ currentTabSlug = "general" }: { currentTa
           <div className="settings-row">
             <div className="settings-row-left">
               <p className="settings-text">
-                Permanently delete this workspace and all associated data. This action is irreversible.
+                Permanently delete this workspace and all associated data. Deleting a workspace from here is not available yet.
               </p>
             </div>
             <div className="settings-row-control">
-              <button className="ui-btn ui-btn--destructive" onClick={() => setShowDeleteModal(true)}>
+              <button className="ui-btn ui-btn--destructive" disabled title="Not available yet">
                 Delete Workspace
               </button>
             </div>
           </div>
-          {showDeleteModal && (
-            <div className="settings-danger-notice">
-              <p>
-                To delete this workspace, please contact <strong>support@corely.ai</strong>.
-              </p>
-              <button className="ui-btn ui-btn--secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
+import { z } from "zod";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { prisma } from "./db";
-import { openai } from "./openai";
+import { anthropic } from "./anthropic";
 
 /**
  * Builds a project's memory from its documents.
@@ -14,7 +16,7 @@ import { openai } from "./openai";
  *  - a cheap model (EXTRACTION_MODEL);
  *  - at most `limit` documents per call, and at most MAX_CHARS of each.
  */
-export const EXTRACTION_MODEL = process.env.CORELY_EXTRACTION_MODEL || "gpt-4o-mini";
+export const EXTRACTION_MODEL = process.env.CORELY_EXTRACTION_MODEL || "claude-haiku-5-5";
 const MAX_CHARS = 12_000;
 const MAX_ITEMS_PER_DOC = 8;
 const MAX_FACTS_PER_DOC = 3;
@@ -80,21 +82,31 @@ async function extractFromDocument(
   project: { name: string; key: string | null; description: string | null },
   doc: { title: string; rawContent: string }
 ): Promise<Extracted[]> {
-  const res = await openai.chat.completions.create({
+  // Structured output: the API returns JSON that matches ExtractionSchema.
+  const res = await anthropic.messages.parse({
     model: EXTRACTION_MODEL,
-    temperature: 0,
-    response_format: { type: "json_object" },
+    max_tokens: 16000,
+    system: buildPrompt(project),
     messages: [
-      { role: "system", content: buildPrompt(project) },
       { role: "user", content: `Document title: ${doc.title}\n\n${doc.rawContent.slice(0, MAX_CHARS)}` },
     ],
+    output_config: { effort: "medium", format: zodOutputFormat(ExtractionSchema) },
   });
-  try {
-    return clean(JSON.parse(res.choices[0]?.message?.content || "{}"));
-  } catch {
-    return [];
-  }
+  if (res.stop_reason === "refusal" || !res.parsed_output) return [];
+  return clean(res.parsed_output);
 }
+
+const ExtractionSchema = z.object({
+  items: z.array(
+    z.object({
+      type: z.enum(MEMORY_TYPES),
+      title: z.string(),
+      detail: z.string(),
+      date: z.string().nullable(),
+      confidence: z.number(),
+    })
+  ),
+});
 
 export type ExtractResult = { processed: number; created: number; remaining: number; failed: number };
 

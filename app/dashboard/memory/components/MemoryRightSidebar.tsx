@@ -10,7 +10,6 @@ import {
   Zap,
   Trash2,
   ArrowRight,
-  ChevronRight,
   Plus,
 } from "lucide-react";
 import { MemoryStats, SourceChartData, SnapshotItem } from "../types";
@@ -20,7 +19,6 @@ interface MemoryRightSidebarProps {
   stats: MemoryStats;
   sourceChartData: SourceChartData[];
   snapshots: SnapshotItem[];
-  handleCreateSnapshot: () => void;
   handleDeleteSnapshot: (id: string) => void;
 }
 
@@ -31,7 +29,6 @@ export function MemoryRightSidebar({
   stats,
   sourceChartData,
   snapshots,
-  handleCreateSnapshot,
   handleDeleteSnapshot
 }: MemoryRightSidebarProps) {
   const categories = [
@@ -49,9 +46,6 @@ export function MemoryRightSidebar({
       <div className="ui-card mem-sidebar-card">
         <div className="mem-sidebar-card-header">
           <h3 className="type-heading">Memory insights</h3>
-          <a href="#" className="mem-sidebar-view-all">
-            View all <ChevronRight size={14} />
-          </a>
         </div>
 
         <div className="mem-insights-banner">
@@ -60,7 +54,10 @@ export function MemoryRightSidebar({
             <span className="mem-insights-banner-title">Corely learns and remembers</span>
           </div>
           <p className="mem-insights-banner-desc">
-            I&apos;ve identified {stats.totalInsight > 0 ? stats.totalInsight : 12} new connections across your data this week.
+            {/* Real count only: insight entries saved in memory */}
+            {stats.totalInsight > 0
+              ? `Your memory holds ${stats.totalInsight.toLocaleString()} insight ${stats.totalInsight === 1 ? "entry" : "entries"}.`
+              : "Open Insights to see what Corely found in your synced data."}
           </p>
           <Link href="/dashboard/insights" style={{ textDecoration: "none" }}>
             <button type="button" className="ui-btn ui-btn--secondary ui-btn--sm">
@@ -74,9 +71,6 @@ export function MemoryRightSidebar({
       <div className="ui-card mem-sidebar-card">
         <div className="mem-sidebar-card-header">
           <h3 className="type-heading">Memory by category</h3>
-          <a href="#" className="mem-sidebar-view-all">
-            View all <ChevronRight size={14} />
-          </a>
         </div>
 
         <div className="mem-category-list">
@@ -131,7 +125,7 @@ export function MemoryRightSidebar({
             </svg>
             <div className="mem-donut-center">
               <span className="type-metric">{stats.totalMemories}</span>
-              <span className="type-caption">Sources</span>
+              <span className="type-caption">Entries</span>
             </div>
           </div>
 
@@ -153,9 +147,6 @@ export function MemoryRightSidebar({
       <div className="ui-card mem-sidebar-card">
         <div className="mem-sidebar-card-header">
           <h3 className="type-heading">Recent snapshots</h3>
-          <a href="#" className="mem-sidebar-view-all">
-            View all <ChevronRight size={14} />
-          </a>
         </div>
 
         {snapshots.length > 0 ? (
@@ -189,9 +180,15 @@ export function MemoryRightSidebar({
           <p className="type-caption">No snapshots yet.</p>
         )}
 
-        <button type="button" className="ui-btn ui-btn--secondary ui-btn--block" onClick={handleCreateSnapshot}>
+        {/* A snapshot only stores a title today, so creating one is switched off until it saves real content. */}
+        <button
+          type="button"
+          className="ui-btn ui-btn--secondary ui-btn--block"
+          disabled
+          title="Coming soon"
+        >
           <Plus />
-          Create snapshot
+          Create snapshot (Coming soon)
         </button>
       </div>
 

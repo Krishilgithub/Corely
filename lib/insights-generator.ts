@@ -22,6 +22,31 @@ const PRIORITY_STYLES: Record<string, { priBg: string; priColor: string }> = {
 
 let insightIdCounter = 1;
 
+// Where each kind of insight takes the user when clicked. Keyed by the
+// insight's icon, which is fixed per rule below.
+const INSIGHT_LINKS: Record<string, string> = {
+  Database: "/dashboard/sources",      // no sources connected
+  AlertTriangle: "/dashboard/sources", // sync failure
+  Clock: "/dashboard/sources",         // stale source or stale knowledge
+  RefreshCw: "/dashboard/sources",     // sources syncing
+  CheckCircle2: "/dashboard/sources",  // all sources healthy
+  FileText: "/dashboard/sources",      // documents indexed today
+  Activity: "/dashboard/sources",      // nothing indexed today
+  TrendingUp: "/dashboard/sources",    // documents indexed this week
+  Zap: "/dashboard/sources",           // knowledge is fresh
+  Plug: "/dashboard/sources",          // key integrations missing
+  MessageSquare: "/dashboard/ask-corely",
+  Sparkles: "/dashboard/ask-corely",
+  ThumbsDown: "/dashboard/ask-corely",
+  Users: "/dashboard/teams",
+  UserPlus: "/dashboard/teams?invite=1",
+};
+
+// Newest date in a list, or null when the list has no dates.
+function latestDate(dates: (Date | null | undefined)[]): Date | null {
+  return dates.reduce<Date | null>((latest, d) => (d && (!latest || d > latest) ? d : latest), null);
+}
+
 function buildInsight(
   icon: string,
   title: string,
@@ -31,7 +56,9 @@ function buildInsight(
   impact: "Low" | "Medium" | "High",
   trend: "up" | "down" | "flat",
   time: string,
-  source: string
+  source: string,
+  // When the real event behind this insight happened. Leave out when there is no single event.
+  occurredAt?: Date | null
 ): InsightItem {
   const { catBg, catColor } = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.Product;
   const { priBg, priColor } = PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.Medium;
@@ -55,7 +82,9 @@ function buildInsight(
     trend,
     time,
     source,
-    createdAt: new Date().toISOString(),
+    href: INSIGHT_LINKS[icon] ?? "/dashboard/insights",
+    // Null (not "now") when there is no real event time, so the UI can hide it.
+    createdAt: occurredAt ? occurredAt.toISOString() : null,
   };
 }
 
@@ -93,7 +122,7 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
         `${s.name} (${s.type}) is reporting sync errors. Error: ${s.errorMessage || "Unknown error"}. Reconnect to restore data flow.`,
         "Risk", "Critical", "High", "down",
         s.lastSyncedAt ? formatDistanceToNow(s.lastSyncedAt, { addSuffix: true }) : "Unknown",
-        s.name
+        s.name, s.lastSyncedAt
       ));
     }
 
@@ -102,7 +131,7 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
         "Clock", `Stale data — ${s.name}`,
         `${s.name} hasn't synced in ${formatDistanceToNow(s.lastSyncedAt!)}. Your AI may be missing recent context from this source.`,
         "Risk", "Medium", "Medium", "down",
-        formatDistanceToNow(s.lastSyncedAt!, { addSuffix: true }), s.name
+        formatDistanceToNow(s.lastSyncedAt!, { addSuffix: true }), s.name, s.lastSyncedAt
       ));
     }
 
@@ -110,7 +139,9 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
       insights.push(buildInsight(
         "RefreshCw", `${syncingSources.length} source${syncingSources.length > 1 ? "s" : ""} currently syncing`,
         `${syncingSources.map(s => s.name).join(", ")} ${syncingSources.length > 1 ? "are" : "is"} actively ingesting data into your knowledge base.`,
-        "Activity", "Low", "Low", "up", "Now", "System"
+        "Activity", "Low", "Low", "up", "Now", "System",
+        // updatedAt moves when the status flips to "syncing", so it is the closest real start time.
+        latestDate(syncingSources.map(s => s.updatedAt))
       ));
     }
 
@@ -118,29 +149,32 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
       insights.push(buildInsight(
         "CheckCircle2", `All ${healthySources.length} source${healthySources.length > 1 ? "s" : ""} healthy`,
         `${healthySources.map(s => s.name).join(", ")} ${healthySources.length > 1 ? "are" : "is"} syncing regularly. Your knowledge base is up to date.`,
-        "Operational", "Low", "Low", "up", "Just now", "System"
+        "Operational", "Low", "Low", "up", "Just now", "System",
+        latestDate(healthySources.map(s => s.lastSyncedAt))
       ));
     }
   }
 
   // ── 2. KNOWLEDGE BASE GROWTH (Activity) ────────────────────────────────────
-  const [newDocsLast24h, newDocsLast7d, totalDocs] = await Promise.all([
+  const [newDocsLast24h, newDocsLast7d, totalDocs, lastIndexed] = await Promise.all([
     prisma.document.count({ where: { workspaceId, indexedAt: { gte: twentyFourHoursAgo } } }),
     prisma.document.count({ where: { workspaceId, indexedAt: { gte: sevenDaysAgo } } }),
     prisma.document.count({ where: { workspaceId } }),
+    prisma.document.aggregate({ where: { workspaceId }, _max: { indexedAt: true } }),
   ]);
+  const lastIndexedAt = lastIndexed._max.indexedAt;
 
   if (newDocsLast24h > 0) {
     insights.push(buildInsight(
       "FileText", `${newDocsLast24h} new document${newDocsLast24h > 1 ? "s" : ""} indexed today`,
       `${newDocsLast24h} document${newDocsLast24h > 1 ? "s were" : " was"} added to your knowledge base in the last 24 hours. Total: ${totalDocs} documents.`,
-      "Activity", "Low", "Low", "up", "24h window", "Global"
+      "Activity", "Low", "Low", "up", "24h window", "Global", lastIndexedAt
     ));
   } else if (sources.length > 0 && totalDocs > 0) {
     insights.push(buildInsight(
       "Activity", "No new knowledge indexed today",
       `Knowledge base has been static for 24+ hours. ${totalDocs} total documents available. Trigger a manual sync or check source configurations.`,
-      "Activity", "Medium", "Medium", "flat", "24h window", "Global"
+      "Activity", "Medium", "Medium", "flat", "24h window", "Global", lastIndexedAt
     ));
   }
 
@@ -148,12 +182,12 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
     insights.push(buildInsight(
       "TrendingUp", `${newDocsLast7d} documents indexed this week`,
       `Strong knowledge growth this week. Your team is actively creating and syncing content — ${Math.round(newDocsLast7d / 7)} docs/day on average.`,
-      "Knowledge", "Low", "High", "up", "7-day window", "Global"
+      "Knowledge", "Low", "High", "up", "7-day window", "Global", lastIndexedAt
     ));
   }
 
   // ── 3. AI USAGE INTELLIGENCE (Activity / Operational) ──────────────────────
-  const [recentSessions, totalSessions, recentMessages] = await Promise.all([
+  const [recentSessions, totalSessions, recentMessages, latestSession] = await Promise.all([
     prisma.chatSession.count({ where: { workspaceId, createdAt: { gte: twentyFourHoursAgo } } }),
     prisma.chatSession.count({ where: { workspaceId } }),
     prisma.chatMessage.count({
@@ -163,13 +197,18 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
         createdAt: { gte: sevenDaysAgo },
       },
     }),
+    prisma.chatSession.findFirst({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   if (recentSessions > 0) {
     insights.push(buildInsight(
       "MessageSquare", `${recentSessions} AI session${recentSessions > 1 ? "s" : ""} in the last 24h`,
       `Your team asked Corely ${recentMessages} questions in the past week across ${totalSessions} total sessions. AI adoption is ${totalSessions > 10 ? "strong" : "growing"}.`,
-      "Activity", "Low", "Medium", "up", "24h window", "Corely AI"
+      "Activity", "Low", "Medium", "up", "24h window", "Corely AI", latestSession?.createdAt
     ));
   } else if (totalSessions === 0) {
     insights.push(buildInsight(
@@ -180,20 +219,22 @@ export async function generateDynamicInsights(workspaceId: string): Promise<Insi
   }
 
   // Check for negative feedback patterns
-  const negativeFeedback = await prisma.chatMessage.count({
-    where: {
-      session: { workspaceId },
-      sender: "corely",
-      feedback: "negative",
-      createdAt: { gte: sevenDaysAgo },
-    },
-  });
+  const negativeWhere = {
+    session: { workspaceId },
+    sender: "corely",
+    feedback: "negative",
+    createdAt: { gte: sevenDaysAgo },
+  };
+  const [negativeFeedback, latestNegative] = await Promise.all([
+    prisma.chatMessage.count({ where: negativeWhere }),
+    prisma.chatMessage.findFirst({ where: negativeWhere, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+  ]);
 
   if (negativeFeedback >= 3) {
     insights.push(buildInsight(
       "ThumbsDown", `${negativeFeedback} poor AI responses this week`,
       "Multiple users marked AI responses as unhelpful. Consider connecting more data sources or running a manual sync to improve retrieval quality.",
-      "Risk", "High", "High", "down", "7-day window", "Corely AI"
+      "Risk", "High", "High", "down", "7-day window", "Corely AI", latestNegative?.createdAt
     ));
   }
 

@@ -40,7 +40,8 @@ export async function DELETE(
         users: {
           disconnect: { id: memberId },
         },
-        members: Math.max(1, team.members - 1),
+        // Keep the stored count in step with the real list of users.
+        members: team.users.length - 1,
       },
     });
 

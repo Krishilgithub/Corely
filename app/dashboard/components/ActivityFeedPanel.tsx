@@ -1,56 +1,36 @@
 "use client";
 
-import { Activity, MoreHorizontal, X, UserPlus, Search } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  Cpu,
+  UserPlus,
+  Database,
+  type LucideIcon,
+} from "lucide-react";
+import Link from "next/link";
 import { SourceLogo } from "@/components/ui/source-logo";
+import type { ActivityItem } from "../dashboard-data";
+import { formatTimeAgo } from "./time-ago";
 
-// Each event shows either a source logo (`source`) or a plain icon (`icon`).
-type FeedItem = { id: number; type: string; title: string; desc: string; time: string; source?: string; icon?: LucideIcon };
+// Icon names come from Notification.iconType (see lib/notifications.ts) and dashboard-data.ts.
+const iconMap: Record<string, LucideIcon> = {
+  Bell,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  Cpu,
+  UserPlus,
+  Database,
+};
 
-const activities: FeedItem[] = [
-  {
-    id: 1,
-    type: "sync",
-    title: "Google Drive synced",
-    desc: "450 new documents indexed from /Engineering/Specs",
-    time: "2m ago",
-    source: "google_drive",
-  },
-  {
-    id: 2,
-    type: "member",
-    title: "Sarah Jenkins joined",
-    desc: "Added to Workspace 'Product Team'",
-    time: "1h ago",
-    icon: UserPlus,
-  },
-  {
-    id: 3,
-    type: "github",
-    title: "New pull request merged",
-    desc: "corely/frontend-v2 #492 by @johndoe",
-    time: "3h ago",
-    source: "github",
-  },
-  {
-    id: 4,
-    type: "query",
-    title: "Trending Query",
-    desc: "Multiple users asking about 'Q3 Roadmap'",
-    time: "5h ago",
-    icon: Search,
-  },
-  {
-    id: 5,
-    type: "document",
-    title: "High-value document detected",
-    desc: "'Q3 OKRs & Strategy.pdf' added to Notion",
-    time: "1d ago",
-    source: "notion",
-  }
-];
+// Real recent events, built on the server from notifications, indexed documents and new members.
+export default function ActivityFeedPanel({ data }: { data?: ActivityItem[] }) {
+  const items = data || [];
 
-export default function ActivityFeedPanel() {
   return (
     <div className="db-panel">
       {/* Header */}
@@ -59,45 +39,37 @@ export default function ActivityFeedPanel() {
           <Activity />
           Activity feed
         </span>
-        <div className="db-panel-actions">
-          <button className="db-panel-icon-btn" aria-label="More options">
-            <MoreHorizontal size={16} />
-          </button>
-          <button className="db-panel-icon-btn" aria-label="Close panel">
-            <X size={16} />
-          </button>
-        </div>
       </div>
 
       {/* Feed Body: one row per event, split by hairline dividers */}
       <div className="db-panel-body db-panel-body--flush">
-        <div className="db-feed-list">
-          {activities.map((activity) => (
-            <div key={activity.id} className="db-feed-row">
-              {activity.source ? (
-                <SourceLogo type={activity.source} size={18} tileSize={32} />
-              ) : activity.icon ? (
-                <span className="db-row-icon" aria-hidden="true">
-                  <activity.icon strokeWidth={2} />
-                </span>
-              ) : null}
-              <div className="db-feed-main">
-                <div className="db-feed-top">
-                  <span className="db-feed-title">{activity.title}</span>
-                  <span className="db-feed-time type-caption">{activity.time}</span>
-                </div>
-                <div className="db-feed-desc">{activity.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="db-panel-footer">
-        <button type="button" className="ui-btn ui-btn--ghost ui-btn--sm ui-btn--block">
-          View full activity log
-        </button>
+        {items.length === 0 ? (
+          <div className="db-panel-empty">No recent activity yet.</div>
+        ) : (
+          <div className="db-feed-list">
+            {items.map((activity) => {
+              const Icon = activity.iconType ? iconMap[activity.iconType] || Bell : Bell;
+              return (
+                <Link key={activity.id} href={activity.href} className="db-feed-row db-row-link">
+                  {activity.source ? (
+                    <SourceLogo type={activity.source} size={18} tileSize={32} />
+                  ) : (
+                    <span className="db-row-icon" aria-hidden="true">
+                      <Icon strokeWidth={2} />
+                    </span>
+                  )}
+                  <div className="db-feed-main">
+                    <div className="db-feed-top">
+                      <span className="db-feed-title">{activity.title}</span>
+                      <span className="db-feed-time type-caption">{formatTimeAgo(activity.time)}</span>
+                    </div>
+                    <div className="db-feed-desc">{activity.desc}</div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

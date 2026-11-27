@@ -3,11 +3,13 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { hasPermission, Permissions } from "@/lib/rbac";
 import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
 const settingsSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100).optional(),
   preferences: z.record(z.string(), z.unknown()).optional(),
   workspaceSettings: z.record(z.string(), z.unknown()).optional(),
   workspaceName: z.string().min(1).optional(),
@@ -19,6 +21,7 @@ export async function GET() {
     const { user, workspace } = await auth();
 
     return successResponse({
+      name: user.name,
       preferences: user.preferences,
       workspace: {
         id: workspace.id,
@@ -43,26 +46,34 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const result = settingsSchema.safeParse(body);
     if (!result.success) {
-      return errorResponse("Invalid payload", 400);
+      return errorResponse(result.error.issues[0]?.message || "Invalid payload", 400);
     }
 
-    const { preferences, workspaceSettings, workspaceName, workspaceSlug } = result.data;
+    const { name, preferences, workspaceSettings, workspaceName, workspaceSlug } = result.data;
 
-    // Update User preferences if provided
-    if (preferences) {
+    // Update the user's own name and preferences if provided
+    if (name || preferences) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          preferences: {
-            ...(typeof user.preferences === 'object' && user.preferences !== null ? user.preferences : {}),
-            ...preferences
-          } as Prisma.InputJsonValue
+          ...(name ? { name } : {}),
+          ...(preferences ? {
+            preferences: {
+              ...(typeof user.preferences === 'object' && user.preferences !== null ? user.preferences : {}),
+              ...preferences
+            } as Prisma.InputJsonValue
+          } : {}),
         }
       });
     }
 
-    // Update Workspace settings if provided
+    // Update Workspace settings if provided. Only admins (or roles that can
+    // manage teams) may change settings that affect the whole workspace.
     if (workspaceSettings || workspaceName || workspaceSlug) {
+      const canManageWorkspace = user.role === "admin" || hasPermission(user.workspaceRole?.permissions, Permissions.TEAMS_MANAGE);
+      if (!canManageWorkspace) {
+        return errorResponse("Only workspace admins can change workspace settings", 403);
+      }
       const workspaceUpdateData: Record<string, unknown> = {};
       
       if (workspaceSettings) {

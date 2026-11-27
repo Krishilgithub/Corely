@@ -5,7 +5,6 @@ import { useAuth } from "../../../lib/auth-context";
 import {
   Users,
   Folder,
-  Calendar,
   Database,
   Search,
   Sparkles,
@@ -121,7 +120,7 @@ export default function AskRightSidebar({
         <div className="ui-card-header">
           <div className="ac-card-heading">
             <h2 className="type-heading">Context</h2>
-            <span className="type-caption">Auto-detected</span>
+            <span className="type-caption">Your workspace</span>
           </div>
           <Link href="/dashboard/sources" className="ac-card-view-all">View all</Link>
         </div>
@@ -144,12 +143,6 @@ export default function AskRightSidebar({
               <Database size={16} /> Memories
             </div>
             <span className="ui-badge">{stats?.memories ?? "-"}</span>
-          </div>
-          <div className="ac-card-row">
-            <div className="ac-row-left">
-              <Calendar size={16} /> Time range
-            </div>
-            <span className="ui-badge">This week</span>
           </div>
           <div className="ac-card-row">
             <div className="ac-row-left">

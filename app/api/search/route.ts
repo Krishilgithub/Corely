@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth-server";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { generateEmbedding } from "@/lib/openai";
+import { generateEmbedding } from "@/lib/embeddings";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";

@@ -1,10 +1,10 @@
 /* Settings page styles, part 1 (set-*).
    Split out of app/dashboard/dashboard.css. Imported from app/dashboard/layout.tsx
    in the original order, so the cascade is unchanged.
-   Only the classes still in use are kept: SettingsRightSidebar uses the set-* card
-   classes, workflows uses .set-card-header, and dashboard-responsive.css still
-   names .set-page-grid and .set-account-info. Main settings styles live in
-   settings-layout.css. */
+   SettingsRightSidebar (which used the set-* card classes) was deleted because
+   nothing rendered it, so most of these card classes are now unused. Workflows
+   uses .set-card-header, and dashboard-responsive.css still names .set-page-grid
+   and .set-account-info. Main settings styles live in settings-layout.css. */
 
 .set-page-grid {
   display: flex;

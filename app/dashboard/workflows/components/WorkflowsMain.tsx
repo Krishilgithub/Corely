@@ -27,7 +27,6 @@ import {
   Edit2,
   Trash2,
   AlertTriangle,
-  ArrowUpRight,
   ArrowRight,
   Info
 } from "lucide-react";
@@ -40,7 +39,7 @@ import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 
-/** KPI tile: icon well, big number, label, and the change under the label. */
+/** KPI tile: icon well, big number, label, and an optional note under the label. */
 const StatTile = ({
   icon,
   value,
@@ -51,7 +50,7 @@ const StatTile = ({
   icon: React.ReactNode;
   value: React.ReactNode;
   label: string;
-  delta: string;
+  delta?: string;
   accent?: boolean;
 }) => (
   <div className="ui-kpi">
@@ -59,7 +58,7 @@ const StatTile = ({
     <div className="wf-kpi-text">
       <span className="type-metric">{value}</span>
       <span className="type-caption">{label}</span>
-      <span className="wf-kpi-delta"><ArrowUpRight size={14} strokeWidth={2.5} /> {delta}</span>
+      {delta && <span className="wf-kpi-delta">{delta}</span>}
     </div>
   </div>
 );
@@ -78,13 +77,20 @@ const STATUS_OPTIONS = [
   { value: "Inactive", label: "Inactive" },
 ];
 
-/** Choices for the owner field in the forms. */
-const OWNER_OPTIONS = [
-  { value: "KS", label: "Krishil Shah (You)" },
-  { value: "JD", label: "Jane Doe" },
-  { value: "AM", label: "Alex Morgan" },
-  { value: "TR", label: "Taylor Rogers" },
-];
+/** A person in the workspace, from GET /api/projects/options. */
+interface WorkspacePerson {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+/** Two-letter initials for the owner badge, e.g. "Jane Doe" → "JD". */
+export const ownerInitials = (name?: string | null, email?: string | null) => {
+  const words = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (email || "U").slice(0, 2).toUpperCase();
+};
 
 const TABS = ["all workflows", "active", "draft", "scheduled", "inactive"];
 
@@ -129,7 +135,6 @@ interface WorkflowsMainProps {
   onDelete: (id: string) => void;
   onAdd: (wf: Omit<WorkflowItem, "id" | "executions" | "lastRun" | "lastRunTime">) => void;
   onEdit: (wf: WorkflowItem) => void;
-  onImport: () => void;
 }
 
 export default function WorkflowsMain({
@@ -139,7 +144,6 @@ export default function WorkflowsMain({
   onDelete,
   onAdd,
   onEdit,
-  onImport
 }: WorkflowsMainProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("all workflows");
@@ -165,7 +169,35 @@ export default function WorkflowsMain({
   const [formTriggerType, setFormTriggerType] = useState<WorkflowItem["triggerType"]>("Schedule");
   const [formTriggerDesc, setFormTriggerDesc] = useState("");
   const [formStatus, setFormStatus] = useState<WorkflowItem["status"]>("Draft");
-  const [formOwner, setFormOwner] = useState("KS");
+  // Owner is a real person's user id while the form is open.
+  const [formOwner, setFormOwner] = useState("");
+
+  // Real people in this workspace for the owner picker.
+  const [people, setPeople] = useState<WorkspacePerson[]>([]);
+  useEffect(() => {
+    fetch("/api/projects/options")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => setPeople(json?.data?.members || []))
+      .catch((err) => console.error("Failed to load workspace people", err));
+  }, []);
+
+  // Owner choices: workspace people, or at least the signed-in user if the list could not load.
+  const ownerOptions = useMemo(() => {
+    const list: WorkspacePerson[] = people.length > 0
+      ? people
+      : user?.id ? [{ id: user.id, name: user.name ?? null, email: "" }] : [];
+    return list.map((p) => ({
+      value: p.id,
+      label: `${p.name || p.email}${p.id === user?.id ? " (You)" : ""}`,
+    }));
+  }, [people, user]);
+
+  /** Name and initials saved with the workflow for the chosen owner. */
+  const ownerFields = (ownerId: string) => {
+    const person = people.find((p) => p.id === ownerId);
+    const name = person?.name || person?.email || user?.name || "User";
+    return { owner: ownerInitials(person?.name ?? user?.name, person?.email), ownerName: name };
+  };
 
   // Dropdown reference for click outside
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -181,27 +213,19 @@ export default function WorkflowsMain({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [activeDropdownId]);
 
-  // ── Dynamic KPIs ───────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const activeCount = workflows.filter((w) => w.status === "Active").length;
-    const runningCount = workflows.filter((w) => w.status === "Active").length > 0 ? 7 + (workflows.filter((w) => w.status === "Active").length - 6) : 0;
-    
-    // Sum executions
-    const totalExecutionsBase = 1842;
-    const currentExecs = workflows.reduce((acc, curr) => acc + curr.executions, 0);
-    const initialExecs = 1620; // baseline executions sum of static INITIAL_WORKFLOWS
-    const totalExecutions = totalExecutionsBase + (currentExecs - initialExecs);
+  // ── KPIs: real counts only ─────────────────────────────────────────────────
+  const stats = useMemo(() => ({
+    totalCount: workflows.length,
+    activeCount: workflows.filter((w) => w.status === "Active").length,
+    // Manual runs recorded with "Run now". No actions are executed yet.
+    recordedRuns: workflows.reduce((acc, curr) => acc + curr.executions, 0),
+  }), [workflows]);
 
-    // Hours saved calculation: executions * 0.4 hours saved
-    const totalHoursSaved = 128 + Math.round((currentExecs - initialExecs) * 0.4);
-
-    return {
-      activeCount,
-      runningCount: Math.max(0, runningCount),
-      totalExecutions,
-      totalHoursSaved
-    };
-  }, [workflows]);
+  // Owner filter: only the owners that really appear on workflows.
+  const ownerFilterOptions = useMemo(
+    () => Array.from(new Set(workflows.map((w) => w.ownerName).filter(Boolean))).map((name) => ({ value: name, label: name })),
+    [workflows]
+  );
 
   // ── Filtered Workflows ─────────────────────────────────────────────────────
   const filteredWorkflows = useMemo(() => {
@@ -218,7 +242,7 @@ export default function WorkflowsMain({
       if (selectedTrigger !== "all" && wf.triggerType !== selectedTrigger) return false;
 
       // Dropdown Owner Filter
-      if (selectedOwner !== "all" && wf.owner !== selectedOwner) return false;
+      if (selectedOwner !== "all" && wf.ownerName !== selectedOwner) return false;
 
       // Search Query
       if (searchQuery.trim()) {
@@ -244,7 +268,8 @@ export default function WorkflowsMain({
     setFormTriggerType(wf.triggerType);
     setFormTriggerDesc(wf.triggerDesc);
     setFormStatus(wf.status);
-    setFormOwner(wf.owner);
+    // Match the saved owner name to a real person. Fall back to the signed-in user.
+    setFormOwner(people.find((p) => (p.name || p.email) === wf.ownerName)?.id || user?.id || "");
     setShowEditModal(true);
     setActiveDropdownId(null);
   };
@@ -263,11 +288,8 @@ export default function WorkflowsMain({
     else if (formIcon === "LineChart") { iconBg = "#ffedd5"; iconCol = "#ea580c"; }
     else if (formIcon === "FileText") { iconBg = "#fee2e2"; iconCol = "#ef4444"; }
 
-    let ownerBg = "#0ea5e9";
-    let ownerName = user?.name || "User";
-    if (formOwner === "JD") { ownerBg = "#c2410c"; ownerName = "Jane Doe"; }
-    else if (formOwner === "AM") { ownerBg = "#db2777"; ownerName = "Alex Morgan"; }
-    else if (formOwner === "TR") { ownerBg = "#4f46e5"; ownerName = "Taylor Rogers"; }
+    const ownerBg = "#0ea5e9";
+    const { owner, ownerName } = ownerFields(formOwner);
 
     onAdd({
       icon: formIcon,
@@ -279,7 +301,7 @@ export default function WorkflowsMain({
       triggerIcon: formTriggerType === "Schedule" ? "Clock" : formTriggerType === "Condition" ? "LayoutGrid" : "Zap",
       triggerDesc: formTriggerDesc.trim(),
       status: formStatus,
-      owner: formOwner,
+      owner,
       ownerBg,
       ownerName
     });
@@ -291,7 +313,7 @@ export default function WorkflowsMain({
     setFormTriggerType("Schedule");
     setFormTriggerDesc("");
     setFormStatus("Draft");
-    setFormOwner("KS");
+    setFormOwner("");
     setShowAddModal(false);
   };
 
@@ -309,11 +331,8 @@ export default function WorkflowsMain({
     else if (formIcon === "LineChart") { iconBg = "#ffedd5"; iconCol = "#ea580c"; }
     else if (formIcon === "FileText") { iconBg = "#fee2e2"; iconCol = "#ef4444"; }
 
-    let ownerBg = "#0ea5e9";
-    let ownerName = user?.name || "User";
-    if (formOwner === "JD") { ownerBg = "#c2410c"; ownerName = "Jane Doe"; }
-    else if (formOwner === "AM") { ownerBg = "#db2777"; ownerName = "Alex Morgan"; }
-    else if (formOwner === "TR") { ownerBg = "#4f46e5"; ownerName = "Taylor Rogers"; }
+    const ownerBg = "#0ea5e9";
+    const { owner, ownerName } = ownerFields(formOwner);
 
     onEdit({
       ...selectedWorkflow,
@@ -326,7 +345,7 @@ export default function WorkflowsMain({
       triggerIcon: formTriggerType === "Schedule" ? "Clock" : formTriggerType === "Condition" ? "LayoutGrid" : "Zap",
       triggerDesc: formTriggerDesc.trim(),
       status: formStatus,
-      owner: formOwner,
+      owner,
       ownerBg,
       ownerName
     });
@@ -364,7 +383,7 @@ export default function WorkflowsMain({
         <div className="ui-popover wf-actions-dropdown">
           <button className="ui-menu-item" onClick={() => onRun(row.id)}>
             <Play size={16} />
-            Run now
+            Record a run
           </button>
           <button className="ui-menu-item" onClick={() => onToggleStatus(row.id)}>
             <ToggleLeft size={16} />
@@ -399,10 +418,18 @@ export default function WorkflowsMain({
         subtitle="Automate repetitive work and orchestrate intelligent actions across your organization."
         actions={
           <>
-            <button className="ui-btn ui-btn--secondary" onClick={onImport}>
+            {/* Import has no file picker or parser yet, so it is disabled. */}
+            <button className="ui-btn ui-btn--secondary" disabled title="Not available yet">
               <Upload size={16} /> Import workflow
+              <span className="ui-badge ui-badge--neutral">Coming soon</span>
             </button>
-            <button className="ui-btn ui-btn--primary" onClick={() => setShowAddModal(true)}>
+            <button
+              className="ui-btn ui-btn--primary"
+              onClick={() => {
+                setFormOwner(user?.id || "");
+                setShowAddModal(true);
+              }}
+            >
               <Plus size={16} /> New workflow
             </button>
           </>
@@ -418,8 +445,8 @@ export default function WorkflowsMain({
             <span className="ui-badge ui-badge--neutral">Coming soon</span>
           </div>
           <div className="wf-notice__text">
-            You can create, organize, and run workflow definitions — the full execution engine (trigger automation, action dispatch) is coming soon.
-            Executions are currently logged for tracking purposes only.
+            You can create and organize workflow definitions. Triggers and actions are not executed yet.
+            &quot;Record a run&quot; only adds a run record and a log entry. Nothing else happens.
           </div>
         </div>
       </div>
@@ -428,27 +455,19 @@ export default function WorkflowsMain({
         <StatTile
           accent
           icon={<GitBranch />}
-          value={stats.activeCount}
-          label="Active workflows"
-          delta="4 vs last month"
+          value={stats.totalCount}
+          label="Workflows"
         />
         <StatTile
           icon={<PlayCircle />}
-          value={stats.runningCount}
-          label="Running now"
-          delta="Live executions"
+          value={stats.activeCount}
+          label="Active workflows"
         />
         <StatTile
           icon={<CheckCircle2 />}
-          value={stats.totalExecutions.toLocaleString()}
-          label="Executions (this month)"
-          delta="23% vs last month"
-        />
-        <StatTile
-          icon={<Clock />}
-          value={stats.totalHoursSaved}
-          label="Hours saved"
-          delta="18% vs last month"
+          value={stats.recordedRuns.toLocaleString()}
+          label="Runs recorded"
+          delta="Manual runs only. Actions are not executed yet."
         />
       </div>
 
@@ -481,10 +500,7 @@ export default function WorkflowsMain({
               id: "owner",
               label: "Owner",
               icon: <Users size={14} />,
-              options: [
-                { value: "KS", label: user?.name || "User" },
-                ...OWNER_OPTIONS.filter((o) => o.value !== "KS"),
-              ],
+              options: ownerFilterOptions,
               value: selectedOwner,
               onChange: setSelectedOwner,
               emptyValue: "all",
@@ -513,7 +529,7 @@ export default function WorkflowsMain({
                 <th>Workflow</th>
                 <th>Trigger</th>
                 <th>Last run</th>
-                <th>Executions</th>
+                <th>Runs recorded</th>
                 <th>Status</th>
                 <th style={{ textAlign: "center" }}>Owner</th>
                 <th aria-label="Actions" />
@@ -599,8 +615,8 @@ export default function WorkflowsMain({
                     </span>
                   </div>
                   <div className="wf-grid-meta-row">
-                    <span>Executions</span>
-                    <span className="wf-num">{row.executions} runs</span>
+                    <span>Runs recorded</span>
+                    <span className="wf-num">{row.executions}</span>
                   </div>
                   <div className="wf-grid-meta-row">
                     <span>Last run</span>
@@ -625,9 +641,6 @@ export default function WorkflowsMain({
         <div>
           <div className="type-heading">Build smarter workflows with Corely</div>
           <div className="type-subtitle wf-banner-desc">Use triggers, conditions, and actions to automate any process.</div>
-          <a href="#" className="wf-banner-link">
-            Learn more <ArrowUpRight size={16} />
-          </a>
         </div>
 
         <div className="wf-banner-flow">
@@ -765,7 +778,8 @@ export default function WorkflowsMain({
                         aria-label="Workflow owner"
                         value={formOwner}
                         onChange={setFormOwner}
-                        options={OWNER_OPTIONS}
+                        placeholder="Select an owner"
+                        options={ownerOptions}
                       />
                     </div>
                   </div>
@@ -868,7 +882,8 @@ export default function WorkflowsMain({
                         aria-label="Workflow owner"
                         value={formOwner}
                         onChange={setFormOwner}
-                        options={OWNER_OPTIONS}
+                        placeholder="Select an owner"
+                        options={ownerOptions}
                       />
                     </div>
                   </div>
@@ -904,7 +919,7 @@ export default function WorkflowsMain({
                 </p>
 
                 <p className="wf-confirm-note">
-                  This is a cascade operation. It will permanently remove the workflow definition and flush all associated execution logs from the sidebar activity panel.
+                  This permanently removes the workflow definition and all of its recorded runs from the activity panel.
                 </p>
               </div>
 

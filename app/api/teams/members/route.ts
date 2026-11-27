@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
       include: { workspaceRole: true, teams: true },
     });
 
+    // Same base URL rule as the password-reset email.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://corely-khaki.vercel.app";
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e4e4e7; border-radius: 8px;">
         <h2 style="color: #ff6b00;">Welcome to Corely</h2>
@@ -78,11 +80,18 @@ export async function POST(request: NextRequest) {
           <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; letter-spacing: 2px;">${generatedPassword}</p>
         </div>
         <p>Please login and change your password as soon as possible.</p>
-        <a href="https://corely-khaki.vercel.app/login" style="display: inline-block; background-color: #ff6b00; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">Login to Corely</a>
+        <a href="${baseUrl}/login" style="display: inline-block; background-color: #ff6b00; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-top: 10px;">Login to Corely</a>
       </div>
     `;
 
-    await sendEmail(email, "You've been invited to Corely", html);
+    // Use the real result. sendEmail returns { success: false } when the email could not go out.
+    let emailSent = false;
+    try {
+      const emailResult = await sendEmail(email, "You've been invited to Corely", html);
+      emailSent = emailResult.success;
+    } catch (err) {
+      console.error("Invite email failed:", err);
+    }
 
     // Create a broadcast notification for the workspace that a new member joined
     await createNotification({
@@ -101,8 +110,10 @@ export async function POST(request: NextRequest) {
         roleName: newUser.workspaceRole?.name,
         teams: newUser.teams.map(t => t.name),
       },
-      // Passing password back for development convenience, normally NEVER do this!
-      _devPassword: generatedPassword, 
+      emailSent,
+      // Only send the temporary password back when the person has no other way to get it
+      // (the email failed), or in local development. The UI shows it once.
+      temporaryPassword: !emailSent || process.env.NODE_ENV !== "production" ? generatedPassword : null,
     });
 
   } catch (error) {
@@ -130,12 +141,13 @@ export async function GET() {
       email: user.email,
       role: user.workspaceRole?.name || user.role || "Member",
       joinedAt: new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      status: "active",
       initials: (user.name || user.email).slice(0, 2).toUpperCase(),
     }));
 
     return successResponse({ members });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET members error:", error);
     return errorResponse("Internal server error", 500);
   }

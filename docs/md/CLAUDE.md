@@ -151,8 +151,9 @@ that must not be statically cached (auth-dependent or streaming routes).
    the document's `updated_at` — Slack 2.0 (most ephemeral), default 0.5, Linear 0.4, GitHub 0.3,
    Notion/Google Docs 0.2 (most durable). The freshness label is injected into the prompt so the model
    flags stale answers.
-6. Streams the `gpt-4o` chat completion back as SSE (`text/event-stream`, hand-rolled — **not** the
-   `ai` SDK's stream helpers), then persists the full answer and its sources as a `ChatMessage`.
+6. Streams the answer from Claude (`lib/anthropic.ts`; the model is the workspace's `settings.defaultLlm`,
+   `claude-opus-5-5` by default, see `lib/llm-models.ts`) back as SSE (`text/event-stream`, hand-rolled —
+   **not** the `ai` SDK's stream helpers), then persists the full answer and its sources as a `ChatMessage`.
 
 When no chunk clears 0.55 it returns a fixed "no knowledge" response without calling the model —
 don't remove that hallucination guard.
@@ -164,7 +165,7 @@ One file per integration (`notion.ts`, `gmail.ts`, `google-drive.ts`, `github.ts
 pipeline: load + decrypt the stored OAuth token (`lib/crypto.ts`, AES via `crypto-js`, key from
 `ENCRYPTION_KEY`) → paginate the provider API → dedupe via SHA-256 `contentHash` on `Document` →
 chunk (`modules/ai/chunker.ts`, 400-word chunks / 50-word overlap) → embed
-(`lib/openai.ts#generateEmbedding`, `text-embedding-3-small` with automatic fallback to
+(`lib/embeddings.ts#generateEmbedding`, OpenAI `text-embedding-3-small` with automatic fallback to
 `text-embedding-ada-002` on model/permission errors) → insert into `document_chunks` via
 `supabaseAdmin` → update `Source.status` (`idle` → `syncing` → `synced`/`error`) and purge documents
 no longer present upstream. Provider calls go through a `withRetry` wrapper that special-cases 401
@@ -218,9 +219,9 @@ which path a change actually affects before assuming job queuing is involved.
 ### Environment variables
 
 No `.env.example` exists; all env access has hardcoded dummy/dev fallbacks so the app builds without
-secrets set (`lib/db.ts`, `lib/openai.ts`, `lib/supabase.ts`, `lib/redis.ts`, etc.) — don't remove
+secrets set (`lib/db.ts`, `lib/embeddings.ts`, `lib/supabase.ts`, `lib/redis.ts`, etc.) — don't remove
 those fallbacks. Variables in active use: `DATABASE_URL`, `JWT_SECRET`, `ENCRYPTION_KEY`,
-`OPENAI_API_KEY`, `REDIS_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`ANTHROPIC_API_KEY` (answers and memory extraction), `OPENAI_API_KEY` (search embeddings only), `REDIS_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`, `EMAIL_USER`/`EMAIL_PASS`, and OAuth
 client id/secret/redirect pairs per provider (`GOOGLE_*`, `GMAIL_*`, `GITHUB_*`, `NOTION_*`,
 `SLACK_*`, `LINEAR_*`).

@@ -3,9 +3,12 @@
  * Saves folder selection config (folderId, folderName) and resets status to idle.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
+import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -13,18 +16,21 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sourceId: string }> }
 ) {
-  const { sourceId } = await params;
-
   try {
+    // Only signed-in users who can change sources may change the config.
+    const user = await requirePermission(Permissions.SOURCES_WRITE);
+    const { sourceId } = await params;
+
     const body = await request.json();
     const { folderIds, folderNames, permissions, selectedRepos } = body as { folderIds?: string[]; folderNames?: string[]; permissions?: string; selectedRepos?: string[] };
 
-    const source = await prisma.source.findUnique({
-      where: { id: sourceId },
+    // The source must belong to the caller's workspace. Otherwise act as if it does not exist.
+    const source = await prisma.source.findFirst({
+      where: { id: sourceId, workspaceId: user.workspaceId },
     });
 
     if (!source) {
-      return NextResponse.json({ error: "Source not found" }, { status: 404 });
+      return errorResponse("Source not found", 404);
     }
 
     const currentConfig = (source.config as Record<string, unknown>) || {};
@@ -61,10 +67,11 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updatedSource);
-  } catch (err) {
-    const errMessage = (err as Error)?.message || "Failed to save configuration";
-    console.error("[Save Config] Error saving configuration:", err);
-    return NextResponse.json({ error: errMessage }, { status: 500 });
+    return successResponse(updatedSource);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("[Save Config] Error saving configuration:", error);
+    return errorResponse("Failed to save configuration", 500);
   }
 }

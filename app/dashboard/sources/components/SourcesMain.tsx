@@ -504,8 +504,16 @@ export default function SourcesMain() {
       label: "Connected sources",
       value: sources.length,
       icon: <Database />,
-      hint: syncingCount > 0 ? `${syncingCount} syncing` : "All systems operational",
-      hintTone: syncingCount > 0 ? "warning" : "success",
+      // Based on real source statuses: errors first, then running syncs.
+      hint:
+        errorCount > 0
+          ? `${errorCount} need${errorCount === 1 ? "s" : ""} attention`
+          : syncingCount > 0
+          ? `${syncingCount} syncing`
+          : sources.length > 0
+          ? "No sync errors"
+          : "None connected yet",
+      hintTone: errorCount > 0 ? "error" : syncingCount > 0 ? "warning" : sources.length > 0 ? "success" : undefined,
       accent: true,
     },
     { label: "Documents indexed", value: formatCount(totalIndexed), icon: <FileText />, hint: "Across all sources" },
@@ -595,7 +603,7 @@ export default function SourcesMain() {
                 }}
               >
                 <History />
-                View sync history
+                View sync status
               </button>
               <button
                 type="button"
@@ -926,10 +934,10 @@ export default function SourcesMain() {
                 <div className="src-consequences">
                   <div className="src-consequences__title">This action is permanent and will:</div>
                   <ul>
-                    <li>Revoke access tokens and stop all background syncing.</li>
+                    <li>Delete the access tokens Corely stored for this source. To fully revoke access, also remove Corely in the tool&apos;s own settings.</li>
                     <li>Permanently erase all {disconnectingSource.itemsIndexed.toLocaleString()} indexed documents.</li>
                     <li>Wipe out all database text chunks and search vectors.</li>
-                    <li>Remove it from workspace memory and chat history references.</li>
+                    <li>Memories and past chat answers that came from it are kept.</li>
                   </ul>
                 </div>
               </div>
@@ -1036,7 +1044,8 @@ function ConfigureSourceModal({
   const [sourceType, setSourceType] = useState("google_drive");
   const [activeConfigTab, setActiveConfigTab] = useState<"sync" | "schedule" | "permissions">("sync");
   const [permissions, setPermissions] = useState<"everyone" | "admins">("everyone");
-  const [syncSchedule, setSyncSchedule] = useState<"hourly" | "daily" | "weekly" | "manual">("daily");
+  // Set when the Drive folder list could not be loaded (for example the user must reconnect).
+  const [foldersError, setFoldersError] = useState<string | null>(null);
 
   // Load existing source configuration and list of folders
   useEffect(() => {
@@ -1047,7 +1056,8 @@ function ConfigureSourceModal({
         // 1. Fetch current status/config
         const sourceRes = await fetch(`/api/sources/${sourceId}/status`);
         if (!sourceRes.ok) return;
-        const sourceData = await sourceRes.json();
+        const sourceJson = await sourceRes.json();
+        const sourceData = sourceJson.data || sourceJson;
         if (!active) return;
         setSourceName(sourceData.name || "Google Drive");
 
@@ -1055,10 +1065,6 @@ function ConfigureSourceModal({
         if (config.permissions) {
           setPermissions(config.permissions);
         }
-        if (config.syncSchedule) {
-          setSyncSchedule(config.syncSchedule);
-        }
-        
         const type = sourceData.type || "google_drive";
         setSourceType(type);
         if (type === "google_drive") {
@@ -1073,12 +1079,16 @@ function ConfigureSourceModal({
 
           // 2. Fetch folder list from Drive
           const foldersRes = await fetch(`/api/sources/${sourceId}/folders`);
-          if (foldersRes.ok) {
-            const foldersData = await foldersRes.json();
-            if (active) {
-              const folderList = foldersData.folders || [];
+          const foldersJson = await foldersRes.json().catch(() => ({}));
+          if (active) {
+            if (foldersRes.ok) {
+              const folderList = foldersJson.data?.folders || [];
               setFolders(folderList);
               setFilteredFolders(folderList);
+              setFoldersError(null);
+            } else {
+              // Show the real reason (for example "Reconnect Google Drive") instead of an empty list.
+              setFoldersError(foldersJson.error || "Could not load folders from Google Drive.");
             }
           }
         } else if (type === "github") {
@@ -1146,7 +1156,6 @@ function ConfigureSourceModal({
           ...(sourceType === "github" && {
             selectedRepos: syncOption === "repo" ? selectedRepoIds : [],
           }),
-          syncSchedule,
           permissions,
         }),
       });
@@ -1286,9 +1295,17 @@ function ConfigureSourceModal({
 
                   {/* Folder List Scroll Pane */}
                   <div className="src-picker">
-                    {(sourceType === "github" ? filteredRepos : filteredFolders).length === 0 ? (
+                    {sourceType === "google_drive" && foldersError ? (
+                      <div className="src-error-box" role="alert">
+                        {foldersError}
+                      </div>
+                    ) : (sourceType === "github" ? filteredRepos : filteredFolders).length === 0 ? (
                       <div className="src-picker__empty type-caption">
-                        No items found matching &quot;{searchQuery}&quot;
+                        {searchQuery.trim()
+                          ? <>No items found matching &quot;{searchQuery}&quot;</>
+                          : sourceType === "github"
+                          ? "No repositories found for this account."
+                          : "No folders found in this Google Drive."}
                       </div>
                     ) : (
                       (sourceType === "github" ? filteredRepos : filteredFolders).map((fItem) => {
@@ -1329,30 +1346,28 @@ function ConfigureSourceModal({
 
               {activeConfigTab === "schedule" && (
                 <div className="src-option-list">
-                  <div className="type-label" style={{ marginBottom: 2 }}>Sync schedule</div>
-
+                  <div className="type-label" style={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    Sync schedule
+                    <span className="ui-badge ui-badge--neutral">Coming soon</span>
+                  </div>
+                  {/* No scheduler runs syncs yet, so the choices are shown disabled. */}
+                  <p className="type-caption">
+                    Automatic syncing is coming soon. For now, sync manually with Sync now.
+                  </p>
                   {[
-                    { id: "hourly", label: "Hourly", desc: "Sync updates every hour for real-time relevance." },
-                    { id: "daily", label: "Daily (midnight)", desc: "Sync once per day during off-hours." },
-                    { id: "weekly", label: "Weekly", desc: "Sync once a week (Sundays)." },
-                    { id: "manual", label: "Manual only", desc: "Never sync automatically. Only sync when triggered manually." }
+                    { id: "hourly", label: "Hourly" },
+                    { id: "daily", label: "Daily" },
+                    { id: "weekly", label: "Weekly" },
                   ].map((option) => (
                     <label
                       key={option.id}
-                      className={`src-option ${syncSchedule === option.id ? "is-selected" : ""}`}
+                      className="src-option"
+                      title="Not available yet"
+                      style={{ opacity: 0.5, cursor: "not-allowed" }}
                     >
-                      <input
-                        type="radio"
-                        name="syncSchedule"
-                        value={option.id}
-                        checked={syncSchedule === option.id}
-                        onChange={() => setSyncSchedule(option.id as "hourly" | "daily" | "weekly" | "manual")}
-                      />
+                      <input type="radio" name="syncSchedule" value={option.id} disabled checked={false} readOnly />
                       <div className="src-option__text">
                         <div className="type-body" style={{ fontWeight: 600 }}>{option.label}</div>
-                        <div className="type-caption">
-                          {option.desc}
-                        </div>
                       </div>
                     </label>
                   ))}
@@ -1463,7 +1478,6 @@ function ManageDocumentsModal({
   const [newDocType, setNewDocType] = useState("manual_upload");
   const [newDocContent, setNewDocContent] = useState("");
   const [submittingDoc, setSubmittingDoc] = useState(false);
-  const [submitStep, setSubmitStep] = useState(0); // 0: Idle, 1: Chunking, 2: Embedding, 3: Saving
   
   // Document deleting states
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
@@ -1515,13 +1529,8 @@ function ManageDocumentsModal({
       return;
     }
 
+    // One real state while the request runs. The server chunks, embeds and stores the text.
     setSubmittingDoc(true);
-    setSubmitStep(1); // Analyzing & Chunking
-
-    // Visual step sequence for a premium feeling
-    setTimeout(() => {
-      setSubmitStep(2); // Generating vector embeddings
-    }, 800);
 
     try {
       const res = await fetch(`/api/documents`, {
@@ -1535,31 +1544,30 @@ function ManageDocumentsModal({
         }),
       });
 
-      if (res.ok) {
-        const json = await res.json();
-        const data = json.data || json;
-        setSubmitStep(3); // Finalizing
-        setTimeout(() => {
-          setDocs((prev) => [data.document, ...prev]);
-          showToast(`Document "${newDocTitle}" indexed successfully!`, "success");
-          
-          // Reset form
-          setNewDocTitle("");
-          setNewDocContent("");
-          setShowAddForm(false);
-          setSubmittingDoc(false);
-          setSubmitStep(0);
-          onDocumentsChanged();
-        }, 600);
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to index manual document");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to index manual document");
       }
+
+      const data = json.data || json;
+      setDocs((prev) => [data.document, ...prev]);
+      // The server sends a warning when only some text chunks were saved.
+      if (data.warning) {
+        showToast(`"${newDocTitle}" was saved with a problem: ${data.warning}`, "info");
+      } else {
+        showToast(`Document "${newDocTitle}" indexed successfully!`, "success");
+      }
+
+      // Reset form
+      setNewDocTitle("");
+      setNewDocContent("");
+      setShowAddForm(false);
+      onDocumentsChanged();
     } catch (err) {
       console.error(err);
       showToast((err as Error).message || "Failed to add manual document", "info");
+    } finally {
       setSubmittingDoc(false);
-      setSubmitStep(0);
     }
   };
 
@@ -1788,11 +1796,7 @@ function ManageDocumentsModal({
                     <div className="src-progress__row">
                       <Loader2 size={16} className="animate-spin src-spinner" />
                       <div className="type-body" style={{ fontWeight: 600 }}>
-                        {submitStep === 1
-                          ? "Analyzing & chunking text..."
-                          : submitStep === 2
-                          ? "Generating vector embeddings..."
-                          : "Indexing document chunks..."}
+                        Indexing...
                       </div>
                     </div>
                     <div className="src-progress__track">
@@ -1833,11 +1837,7 @@ function ManageDocumentsModal({
                   <div className="src-kv">
                     <span className="type-caption">Connector type</span>
                     <span className="ui-badge ui-badge--neutral">
-                      {source.type === "google_drive"
-                        ? "Storage (Drive)"
-                        : source.type === "gmail"
-                        ? "Email (Gmail)"
-                        : "Workspace (Notion)"}
+                      {sourceTypeLabel(source.type)}
                     </span>
                   </div>
                   <div className="src-kv">

@@ -1014,6 +1014,16 @@ html[data-sidebar="collapsed"] .db-sidebar .db-user-menu { right: auto; width: 2
   flex-shrink: 0;
 }
 .db-status-rows { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* Home panel rows that open a page (activity feed, insights, system status) */
+.db-row-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.db-row-link:hover { background: var(--surface-hover); }
+.db-row-link:focus-visible { outline: 2px solid var(--accent-border); outline-offset: -2px; }
 .db-status-row { display: flex; align-items: center; gap: 8px; }
 .db-status-row svg { width: 14px; height: 14px; flex-shrink: 0; }
 .db-status-text { font-size: 14px; line-height: 20px; font-weight: 500; }

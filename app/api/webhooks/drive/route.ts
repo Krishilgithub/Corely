@@ -3,7 +3,9 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verify Google Drive webhook token/signature
+    // Note: Drive change notifications are not processed yet. The token is not
+    // checked and no sync is started. We say so in the response instead of
+    // claiming the change was processed.
     const resourceState = request.headers.get("x-goog-resource-state");
     const channelId = request.headers.get("x-goog-channel-id");
 
@@ -16,13 +18,10 @@ export async function POST(request: NextRequest) {
       return successResponse({ status: "acknowledged" });
     }
 
-    // 2. Process changes (stub)
-    console.log(`[Google Drive Webhook] Received update for channel ${channelId}`);
-    
-    // Here we would typically enqueue a background BullMQ job to fetch incremental changes
-    // queue.add('sync-drive-incremental', { channelId })
+    console.log(`[Google Drive Webhook] Received update for channel ${channelId}. Ignored: processing is not built yet.`);
 
-    return successResponse({ status: "processed" });
+    // 202 = received but not acted on. Users sync manually with "Sync now" for now.
+    return successResponse({ status: "ignored", reason: "webhook processing not implemented" }, 202);
   } catch (error) {
     console.error("POST /api/webhooks/drive error:", error);
     return errorResponse("Internal Server Error", 500);

@@ -1,16 +1,36 @@
 import nodemailer from "nodemailer";
 
+// The email login comes only from env vars. Never put real credentials in code.
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const emailConfigured = Boolean(EMAIL_USER && EMAIL_PASS);
+
+if (!emailConfigured) {
+  // Name the missing variables only. Never log their values.
+  console.warn("[email] EMAIL_USER or EMAIL_PASS is not set. Password reset and invite emails will not be sent.");
+}
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER || "krishilagrawal026@gmail.com",
-    pass: process.env.EMAIL_PASS || "jziz jwds swjg usty",
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
 });
 
+// The sender shown in the "From" field: the same account that sends the mail.
+const FROM_ADDRESS = `"Corely Enterprise" <${EMAIL_USER ?? ""}>`;
+
+// Returned when email is not set up, so callers can tell the user it did not go out.
+function notConfigured() {
+  return { success: false, error: new Error("Email is not configured: EMAIL_USER and EMAIL_PASS are missing") };
+}
+
 export async function sendPasswordResetEmail(to: string, resetLink: string) {
+  if (!emailConfigured) return notConfigured();
+
   const mailOptions = {
-    from: '"Corely Enterprise" <no-reply@corely.ai>',
+    from: FROM_ADDRESS,
     to,
     subject: "Reset your Corely password",
     html: `
@@ -36,9 +56,11 @@ export async function sendPasswordResetEmail(to: string, resetLink: string) {
 }
 
 export async function sendEmail(to: string, subject: string, html: string) {
+  if (!emailConfigured) return notConfigured();
+
   try {
     await transporter.sendMail({
-      from: '"Corely Enterprise" <no-reply@corely.ai>',
+      from: FROM_ADDRESS,
       to,
       subject,
       html,

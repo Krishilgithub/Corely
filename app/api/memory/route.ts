@@ -20,17 +20,6 @@ export async function GET() {
   try {
     const user = await requirePermission(Permissions.MEMORY_READ);
 
-    // Delete mock data
-    await prisma.orgMemory.deleteMany({
-      where: {
-        workspaceId: user.workspaceId,
-        OR: [
-          { title: 'Decision Captured' },
-          { title: 'Discussion Summary' }
-        ]
-      }
-    });
-
     const memories = await prisma.orgMemory.findMany({
       where: { workspaceId: user.workspaceId },
       orderBy: { createdAt: 'desc' }
@@ -65,7 +54,9 @@ export async function GET() {
       badges: doc.fileType ? [doc.fileType] : [],
       sourceName: doc.source.name,
       avatarUrl: null,
-      url: doc.url
+      url: doc.url,
+      // Synced documents are not OrgMemory rows. They are removed via Sources, not here.
+      isSyncedDocument: true
     }));
 
     const allMemories = [...memories, ...formattedDocs].sort(
@@ -125,12 +116,17 @@ export async function DELETE(request: NextRequest) {
       return errorResponse("Missing id", 400);
     }
 
-    await prisma.orgMemory.deleteMany({
+    const deleted = await prisma.orgMemory.deleteMany({
       where: {
         id: id,
         workspaceId: user.workspaceId
       }
     });
+
+    // Nothing matched: it is not a memory in this workspace (it may be a synced document).
+    if (deleted.count === 0) {
+      return errorResponse("Memory not found", 404);
+    }
 
     return successResponse({ success: true });
   } catch (error) {

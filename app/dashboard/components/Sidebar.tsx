@@ -108,12 +108,8 @@ export default function Sidebar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [usage, setUsage] = useState({
     plan: "Free",
-    isEnterprise: false,
-    usagePercent: 0,
     docsIndexed: 0,
-    documentLimit: 100,
-    queriesThisMonth: 0,
-    queryLimit: 500,
+    chatsThisMonth: 0,
   });
 
   // Groups start open.
@@ -171,11 +167,7 @@ export default function Sidebar() {
     router.refresh();
   };
 
-  const planLabel = usage.isEnterprise
-    ? "Enterprise"
-    : (usage.plan || "Free").replace(/^\w/, c => c.toUpperCase());
-  const barColor =
-    usage.usagePercent > 90 ? "var(--error)" : usage.usagePercent > 75 ? "var(--warning)" : "var(--accent-fill)";
+  const planLabel = (usage.plan || "Free").replace(/^\w/, c => c.toUpperCase());
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
@@ -291,20 +283,17 @@ export default function Sidebar() {
           {/* Footer: plan, log out, account */}
           <div className="db-sidebar-footer">
             <div className="db-plan-card">
+              {/* Plain counts only: no plan limits are enforced yet */}
               <div className="db-plan-head">
                 <span className="db-plan-tag">{planLabel} plan</span>
-                <span className="db-plan-usage-pct">{usage.usagePercent}%</span>
               </div>
               <div className="db-plan-row">
                 <span>Documents</span>
-                <span><strong>{usage.docsIndexed.toLocaleString()}</strong> / {usage.documentLimit.toLocaleString()}</span>
+                <span><strong>{usage.docsIndexed.toLocaleString()}</strong></span>
               </div>
               <div className="db-plan-row">
-                <span>Queries</span>
-                <span><strong>{usage.queriesThisMonth.toLocaleString()}</strong> / {usage.queryLimit.toLocaleString()}</span>
-              </div>
-              <div className="db-plan-bar-bg">
-                <div className="db-plan-bar-fill" style={{ width: `${Math.min(100, usage.usagePercent)}%`, background: barColor }} />
+                <span>Chats this month</span>
+                <span><strong>{usage.chatsThisMonth.toLocaleString()}</strong></span>
               </div>
             </div>
 

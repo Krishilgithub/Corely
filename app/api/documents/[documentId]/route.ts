@@ -1,34 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
+import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const documentId = resolvedParams.documentId;
+    // Only signed-in users who can change sources may delete a document.
+    const user = await requirePermission(Permissions.SOURCES_WRITE);
+    const { documentId } = await params;
 
     if (!documentId) {
-      return NextResponse.json(
-        { error: "documentId is required" },
-        { status: 400 }
-      );
+      return errorResponse("documentId is required", 400);
     }
 
-    // 1. Fetch document to resolve sourceId
-    const document = await prisma.document.findUnique({
-      where: { id: documentId },
+    // 1. Fetch document to resolve sourceId. It must belong to the caller's workspace.
+    const document = await prisma.document.findFirst({
+      where: { id: documentId, workspaceId: user.workspaceId },
     });
 
     if (!document) {
-      return NextResponse.json(
-        { error: "Document not found" },
-        { status: 404 }
-      );
+      return errorResponse("Document not found", 404);
     }
 
     // 2. Purge vector chunks from Supabase
@@ -54,13 +52,11 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (e) {
-    const error = e as Error;
+    return successResponse({ deleted: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("[DELETE /api/documents/[documentId]] Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to delete document" },
-      { status: 500 }
-    );
+    return errorResponse("Failed to delete document", 500);
   }
 }

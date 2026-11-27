@@ -57,7 +57,7 @@ export async function GET(
       }
 
       if (msg.feedback) {
-        lines.push(`> *Feedback: ${msg.feedback === "up" ? "👍 Helpful" : "👎 Not helpful"}*`);
+        lines.push(`> *Feedback: ${msg.feedback === "positive" ? "👍 Helpful" : "👎 Not helpful"}*`);
         lines.push(``);
       }
 

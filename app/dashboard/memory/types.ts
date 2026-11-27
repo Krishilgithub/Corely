@@ -10,6 +10,10 @@ export interface TimelineItem {
   avatarUrl: string;
   date: string;
   url?: string | null;
+  // Raw ISO time, used for real "this month" counts.
+  createdAt: string;
+  // True for synced Documents. They can only be removed from Sources.
+  isSyncedDocument?: boolean;
 }
 
 export interface SnapshotItem {
@@ -27,11 +31,7 @@ export interface MemoryStats {
   totalKnowledge: number;
   totalInsight: number;
   totalActiveKnowledgeSets: number;
-  retentionScore: number;
-  retentionStatus: string;
-  retentionColor: string;
-  retentionTrend: number;
-  activeKnowledgeTrend: number;
+  addedThisMonth: number;
 }
 
 export interface SourceChartData {

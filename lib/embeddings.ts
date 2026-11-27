@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 
+// Search embeddings only. Answers and memory extraction use Claude (lib/anthropic.ts).
+// Anthropic has no embeddings API, and the stored vectors (vector(1536) in
+// document_chunks) come from this OpenAI model, so search still needs OPENAI_API_KEY.
 const globalForOpenAI = globalThis as unknown as { openai: OpenAI | undefined };
 
-export const openai =
+const openai =
   globalForOpenAI.openai ??
   new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "dummy-key-for-build" });
 

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import type { DashboardData } from "./dashboard-data";
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -20,7 +21,16 @@ function getTimeGreeting(): string {
 }
 
 // ── Onboarding Progress Strip ──────────────────────────────────────────────────
-function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
+// Every "done" flag comes from real workspace data (see dashboard-data.ts).
+function OnboardingStrip({
+  sourcesConnected,
+  hasAskedQuestion,
+  hasInvitedTeam,
+}: {
+  sourcesConnected: number;
+  hasAskedQuestion: boolean;
+  hasInvitedTeam: boolean;
+}) {
   const steps = [
     {
       number: 1,
@@ -35,7 +45,7 @@ function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
       icon: MessageSquare,
       label: "Ask your first question",
       desc: "Let Corely search across all your knowledge",
-      done: false,
+      done: hasAskedQuestion,
       href: "/dashboard/ask-corely",
     },
     {
@@ -43,7 +53,7 @@ function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
       icon: Users,
       label: "Invite your team",
       desc: "Collaborate with teammates on shared memory",
-      done: false,
+      done: hasInvitedTeam,
       href: "/dashboard/settings/members",
     },
   ];
@@ -97,8 +107,7 @@ function OnboardingStrip({ sourcesConnected }: { sourcesConnected: number }) {
 }
 
 // ── Dashboard Client ──────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function DashboardClient({ initialData, dateRange }: { initialData: any; dateRange: string }) {
+export default function DashboardClient({ initialData, dateRange }: { initialData: DashboardData; dateRange: string }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
 
@@ -143,12 +152,13 @@ export default function DashboardClient({ initialData, dateRange }: { initialDat
       {/* ── Page header: greeting on the left, date range on the right ── */}
       <PageHeader
         title={<>{getTimeGreeting()}, {initialData?.user?.name?.split(" ")[0] || "there"}</>}
-        subtitle={<>Here&apos;s what Corely discovered across your organization today.</>}
+        subtitle={<>Here&apos;s what is happening across your organization.</>}
         actions={
           <div className="db-popover-anchor">
             <button
               className="db-date-btn ui-btn ui-btn--secondary"
               aria-label="Select date range"
+              title="Filters the Chats Started and Documents Indexed tiles"
               aria-expanded={showDatePicker}
               onClick={() => setShowDatePicker(!showDatePicker)}
             >
@@ -184,20 +194,28 @@ export default function DashboardClient({ initialData, dateRange }: { initialDat
       />
 
       {/* ── Onboarding Strip (shown when < 3 sources) ── */}
-      {initialData?.stats?.sourcesConnected < 3 && (
-        <OnboardingStrip sourcesConnected={initialData.stats.sourcesConnected} />
+      {initialData.stats.sourcesConnected < 3 && (
+        <OnboardingStrip
+          sourcesConnected={initialData.stats.sourcesConnected}
+          hasAskedQuestion={initialData.onboarding.hasAskedQuestion}
+          hasInvitedTeam={initialData.onboarding.hasInvitedTeam}
+        />
       )}
 
       {/* ── Stats Cards ── */}
-      <StatsCards data={initialData?.stats} />
+      <StatsCards data={initialData?.stats} dateWindow={initialData.dateWindow} />
 
       {/* ── Main Grid ── */}
       <div className="db-main-grid">
-        <ActivityFeedPanel />
-        <InsightsPanel data={initialData?.insights} systemHealth={initialData?.systemHealth} />
+        <ActivityFeedPanel data={initialData?.activity} />
+        <InsightsPanel
+          data={initialData?.insights}
+          systemHealth={initialData?.systemHealth}
+          lastSyncedAt={initialData?.lastSyncedAt}
+        />
       </div>
 
-      {/* ── Autonomous Actions ── */}
+      {/* ── Recent actions (real syncs and chats) ── */}
       <AutonomousActions data={initialData?.actions} />
     </main>
   );

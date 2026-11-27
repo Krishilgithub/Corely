@@ -1,11 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AskMain from "./components/AskMain";
 import AskRightSidebar from "./components/AskRightSidebar";
 
+// useSearchParams needs a Suspense boundary in Next 15.
 export default function AskCorelyPage() {
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  return (
+    <Suspense fallback={<main className="db-content ac-page" />}>
+      <AskCorelyContent />
+    </Suspense>
+  );
+}
+
+function AskCorelyContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // "?q=" comes from links elsewhere (Topbar, Insights, ...).
+  const urlQuestion = searchParams.get("q")?.trim() || null;
+  const handledQuestion = useRef<string | null>(null);
+
+  // "?session=" reopens a conversation (for example a shared link).
+  // A "?q=" link always starts a new conversation instead.
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() =>
+    urlQuestion ? null : searchParams.get("session")
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sharedPrompt, setSharedPrompt] = useState<string | null>(null);
   // Context panel on the right. Hiding it gives the chat the full page width.
@@ -16,6 +38,27 @@ export default function AskCorelyPage() {
       if (localStorage.getItem("corely-ask-context") === "hidden") setContextOpen(false);
     } catch {}
   }, []);
+
+  // Send a "?q=" question once, in a new conversation. AskMain sends whatever
+  // lands in sharedPrompt. The ref stops a second send before "q" leaves the URL.
+  useEffect(() => {
+    if (!urlQuestion) {
+      handledQuestion.current = null;
+      return;
+    }
+    if (handledQuestion.current === urlQuestion) return;
+    handledQuestion.current = urlQuestion;
+    setActiveSessionId(null);
+    setSharedPrompt(urlQuestion);
+  }, [urlQuestion]);
+
+  // Keep the open conversation in the URL, and drop "?q=" so a refresh does not ask again.
+  useEffect(() => {
+    const urlSession = searchParams.get("session");
+    if (urlSession === activeSessionId && !searchParams.has("q")) return;
+    const next = activeSessionId ? `${pathname}?session=${encodeURIComponent(activeSessionId)}` : pathname;
+    router.replace(next, { scroll: false });
+  }, [activeSessionId, pathname, router, searchParams]);
 
   const toggleContext = () => {
     setContextOpen((open) => {

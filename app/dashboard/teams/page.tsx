@@ -7,24 +7,20 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
-  Activity,
-  GraduationCap,
-  Target,
-  Zap,
+  UserX,
   List,
   Grid,
   MoreHorizontal,
   Upload,
   Plus,
-  RefreshCw,
-  BarChart2,
   Shield,
   ChevronLeft,
   ChevronRight,
   X,
   CheckCircle2,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "../components/DataTable";
 import { PageHeader } from "@/components/ui/page-header";
@@ -51,16 +47,6 @@ const TeamTile = ({ name, size }: { name?: string; size?: "sm" | "lg" | "xl" }) 
   </span>
 );
 
-/** Score as a number with a short neutral bar next to it. */
-const MetricBar = ({ score }: { score: number }) => (
-  <div className="tm-metric">
-    <span className="tm-metric__val">{score}</span>
-    <span className="tm-bar">
-      <span className="tm-bar__fill" style={{ width: `${Math.max(0, Math.min(100, score))}%` }} />
-    </span>
-  </div>
-);
-
 /** KPI tile: icon well, big number, label, and the change under the label. */
 const StatTile = ({
   icon,
@@ -72,7 +58,7 @@ const StatTile = ({
   icon: React.ReactNode;
   value: React.ReactNode;
   label: string;
-  delta: string;
+  delta?: string;
   accent?: boolean;
 }) => (
   <div className="ui-kpi">
@@ -80,7 +66,7 @@ const StatTile = ({
     <div className="tm-kpi-text">
       <span className="type-metric">{value}</span>
       <span className="type-caption">{label}</span>
-      <span className="tm-kpi-delta">{delta}</span>
+      {delta && <span className="tm-kpi-delta">{delta}</span>}
     </div>
   </div>
 );
@@ -98,40 +84,33 @@ const Skel = ({
   style?: React.CSSProperties;
 }) => <div className="ui-skeleton" style={{ width: w, height: h, borderRadius: r, ...style }} />;
 
-const Sparkline = () => {
-  return (
-    <svg className="tm-sparkline" viewBox="0 0 60 24" aria-hidden="true">
-      <path
-        d="M0,20 L10,14 L20,18 L30,8 L40,12 L50,4 L60,8"
-        fill="none"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
+/**
+ * Permissions a new role can get. Keep in sync with Permissions in lib/rbac.ts.
+ * (lib/rbac.ts imports the database client, so it cannot be imported in this browser page.)
+ * The server checks every value against the real list.
+ */
+const PERMISSION_OPTIONS: { value: string; label: string }[] = [
+  { value: "memory:read", label: "View memory" },
+  { value: "memory:write", label: "Edit memory" },
+  { value: "insights:read", label: "View insights" },
+  { value: "insights:write", label: "Edit insights" },
+  { value: "teams:read", label: "View teams" },
+  { value: "teams:manage", label: "Manage teams, members and roles" },
+  { value: "sources:read", label: "View sources" },
+  { value: "sources:write", label: "Connect and manage sources" },
+  { value: "projects:read", label: "View projects" },
+  { value: "projects:manage", label: "Manage projects" },
+];
 
-const SparklineDown = () => {
-  return (
-    <svg className="tm-sparkline tm-sparkline--down" viewBox="0 0 60 24" aria-hidden="true">
-      <path
-        d="M0,4 L10,10 L20,6 L30,16 L40,12 L50,20 L60,16"
-        fill="none"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
-
-/** Shows a filter tab value in sentence case ("At Risk" → "At risk"). */
-const tabLabel = (tab: string) => tab.charAt(0) + tab.slice(1).toLowerCase();
+/** Result of an invite, from POST /api/teams/members. */
+interface InviteResult {
+  email: string;
+  emailSent: boolean;
+  temporaryPassword: string | null;
+}
 
 export default function TeamsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("All Teams");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,12 +125,10 @@ export default function TeamsPage() {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showCompareModal, setShowCompareModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Form State
   const [formName, setFormName] = useState("");
-  const [formMembers, setFormMembers] = useState("");
   const [formFocus, setFormFocus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -161,50 +138,27 @@ export default function TeamsPage() {
   const [inviteRoleId, setInviteRoleId] = useState("");
   const [roles, setRoles] = useState<{id: string, name: string}[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
-  const [inviteDevPassword, setInviteDevPassword] = useState<string | null>(null);
+  const [inviteResult, setInviteResult] = useState<InviteResult | null>(null);
 
   // Add Role Modal
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleName, setRoleName] = useState("");
+  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
 
   const { hasPermission } = useAuth();
-
-  // Compare State
-  const [compareTeam1, setCompareTeam1] = useState("");
-  const [compareTeam2, setCompareTeam2] = useState("");
+  const canManage = hasPermission("teams:manage");
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Slice colours are grayscale tokens defined in teams.css (they flip in dark mode).
-  const dynamicPieData = useMemo(() => {
-    let excellent = 0, good = 0, fair = 0, poor = 0;
-    teams.forEach(t => {
-      if (t.health >= 90) excellent++;
-      else if (t.health >= 80) good++;
-      else if (t.health >= 70) fair++;
-      else poor++;
-    });
-    return [
-      { name: "Excellent", value: excellent, color: "var(--tm-pie-excellent)" },
-      { name: "Good", value: good, color: "var(--tm-pie-good)" },
-      { name: "Fair", value: fair, color: "var(--tm-pie-fair)" },
-      { name: "Poor", value: poor, color: "var(--tm-pie-poor)" },
-    ].filter(d => d.value > 0);
+  // ── Real numbers only ──
+  // Distinct people across all teams (one person can be in several teams).
+  const peopleInTeams = useMemo(() => {
+    const ids = new Set<string>();
+    teams.forEach(t => (t.users || []).forEach((u: { id: string }) => ids.add(u.id)));
+    return ids.size;
   }, [teams]);
-
-  const dynamicStrengths = useMemo(() => {
-    const avgKnow = teams.length ? Math.round(teams.reduce((acc, t) => acc + t.know, 0) / teams.length) : 0;
-    const avgHealth = teams.length ? Math.round(teams.reduce((acc, t) => acc + t.health, 0) / teams.length) : 0;
-    const avgCollab = teams.filter(t => t.collab === "Excellent" || t.collab === "Good").length / (teams.length || 1);
-
-    return [
-      { name: "Knowledge Sharing", val: avgKnow, color: "var(--accent-fill)", icon: GraduationCap, bg: "var(--surface-secondary)", icColor: "var(--icon-primary)" },
-      { name: "Execution Velocity", val: avgHealth, color: "var(--accent-fill)", icon: Zap, bg: "var(--surface-secondary)", icColor: "var(--icon-primary)" },
-      { name: "Cross-team Collaboration", val: Math.round(avgCollab * 100), color: "var(--accent-fill)", icon: Users, bg: "var(--surface-secondary)", icColor: "var(--icon-primary)" },
-      { name: "Adaptability", val: 72, color: "var(--accent-fill)", icon: RefreshCw, bg: "var(--surface-secondary)", icColor: "var(--icon-primary)" },
-    ];
-  }, [teams]);
+  const emptyTeams = teams.filter(t => t.members === 0).length;
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -235,6 +189,15 @@ export default function TeamsPage() {
       .catch(err => console.error("Failed to fetch roles", err));
   }, []);
 
+  useEffect(() => {
+    if (!canManage) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("invite") === "1") {
+      setShowInviteModal(true);
+      window.history.replaceState({}, "", "/dashboard/teams");
+    }
+  }, [canManage]);
+
   const triggerToast = (msg: string) => {
     toast.success(msg);
   };
@@ -248,7 +211,6 @@ export default function TeamsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formName,
-          members: formMembers,
           focus: formFocus
         })
       });
@@ -257,8 +219,10 @@ export default function TeamsPage() {
         triggerToast("Team added successfully!");
         setShowAddModal(false);
         setFormName("");
-        setFormMembers("");
         setFormFocus("");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Could not create team");
       }
     } catch (e) {
       console.error(e);
@@ -284,18 +248,20 @@ export default function TeamsPage() {
       const data = await res.json();
       if (res.ok) {
         await fetchTeams();
-        triggerToast("Member invited successfully!");
-        if (data.data && data.data._devPassword) {
-          setInviteDevPassword(data.data._devPassword);
+        const emailSent = Boolean(data.data?.emailSent);
+        if (emailSent) {
+          triggerToast("Member added. Invitation email sent.");
         } else {
-          setShowInviteModal(false);
-          setInviteName("");
-          setInviteEmail("");
-          setInviteRoleId("");
-          setSelectedTeamIds([]);
+          toast.warning("Member added, but the invitation email could not be sent.");
         }
+        // Always show the result screen so the admin sees whether the email went out.
+        setInviteResult({
+          email: inviteEmail,
+          emailSent,
+          temporaryPassword: data.data?.temporaryPassword ?? null,
+        });
       } else {
-        alert("Failed: " + data.error);
+        toast.error("Failed: " + (data.error || "Could not invite member"));
       }
     } catch (e) {
       console.error(e);
@@ -311,19 +277,23 @@ export default function TeamsPage() {
       const res = await fetch("/api/teams/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: roleName })
+        body: JSON.stringify({ name: roleName, permissions: rolePermissions })
       });
-      if (res.ok) {
-        fetch("/api/teams/roles")
-          .then(res => res.json())
-          .then(json => {
-            const data = json.data || json;
-            setRoles(Array.isArray(data) ? data : (data.roles || []));
-          });
-        triggerToast("Role created successfully!");
-        setShowRoleModal(false);
-        setRoleName("");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Could not create role");
+        return;
       }
+      fetch("/api/teams/roles")
+        .then(res => res.json())
+        .then(json => {
+          const data = json.data || json;
+          setRoles(Array.isArray(data) ? data : (data.roles || []));
+        });
+      triggerToast("Role created successfully!");
+      setShowRoleModal(false);
+      setRoleName("");
+      setRolePermissions([]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -333,10 +303,12 @@ export default function TeamsPage() {
 
   const handleExportCSV = () => {
     if (teams.length === 0) return;
-    const headers = ["Name", "Members", "Health", "Collaboration", "Knowledge", "Actions", "Focus"];
+    // Only real fields. Quote every value so commas in names do not break the columns.
+    const quote = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const headers = ["Name", "Members", "Focus", "Created"];
     const csvContent = [
       headers.join(","),
-      ...teams.map(t => [t.name, t.members, t.health, t.collab, t.know, t.actions, t.focus].join(","))
+      ...teams.map(t => [t.name, t.members, t.focus, t.createdAt ? new Date(t.createdAt).toISOString().slice(0, 10) : ""].map(quote).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -359,19 +331,8 @@ export default function TeamsPage() {
       result = result.filter(t => t.name.toLowerCase().includes(q));
     }
 
-    // Tabs
-    if (activeTab === "Performance") {
-      result = result.filter(t => t.health >= 80);
-    } else if (activeTab === "Collaboration") {
-      result = result.filter(t => t.collab === "Excellent" || t.collab === "Good");
-    } else if (activeTab === "Knowledge") {
-      result = result.filter(t => t.know >= 85);
-    } else if (activeTab === "At Risk") {
-      result = result.filter(t => t.health < 75 || t.collab === "Needs attention" || t.collab === "Poor");
-    }
-
     return result;
-  }, [teams, searchQuery, activeTab]);
+  }, [teams, searchQuery]);
 
   const totalPages = Math.ceil(filteredTeams.length / itemsPerPage) || 1;
   const paginatedTeams = filteredTeams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -389,7 +350,7 @@ export default function TeamsPage() {
             <TeamTile name={item.name} />
             <div style={{ minWidth: 0 }}>
               <div className="tm-team-title">{item.name}</div>
-              <div className="tm-team-desc">{item.members} members</div>
+              <div className="tm-team-desc">{item.members} member{item.members === 1 ? "" : "s"}</div>
             </div>
           </div>
         );
@@ -397,38 +358,10 @@ export default function TeamsPage() {
       size: 300,
     },
     {
-      accessorKey: "health",
-      header: "Health Score",
-      cell: ({ row }) => <MetricBar score={row.original.health} />,
-      size: 150,
-    },
-    {
-      accessorKey: "collab",
-      header: "Collaboration",
-      cell: ({ getValue }) => <div className="tm-text-muted">{getValue<string>()}</div>,
-      size: 150,
-    },
-    {
-      accessorKey: "know",
-      header: "Knowledge Coverage",
-      cell: ({ row }) => <MetricBar score={row.original.know} />,
-      size: 150,
-    },
-    {
-      accessorKey: "actions",
-      header: "Actions (30D)",
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <div className="tm-actions-col">
-            <div className="tm-num">{item.actions}</div>
-            <div className={`tm-trend ${item.isUp ? "is-up" : "is-down"}`}>
-              {item.isUp ? "↑" : "↓"} {Math.abs(item.actionsTrend)}%
-            </div>
-          </div>
-        );
-      },
-      size: 150,
+      accessorKey: "members",
+      header: "Members",
+      cell: ({ row }) => <div className="tm-num">{row.original.members}</div>,
+      size: 120,
     },
     {
       accessorKey: "focus",
@@ -437,16 +370,17 @@ export default function TeamsPage() {
         const item = row.original;
         return <StatusBadge tone="neutral">{item.focus}</StatusBadge>;
       },
-      size: 120,
+      size: 160,
     },
     {
-      id: "trend",
-      header: "Trend",
-      cell: ({ row }) => {
-        const item = row.original;
-        return item.isUp ? <Sparkline /> : <SparklineDown />;
-      },
-      size: 100,
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => (
+        <div className="tm-text-muted">
+          {row.original.createdAt ? new Date(row.original.createdAt).toLocaleDateString() : "—"}
+        </div>
+      ),
+      size: 140,
     },
     {
       id: "actions-menu",
@@ -466,8 +400,6 @@ export default function TeamsPage() {
     },
   ], [router]);
 
-  const tabs = ["All Teams", "Performance", "Collaboration", "Knowledge", "At Risk"];
-
   const modalMotion = {
     initial: { scale: 0.98, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
@@ -480,7 +412,7 @@ export default function TeamsPage() {
       {/* ── Header ── */}
       <PageHeader
         title="Teams"
-        subtitle="Understand team performance, collaboration health, and knowledge coverage."
+        subtitle="See your teams, who is in them, and invite new members."
         actions={
           <>
             <button className="ui-btn ui-btn--secondary" onClick={handleExportCSV}>
@@ -512,50 +444,23 @@ export default function TeamsPage() {
         <StatTile
           icon={<Users />}
           value={teams.length}
-          label="Active teams"
-          delta="↑ 9% vs last month"
+          label="Teams"
           accent
         />
         <StatTile
-          icon={<Activity />}
-          value={Math.round(teams.reduce((acc, t) => acc + t.health, 0) / (teams.length || 1))}
-          label="Avg health score"
-          delta="↑ 6 pts vs last month"
+          icon={<Users />}
+          value={peopleInTeams}
+          label="People in teams"
         />
         <StatTile
-          icon={<GraduationCap />}
-          value={`${Math.round(teams.reduce((acc, t) => acc + t.know, 0) / (teams.length || 1))}%`}
-          label="Knowledge coverage"
-          delta="↑ 7% vs last month"
-        />
-        <StatTile
-          icon={<Target />}
-          value={teams.filter(t => t.health < 75).length}
-          label="Teams at risk"
-          delta="↓ 1 vs last month"
-        />
-        <StatTile
-          icon={<Zap />}
-          value={teams.reduce((acc, t) => acc + t.actions, 0).toLocaleString()}
-          label="Actions executed"
-          delta="↑ 24% vs last month"
+          icon={<UserX />}
+          value={emptyTeams}
+          label="Teams with no members"
         />
       </div>
 
       {/* ── Controls Row ── */}
       <FilterToolbar
-        leading={
-          <SegmentedControl
-            label="Filter teams"
-            size="sm"
-            value={activeTab}
-            onChange={(tab) => {
-              setActiveTab(tab);
-              setCurrentPage(1);
-            }}
-            segments={tabs.map((tab) => ({ value: tab, label: tabLabel(tab) }))}
-          />
-        }
         search={{
           value: searchQuery,
           onChange: (v) => {
@@ -622,34 +527,11 @@ export default function TeamsPage() {
                       <TeamTile name={row.name} size="lg" />
                       <div style={{ minWidth: 0 }}>
                         <div className="type-heading">{row.name}</div>
-                        <div className="tm-team-desc">{row.members} members</div>
-                      </div>
-                    </div>
-                    <div className="tm-team-card__metrics">
-                      <div className="tm-stat-row">
-                        <div className="tm-stat-row__top">
-                          <span className="type-caption">Health</span>
-                          <span className="tm-stat-row__val">{row.health}</span>
-                        </div>
-                        <span className="tm-bar">
-                          <span className="tm-bar__fill" style={{ width: `${Math.max(0, Math.min(100, row.health))}%` }} />
-                        </span>
-                      </div>
-                      <div className="tm-stat-row">
-                        <div className="tm-stat-row__top">
-                          <span className="type-caption">Knowledge</span>
-                          <span className="tm-stat-row__val">{row.know}</span>
-                        </div>
-                        <span className="tm-bar">
-                          <span className="tm-bar__fill" style={{ width: `${Math.max(0, Math.min(100, row.know))}%` }} />
-                        </span>
+                        <div className="tm-team-desc">{row.members} member{row.members === 1 ? "" : "s"}</div>
                       </div>
                     </div>
                     <div className="tm-team-card__foot">
                       <StatusBadge tone="neutral">{row.focus}</StatusBadge>
-                      <div className={`tm-trend ${row.isUp ? "is-up" : "is-down"}`}>
-                        {row.isUp ? "↑" : "↓"} {Math.abs(row.actionsTrend)}%
-                      </div>
                     </div>
                   </div>
                 );
@@ -691,136 +573,15 @@ export default function TeamsPage() {
 
         {/* Right Side Sidebar */}
         <div className="tm-sidebar">
-          {/* Health Overview Chart */}
           <div className="ui-card tm-side-card">
             <div className="tm-side-header">
-              <span className="type-heading">Team health overview</span>
-              <a href="#" className="tm-side-link">
-                View analytics
-              </a>
+              <span className="type-heading">Team metrics</span>
+              <span className="ui-badge ui-badge--neutral">Not measured yet</span>
             </div>
-            <div className="tm-donut-row">
-              <div className="tm-donut">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={dynamicPieData}
-                      innerRadius={48}
-                      outerRadius={64}
-                      paddingAngle={2}
-                      dataKey="value"
-                      stroke="none"
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      {dynamicPieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="tm-donut__center">
-                  <span className="type-metric">
-                    {Math.round(teams.reduce((acc, t) => acc + t.health, 0) / (teams.length || 1))}
-                  </span>
-                  <span className="type-caption">Avg. health score</span>
-                </div>
-              </div>
-              <div className="tm-legend">
-                <div className="tm-legend-item">
-                  <div className="tm-legend-dot" style={{ backgroundColor: "var(--tm-pie-excellent)" }} />
-                  <span>Excellent (80-100)</span>
-                  <span className="tm-num">{teams.filter(t => t.health >= 80).length}</span>
-                </div>
-                <div className="tm-legend-item">
-                  <div className="tm-legend-dot" style={{ backgroundColor: "var(--tm-pie-good)" }} />
-                  <span>Good (60-79)</span>
-                  <span className="tm-num">{teams.filter(t => t.health >= 60 && t.health < 80).length}</span>
-                </div>
-                <div className="tm-legend-item">
-                  <div className="tm-legend-dot" style={{ backgroundColor: "var(--tm-pie-fair)" }} />
-                  <span>Fair (40-59)</span>
-                  <span className="tm-num">{teams.filter(t => t.health >= 40 && t.health < 60).length}</span>
-                </div>
-                <div className="tm-legend-item">
-                  <div className="tm-legend-dot" style={{ backgroundColor: "var(--tm-pie-poor)" }} />
-                  <span>Poor (0-39)</span>
-                  <span className="tm-num">{teams.filter(t => t.health < 40).length}</span>
-                </div>
-              </div>
+            <div className="type-caption">
+              Health, knowledge coverage, collaboration and activity scores are not measured yet,
+              so they are not shown. Member counts come from the people assigned to each team.
             </div>
-          </div>
-
-          {/* Strengths Progress */}
-          <div className="ui-card tm-side-card">
-            <div className="tm-side-header">
-              <span className="type-heading">Top strengths across teams</span>
-              <a href="#" className="tm-side-link">
-                View all
-              </a>
-            </div>
-            <div className="tm-strengths">
-              {dynamicStrengths.map((str) => (
-                <div key={str.name} className="tm-stat-row">
-                  <div className="tm-stat-row__top">
-                    <span className="tm-stat-row__label">
-                      <span
-                        className="tm-mini-tile"
-                        style={{ backgroundColor: str.bg, color: str.icColor }}
-                      >
-                        <str.icon size={14} />
-                      </span>
-                      {str.name}
-                    </span>
-                    <span className="tm-stat-row__val">{str.val}/100</span>
-                  </div>
-                  <span className="tm-bar">
-                    <span
-                      className="tm-bar__fill"
-                      style={{ width: `${str.val}%`, backgroundColor: str.color }}
-                    />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Teams Needing Attention */}
-          <div className="ui-card tm-side-card">
-            <div className="tm-side-header">
-              <span className="type-heading">Teams needing attention</span>
-              <a href="#" className="tm-side-link">
-                View all
-              </a>
-            </div>
-            <div className="tm-list">
-              {teams.filter(t => t.health < 75).slice(0, 3).map((team) => {
-                return (
-                  <div className="tm-list-item" key={team.id}>
-                    <TeamTile name={team.name} size="sm" />
-                    <div className="tm-list-item__body">
-                      <div className="tm-team-title">{team.name}</div>
-                      <div className="tm-team-desc">{team.collab === "Poor" ? "Poor collaboration score" : "Low health score"}</div>
-                    </div>
-                    <StatusBadge tone="warning">{team.health}</StatusBadge>
-                  </div>
-                );
-              })}
-              {teams.filter(t => t.health < 75).length === 0 && (
-                <div className="tm-list-empty">
-                  No teams currently need attention.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Compare Teams CTA */}
-          <div className="ui-card tm-side-card">
-            <div className="type-heading">Compare teams</div>
-            <div className="type-caption tm-compare-desc">Compare performance metrics across teams.</div>
-            <button className="ui-btn ui-btn--secondary ui-btn--block" onClick={() => setShowCompareModal(true)}>
-              <BarChart2 size={16} /> Compare teams
-            </button>
           </div>
         </div>
       </div>
@@ -848,18 +609,6 @@ export default function TeamsPage() {
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="tm-field-label">Number of members</label>
-                    <input
-                      type="number"
-                      className="ui-input"
-                      placeholder="e.g. 12"
-                      value={formMembers}
-                      onChange={(e) => setFormMembers(e.target.value)}
-                      required
-                      min={1}
                     />
                   </div>
                   <div>
@@ -913,90 +662,37 @@ export default function TeamsPage() {
                       required
                     />
                   </div>
+                  <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                    <legend className="tm-field-label">Permissions</legend>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {PERMISSION_OPTIONS.map((perm) => (
+                        <label key={perm.value} className="type-body" style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={rolePermissions.includes(perm.value)}
+                            onChange={(e) =>
+                              setRolePermissions(prev =>
+                                e.target.checked ? [...prev, perm.value] : prev.filter(p => p !== perm.value)
+                              )
+                            }
+                          />
+                          {perm.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
                 <div className="tm-modal__footer">
                   <button
                     type="submit"
                     className="ui-btn ui-btn--primary"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || rolePermissions.length === 0}
+                    title={rolePermissions.length === 0 ? "Pick at least one permission" : undefined}
                   >
                     {isSubmitting ? "Creating..." : "Create role"}
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Compare Teams Modal ── */}
-      <AnimatePresence>
-        {showCompareModal && (
-          <div className="tm-modal-overlay">
-            <motion.div className="ui-popover tm-modal tm-modal--wide" {...modalMotion}>
-              <div className="tm-modal__header">
-                <h2 className="type-heading">Compare teams</h2>
-                <button className="ui-icon-btn ui-icon-btn--sm tm-ghost-icon" aria-label="Close" onClick={() => setShowCompareModal(false)}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="tm-modal__body">
-                <div className="tm-compare-fields">
-                  <div>
-                    <label className="tm-field-label">Team 1</label>
-                    <Select
-                      aria-label="Team 1"
-                      value={compareTeam1}
-                      onChange={setCompareTeam1}
-                      placeholder="Select a team"
-                      options={teams.map(t => ({ value: String(t.id), label: t.name }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="tm-field-label">Team 2</label>
-                    <Select
-                      aria-label="Team 2"
-                      value={compareTeam2}
-                      onChange={setCompareTeam2}
-                      placeholder="Select a team"
-                      options={teams.map(t => ({ value: String(t.id), label: t.name }))}
-                    />
-                  </div>
-                </div>
-
-                {compareTeam1 && compareTeam2 && (
-                  <div className="tm-compare-table">
-                    <div className="tm-compare-row tm-compare-row--head">
-                      <div>{teams.find(t => t.id === compareTeam1)?.name}</div>
-                      <div className="tm-compare-metric type-label">Metric</div>
-                      <div className="tm-compare-end">{teams.find(t => t.id === compareTeam2)?.name}</div>
-                    </div>
-
-                    {[
-                      { label: "Health Score", key: "health" },
-                      { label: "Knowledge", key: "know" },
-                      { label: "Actions (30d)", key: "actions" },
-                      { label: "Members", key: "members" },
-                    ].map((metric) => {
-                      const t1 = teams.find(t => t.id === compareTeam1) as Record<string, string | number>;
-                      const t2 = teams.find(t => t.id === compareTeam2) as Record<string, string | number>;
-                      if (!t1 || !t2) return null;
-                      return (
-                        <div key={metric.key} className="tm-compare-row">
-                          <div className={`tm-compare-val ${t1[metric.key] >= t2[metric.key] ? "is-lead" : ""}`}>
-                            {t1[metric.key]}
-                          </div>
-                          <div className="tm-compare-metric">{metric.label}</div>
-                          <div className={`tm-compare-val tm-compare-end ${t2[metric.key] >= t1[metric.key] ? "is-lead" : ""}`}>
-                            {t2[metric.key]}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             </motion.div>
           </div>
         )}
@@ -1029,29 +725,57 @@ export default function TeamsPage() {
                 <h2 className="type-heading">Invite member</h2>
                 <button className="ui-icon-btn ui-icon-btn--sm tm-ghost-icon" aria-label="Close" onClick={() => {
                   setShowInviteModal(false);
-                  setInviteDevPassword(null);
+                  setInviteResult(null);
                   setInviteName("");
                   setInviteEmail("");
                   setInviteRoleId("");
+                  setSelectedTeamIds([]);
                 }}>
                   <X size={16} />
                 </button>
               </div>
 
-              {inviteDevPassword ? (
+              {inviteResult ? (
                 <>
                   <div className="tm-modal__body">
                     <div className="tm-invite-done">
-                      <span className="ui-icon-well ui-icon-well--success"><CheckCircle2 /></span>
-                      <h3 className="type-heading">Member invited</h3>
-                      <p className="type-body tm-muted">An invitation email was &quot;sent&quot; (mocked) to {inviteEmail}. For development purposes, here is the generated password:</p>
-                      <div className="tm-password">
-                        {inviteDevPassword}
-                      </div>
+                      {inviteResult.emailSent ? (
+                        <span className="ui-icon-well ui-icon-well--success"><CheckCircle2 /></span>
+                      ) : (
+                        <span className="ui-icon-well"><AlertTriangle /></span>
+                      )}
+                      <h3 className="type-heading">Member added</h3>
+                      {inviteResult.emailSent ? (
+                        <p className="type-body tm-muted">Invitation email sent to {inviteResult.email}.</p>
+                      ) : (
+                        <p className="type-body tm-muted">
+                          The invitation email to {inviteResult.email} could not be sent. Share the sign-in details below with them yourself.
+                        </p>
+                      )}
+                      {inviteResult.temporaryPassword && (
+                        <>
+                          <div className="tm-password">
+                            {inviteResult.temporaryPassword}
+                          </div>
+                          <p className="type-caption tm-muted" style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                            <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+                            {inviteResult.emailSent
+                              ? "Temporary password, shown only in development. It is shown once and cannot be seen again."
+                              : "Temporary password. It is shown once and cannot be seen again. Copy it now and ask them to change it after signing in."}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="tm-modal__footer">
-                    <button className="ui-btn ui-btn--primary" onClick={() => { setShowInviteModal(false); setInviteDevPassword(null); }}>
+                    <button className="ui-btn ui-btn--primary" onClick={() => {
+                      setShowInviteModal(false);
+                      setInviteResult(null);
+                      setInviteName("");
+                      setInviteEmail("");
+                      setInviteRoleId("");
+                      setSelectedTeamIds([]);
+                    }}>
                       Done
                     </button>
                   </div>

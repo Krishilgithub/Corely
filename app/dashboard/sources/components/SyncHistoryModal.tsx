@@ -8,7 +8,7 @@ interface HistoryEntry {
   type: string;
   status: "success" | "error" | "running";
   description: string;
-  timestamp: string;
+  timestamp: string | null;
   itemsIndexed: number | null;
 }
 
@@ -88,10 +88,10 @@ export default function SyncHistoryModal({
             <div className="src-modal__heading">
               {data && <SourceLogo type={data.source.type} size={22} tileSize={40} />}
               <div className="src-modal__titles">
-                <h2 id="src-history-title" className="type-heading">Sync history</h2>
+                <h2 id="src-history-title" className="type-heading">Sync status</h2>
                 {data && (
                   <p className="type-caption">
-                    Activity log for {data.source.name}
+                    Last sync and recent documents for {data.source.name}
                   </p>
                 )}
               </div>
@@ -115,9 +115,9 @@ export default function SyncHistoryModal({
               <>
                 {/* Event Timeline */}
                 <div className="src-history-section">
-                  <h3 className="type-label">Recent events</h3>
+                  <h3 className="type-label">Last sync</h3>
                   {data.history.length === 0 ? (
-                    <div className="type-caption">No sync events recorded yet.</div>
+                    <div className="type-caption">This source has not been synced yet.</div>
                   ) : (
                     <div className="src-history-list">
                       {data.history.map((event, idx) => (
@@ -135,15 +135,18 @@ export default function SyncHistoryModal({
                             <div className="type-body" style={{ fontWeight: 500 }}>
                               {event.description}
                             </div>
-                            <div className="type-caption src-history-item__time">
-                              <Clock size={12} />
-                              {new Date(event.timestamp).toLocaleString()}
-                            </div>
+                            {event.timestamp && (
+                              <div className="type-caption src-history-item__time">
+                                <Clock size={12} />
+                                {new Date(event.timestamp).toLocaleString()}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+                  <div className="type-caption">A log of every past sync is not kept yet. Only the latest result is shown.</div>
                 </div>
 
                 {/* Recent Documents */}

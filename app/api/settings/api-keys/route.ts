@@ -7,6 +7,8 @@ import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
+// Note: nothing checks these keys yet, so they cannot be used to call Corely.
+// Scopes are not returned because no permissions are enforced on keys.
 export async function GET() {
   try {
     const { workspace } = await auth();
@@ -22,7 +24,6 @@ export async function GET() {
       prefix: key.hint,
       createdAt: new Date(key.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       lastUsed: key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null,
-      scopes: ["read", "write"],
     }));
 
     return successResponse({ apiKeys: formattedKeys });
@@ -61,7 +62,6 @@ export async function POST(request: NextRequest) {
         prefix: apiKey.hint,
         createdAt: new Date(apiKey.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
         lastUsed: null,
-        scopes: ["read", "write"],
       },
       rawKey: rawKey, // Only returned once!
     });

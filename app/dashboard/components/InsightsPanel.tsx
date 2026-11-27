@@ -25,19 +25,8 @@ import {
 import Link from "next/link";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { SourceLogo, normaliseSourceType } from "@/components/ui/source-logo";
-
-function formatTimeAgo(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return `${diffInDays}d ago`;
-}
 import * as React from "react";
+import { formatTimeAgo } from "./time-ago";
 
 // Insight "source" can be a connected source name or a word like "System".
 // Only real source names get a logo.
@@ -81,10 +70,21 @@ interface Insight {
   title: string;
   description: string;
   source: string;
-  createdAt: string;
+  // Time of the real event behind the insight. Null when there is no single event.
+  createdAt: string | null;
+  // Page that lets the user act on the insight.
+  href: string;
 }
 
-export default function InsightsPanel({ data, systemHealth }: { data?: Insight[], systemHealth?: string }) {
+export default function InsightsPanel({
+  data,
+  systemHealth,
+  lastSyncedAt,
+}: {
+  data?: Insight[];
+  systemHealth?: string;
+  lastSyncedAt?: string | null;
+}) {
   const insights = data || [];
   const loading = !data;
   const healthy = systemHealth === "Operational";
@@ -111,7 +111,7 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
           insights.map((ins, i) => {
             const Icon = iconMap[ins.iconType] || TrendingDown;
             return (
-              <div key={ins.id || i} className="db-insight-card">
+              <Link key={ins.id || i} href={ins.href || "/dashboard/insights"} className="db-insight-card db-row-link">
                 <div className="db-insight-icon db-row-icon">
                   <Icon strokeWidth={2} />
                 </div>
@@ -126,19 +126,23 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
                       )}
                       {ins.source}
                     </span>
-                    <span aria-hidden="true">·</span>
-                    <span>{formatTimeAgo(ins.createdAt)}</span>
+                    {ins.createdAt && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{formatTimeAgo(ins.createdAt)}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <ChevronRight size={16} className="db-insight-chevron" aria-hidden="true" />
-              </div>
+              </Link>
             );
           })
         )}
       </div>
 
-      {/* System Status */}
-      <div className="db-system-status">
+      {/* System Status: opens Sources, where sync errors and sync times live */}
+      <Link href="/dashboard/sources" className="db-system-status db-row-link" aria-label="System status: open Sources">
         <div className="db-status-title type-label">System status</div>
         <div className="db-status-rows">
           <div className="db-status-row">
@@ -149,10 +153,13 @@ export default function InsightsPanel({ data, systemHealth }: { data?: Insight[]
           </div>
           <div className="db-status-row">
             <RefreshCw style={{ color: "var(--icon-secondary)" }} />
-            <span className="type-caption">Data synced just now</span>
+            <span className="type-caption">
+              {/* Real newest Source.lastSyncedAt */}
+              {lastSyncedAt ? `Last sync ${formatTimeAgo(lastSyncedAt)}` : "No sync has finished yet"}
+            </span>
           </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }

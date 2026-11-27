@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +11,14 @@ export async function POST(
   { params }: { params: Promise<{ sourceId: string }> }
 ) {
   try {
-    const { workspace, user } = await auth();
+    // Making a copy creates a new source, so it needs write access.
+    const user = await requirePermission(Permissions.SOURCES_WRITE);
     const { sourceId } = await params;
 
     const existingSource = await prisma.source.findUnique({
       where: {
         id: sourceId,
-        workspaceId: workspace.id,
+        workspaceId: user.workspaceId,
       },
     });
 
@@ -39,7 +41,7 @@ export async function POST(
 
     const newSource = await prisma.source.create({
       data: {
-        workspaceId: workspace.id,
+        workspaceId: user.workspaceId,
         userId: user.id,
         type: existingSource.type,
         name: `${existingSource.name} (Copy)`,
@@ -50,6 +52,7 @@ export async function POST(
 
     return successResponse(newSource);
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("POST /api/sources/[sourceId]/duplicate error:", error);
     return errorResponse("Failed to duplicate source", 500);

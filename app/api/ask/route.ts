@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { openai, generateEmbedding } from "@/lib/openai";
+import type Anthropic from "@anthropic-ai/sdk";
+import { generateEmbedding } from "@/lib/embeddings";
+import { anthropic } from "@/lib/anthropic";
+import { normaliseAnswerModel } from "@/lib/llm-models";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth-server";
 import { errorResponse } from "@/lib/api-response";
@@ -7,10 +10,15 @@ import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { calculateTemporalConfidence } from "@/lib/freshness";
+import { trace, context as otelContext, SpanStatusCode, type Span } from "@opentelemetry/api";
 
-interface ChatCompletionMessageParam {
-  role: "system" | "user" | "assistant";
-  content: string;
+// Agent step spans for Omni Studio. ADOT exports them; these give evaluators
+// the input and output of each step (turn → retrieve → LLM call).
+const tracer = trace.getTracer("corely-ask");
+
+function failSpan(span: Span, err: unknown) {
+  span.recordException(err instanceof Error ? err : new Error(String(err)));
+  span.setStatus({ code: SpanStatusCode.ERROR });
 }
 
 export const dynamic = "force-dynamic";
@@ -29,10 +37,27 @@ interface ChunkResult {
 const askSchema = z.object({
   question: z.string().min(1, "Question cannot be empty"),
   workspaceId: z.string().optional(),
-  sessionId: z.string().optional(),
+  sessionId: z.string().uuid().optional(),
   /** When set, only this project's documents and memory are used. */
   projectId: z.string().uuid().optional(),
 });
+
+// The Claude model the workspace picked in Settings (or the default).
+function pickModel(settings: unknown) {
+  return normaliseAnswerModel((settings as { defaultLlm?: unknown } | null)?.defaultLlm);
+}
+
+const SYSTEM_PROMPT = `You are Corely, an AI institutional memory engine for the organization.
+Synthesize a coherent, accurate response ONLY from the provided source context.
+
+CRITICAL INSTRUCTIONS:
+1. CITATIONS: You MUST use inline citations for every factual claim you make. Use the format [1], [2], etc., corresponding exactly to the "Source X" numbers provided in the context. Place the citation at the end of the relevant sentence or claim.
+2. DECISION RECONSTRUCTION: If the user asks about a decision (e.g., "why was X delayed", "how did we decide"), you must construct a chronological timeline with stakeholder attribution. Clearly state WHO decided WHAT and WHEN.
+3. TEMPORAL DECAY: Always note if information is Stale or Aged based on the freshness scores provided.
+4. NO HALLUCINATION: If the context does not contain enough information to answer confidently, say so clearly — do NOT fabricate or guess.
+5. Format your response in clean Markdown.`;
+
+const REFUSAL_RESPONSE = "I can't help with that request. Try rephrasing your question.";
 
 const NO_KNOWLEDGE_RESPONSE = `I don't have enough information about that in the connected knowledge base.
 
@@ -44,6 +69,7 @@ const NO_KNOWLEDGE_RESPONSE = `I don't have enough information about that in the
 I will never fabricate answers from outside your connected knowledge base.`;
 
 export async function POST(request: NextRequest) {
+  let turnSpan: Span | undefined;
   try {
     const { user, workspace } = await auth();
 
@@ -73,12 +99,30 @@ export async function POST(request: NextRequest) {
 
     const { question, sessionId, projectId } = result.data;
     const workspaceId = workspace.id;
+    const model = pickModel(workspace.settings);
+
+    // A chat session can only be used inside its own workspace.
+    if (sessionId) {
+      const ownSession = await prisma.chatSession.findFirst({ where: { id: sessionId, workspaceId }, select: { id: true } });
+      if (!ownSession) return errorResponse("Conversation not found", 404);
+    }
+
+    turnSpan = tracer.startSpan("agent.turn", {
+      attributes: {
+        "openinference.span.kind": "AGENT",
+        "input.value": question,
+        ...(sessionId ? { "session.id": sessionId } : {}),
+      },
+    });
+    const turnCtx = trace.setSpan(otelContext.active(), turnSpan);
 
     // Project scope: the project must belong to this workspace.
     const project = projectId
       ? await prisma.project.findFirst({ where: { id: projectId, workspaceId }, select: { id: true, name: true } })
       : null;
     if (projectId && !project) {
+      turnSpan.setAttribute("output.value", "Project not found");
+      turnSpan.end();
       return errorResponse("Project not found", 404);
     }
 
@@ -88,7 +132,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let conversationHistory: ChatCompletionMessageParam[] = [];
+    let conversationHistory: Anthropic.Beta.BetaMessageParam[] = [];
     if (sessionId) {
       const history = await prisma.chatMessage.findMany({
         where: { sessionId },
@@ -102,6 +146,8 @@ export async function POST(request: NextRequest) {
           role: (msg.sender === "user" ? "user" : "assistant") as "user" | "assistant",
           content: msg.text,
         }));
+      // Claude needs the conversation to start with a user message.
+      while (conversationHistory[0]?.role === "assistant") conversationHistory.shift();
     }
 
     // 1. PERMISSION-AWARE RETRIEVAL LAYER
@@ -137,12 +183,13 @@ export async function POST(request: NextRequest) {
       ? Array.from(allowedSourceIdSet)
       : ["00000000-0000-0000-0000-000000000000"];
 
-    const queryEmbedding = await generateEmbedding(question);
-    const vectorQuery = `[${queryEmbedding.join(",")}]`;
+    const retrieveChunks = async () => {
+      const queryEmbedding = await generateEmbedding(question);
+      const vectorQuery = `[${queryEmbedding.join(",")}]`;
 
-    // Vector search with source_updated_at for correct temporal scoring
-    const chunks = await prisma.$queryRaw<ChunkResult[]>`
-      SELECT 
+      // Vector search with source_updated_at for correct temporal scoring
+      return prisma.$queryRaw<ChunkResult[]>`
+      SELECT
         dc.id,
         dc.content,
         dc.document_id,
@@ -162,6 +209,29 @@ export async function POST(request: NextRequest) {
       ORDER BY dc.embedding <=> ${vectorQuery}::vector
       LIMIT 8;
     `;
+    };
+
+    const chunks = await tracer.startActiveSpan(
+      "agent.retrieve",
+      { attributes: { "openinference.span.kind": "RETRIEVER", "input.value": question } },
+      turnCtx,
+      async (retrieveSpan) => {
+        try {
+          const found = await retrieveChunks();
+          retrieveSpan.setAttribute("retrieval.documents", String(found.length));
+          retrieveSpan.setAttribute(
+            "output.value",
+            JSON.stringify(found.map(c => ({ id: c.id, similarity: Number(c.similarity), content: c.content.slice(0, 500) })))
+          );
+          return found;
+        } catch (err) {
+          failSpan(retrieveSpan, err);
+          throw err;
+        } finally {
+          retrieveSpan.end();
+        }
+      }
+    );
 
     // 2. HALLUCINATION PREVENTION — if no relevant chunks found, return safe response
     if (chunks.length === 0) {
@@ -176,9 +246,11 @@ export async function POST(request: NextRequest) {
           safeEnqueue(`data: ${JSON.stringify({ type: "no_knowledge", text: noKnowledgeText })}\n\n`);
 
           if (sessionId) {
-            await prisma.chatMessage.create({
+            const saved = await prisma.chatMessage.create({
               data: { sessionId, sender: "corely", text: noKnowledgeText, sources: [] },
             });
+            // Tell the client the saved id so feedback can point at the real message.
+            safeEnqueue(`data: ${JSON.stringify({ type: "message_id", id: saved.id })}\n\n`);
             const session = await prisma.chatSession.findUnique({
               where: { id: sessionId }, select: { title: true },
             });
@@ -192,6 +264,8 @@ export async function POST(request: NextRequest) {
 
           safeEnqueue("data: [DONE]\n\n");
           try { controller.close(); } catch {}
+          turnSpan?.setAttribute("output.value", noKnowledgeText);
+          turnSpan?.end();
         }
       });
       return new Response(readable, {
@@ -231,20 +305,7 @@ ${c.content}`;
       };
     });
 
-    // 4. REAL STREAMING via GPT-4o stream mode
-    const systemInstruction: ChatCompletionMessageParam = {
-      role: "system",
-      content: `You are Corely, an AI institutional memory engine for the organization.
-Synthesize a coherent, accurate response ONLY from the provided source context.
-
-CRITICAL INSTRUCTIONS:
-1. CITATIONS: You MUST use inline citations for every factual claim you make. Use the format [1], [2], etc., corresponding exactly to the "Source X" numbers provided in the context. Place the citation at the end of the relevant sentence or claim.
-2. DECISION RECONSTRUCTION: If the user asks about a decision (e.g., "why was X delayed", "how did we decide"), you must construct a chronological timeline with stakeholder attribution. Clearly state WHO decided WHAT and WHEN.
-3. TEMPORAL DECAY: Always note if information is Stale or Aged based on the freshness scores provided.
-4. NO HALLUCINATION: If the context does not contain enough information to answer confidently, say so clearly — do NOT fabricate or guess.
-5. Format your response in clean Markdown.`,
-    };
-
+    // 4. REAL STREAMING from the workspace's chosen Claude model
     // Project questions also get the project's recorded decisions, risks and milestones.
     let projectMemoryBlock = "";
     if (project) {
@@ -267,25 +328,40 @@ CRITICAL INSTRUCTIONS:
       }
     }
 
-    const userMessage: ChatCompletionMessageParam = {
+    const userMessage: Anthropic.Beta.BetaMessageParam = {
       role: "user",
       content: `${project ? `The user is asking about the project "${project.name}". Answer about this project only.\n\n` : ""}${projectMemoryBlock}Context from company knowledge base:\n\n${context}\n\n---\n\nQuestion: ${question}`,
     };
 
-    const apiMessages = [
-      systemInstruction,
-      ...conversationHistory,
-      userMessage,
-    ] as ChatCompletionMessageParam[];
+    const apiMessages: Anthropic.Beta.BetaMessageParam[] = [...conversationHistory, userMessage];
 
-    // Real streaming from OpenAI
-    const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: apiMessages,
-      temperature: 0.2,
-      stream: true,
-      max_tokens: 1500,
-    });
+    const llmSpan = tracer.startSpan(
+      "agent.llm_call",
+      {
+        attributes: {
+          "openinference.span.kind": "LLM",
+          "llm.model_name": model,
+          "input.value": JSON.stringify({ system: SYSTEM_PROMPT, messages: apiMessages }),
+        },
+      },
+      turnCtx
+    );
+
+    // Stream from Claude. Thinking is adaptive by default; effort "medium" is
+    // set explicitly. On Opus, if Claude declines for safety reasons the API
+    // retries the same request on a suitable fallback model ("default").
+    const stream = otelContext.with(trace.setSpan(turnCtx, llmSpan), () =>
+      anthropic.beta.messages.stream({
+        model,
+        max_tokens: 64000,
+        system: SYSTEM_PROMPT,
+        messages: apiMessages,
+        output_config: { effort: "medium" },
+        ...(model === "claude-opus-5-5"
+          ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
+          : {}),
+      })
+    );
 
     const encoder = new TextEncoder();
     let fullAnswer = "";
@@ -300,18 +376,26 @@ CRITICAL INSTRUCTIONS:
           // Send sources first
           safeEnqueue(`data: ${JSON.stringify({ type: "sources", sources })}\n\n`);
 
-          // Stream tokens as they arrive from OpenAI
-          for await (const chunk of stream) {
-            const delta = chunk.choices[0]?.delta?.content;
-            if (delta) {
-              fullAnswer += delta;
-              safeEnqueue(`data: ${JSON.stringify({ type: "text", text: delta })}\n\n`);
+          // Stream answer text as it arrives from Claude (thinking blocks are not shown)
+          for await (const event of stream) {
+            if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+              fullAnswer += event.delta.text;
+              safeEnqueue(`data: ${JSON.stringify({ type: "text", text: event.delta.text })}\n\n`);
             }
           }
+          const final = await stream.finalMessage();
+          llmSpan.setAttribute("llm.model_name", final.model);
+          // Claude (and any fallback) declined: say so instead of leaving an empty answer.
+          if (final.stop_reason === "refusal" && !fullAnswer) {
+            fullAnswer = REFUSAL_RESPONSE;
+            safeEnqueue(`data: ${JSON.stringify({ type: "text", text: REFUSAL_RESPONSE })}\n\n`);
+          }
+          llmSpan.setAttribute("output.value", fullAnswer.slice(0, 4000));
+          llmSpan.end();
 
           // Persist the full answer after streaming completes
           if (sessionId && fullAnswer) {
-            await prisma.chatMessage.create({
+            const saved = await prisma.chatMessage.create({
               data: {
                 sessionId,
                 sender: "corely",
@@ -319,6 +403,8 @@ CRITICAL INSTRUCTIONS:
                 sources: JSON.parse(JSON.stringify(sources)),
               },
             });
+            // Tell the client the saved id so feedback can point at the real message.
+            safeEnqueue(`data: ${JSON.stringify({ type: "message_id", id: saved.id })}\n\n`);
 
             const session = await prisma.chatSession.findUnique({
               where: { id: sessionId },
@@ -340,10 +426,17 @@ CRITICAL INSTRUCTIONS:
           safeEnqueue("data: [DONE]\n\n");
         } catch (error) {
           console.error("Streaming error:", error);
+          if (llmSpan.isRecording()) {
+            failSpan(llmSpan, error);
+            llmSpan.end();
+          }
+          if (turnSpan) failSpan(turnSpan, error);
           safeEnqueue(`data: ${JSON.stringify({ type: "error", message: "An error occurred while generating the response." })}\n\n`);
           safeEnqueue("data: [DONE]\n\n");
         } finally {
           try { controller.close(); } catch {}
+          turnSpan?.setAttribute("output.value", fullAnswer.slice(0, 4000));
+          turnSpan?.end();
         }
       },
     });
@@ -358,6 +451,10 @@ CRITICAL INSTRUCTIONS:
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[Ask API] ❌ Error:", errorMsg);
+    if (turnSpan) {
+      failSpan(turnSpan, err);
+      turnSpan.end();
+    }
     return new Response(JSON.stringify({ error: errorMsg }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
@@ -7,20 +8,21 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/sources/[sourceId]/history
- * Returns the last N sync events for a specific source,
- * derived from WorkflowActivity and the source record itself.
+ * Returns the latest sync state of a source and its most recently indexed documents.
+ * Syncs do not keep a per-run log yet, so this only reports what the source record
+ * really holds: the last sync time, its status and the total items indexed.
  */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ sourceId: string }> }
 ) {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.SOURCES_READ);
     const { sourceId } = await params;
 
     // Verify source belongs to this workspace
     const source = await prisma.source.findFirst({
-      where: { id: sourceId, workspaceId: workspace.id },
+      where: { id: sourceId, workspaceId: user.workspaceId },
       select: {
         id: true,
         name: true,
@@ -34,20 +36,7 @@ export async function GET(
 
     if (!source) return errorResponse("Source not found", 404);
 
-    // Fetch sync-related workflow activities for this source
-    // WorkflowActivity.workflowTitle contains the source name for sync events
-    const activities = await prisma.workflowActivity.findMany({
-      where: {
-        workspaceId: workspace.id,
-        workflowTitle: {
-          contains: source.name,
-        },
-      },
-      orderBy: { timestamp: "desc" },
-      take: 20,
-    });
-
-    // Also get document count over time (last 5 indexed docs as proxy)
+    // The 5 most recently indexed documents for this source
     const recentDocs = await prisma.document.findMany({
       where: { sourceId: source.id },
       select: { id: true, title: true, indexedAt: true },
@@ -55,41 +44,25 @@ export async function GET(
       take: 5,
     });
 
-    // Build history entries from activities
-    const historyFromActivities = activities.map(a => ({
-      id: a.id,
-      type: a.status === "success" ? "sync_completed" : a.status === "error" ? "sync_failed" : "sync_started",
-      status: a.status as "success" | "error" | "running",
-      description: a.status === "success"
-        ? `${a.workflowTitle} completed successfully`
-        : a.status === "error"
-        ? `${a.workflowTitle} failed`
-        : `${a.workflowTitle} in progress`,
-      timestamp: a.timestamp.toISOString(),
-      itemsIndexed: null as number | null,
-    }));
-
-    // Synthesize current state as most-recent entry
-    const syntheticCurrent = source.lastSyncedAt
+    // One honest entry built from the source record: the last sync and its result.
+    const lastSync = source.lastSyncedAt || source.status === "syncing" || source.status === "error"
       ? {
-          id: "current",
-          type: source.status === "synced" ? "sync_completed" : source.status === "error" ? "sync_failed" : "sync_running",
-          status: (source.status === "synced" ? "success" : source.status === "error" ? "error" : "running") as "success" | "error" | "running",
+          id: "last-sync",
+          type: source.status === "syncing" ? "sync_running" : source.status === "error" ? "sync_failed" : "sync_completed",
+          status: (source.status === "syncing" ? "running" : source.status === "error" ? "error" : "success") as "success" | "error" | "running",
           description:
-            source.status === "synced"
-              ? `Sync completed — ${source.itemsIndexed} items indexed total`
+            source.status === "syncing"
+              ? "Sync in progress"
               : source.status === "error"
-              ? `Sync failed: ${source.errorMessage || "Unknown error"}`
-              : "Sync in progress...",
-          timestamp: source.lastSyncedAt.toISOString(),
+              ? `Last sync failed: ${source.errorMessage || "Unknown error"}`
+              : `Last sync finished. ${source.itemsIndexed} items indexed in total.`,
+          // lastSyncedAt is when the previous sync finished, so it is not the start time of a running sync.
+          timestamp: source.status === "syncing" ? null : source.lastSyncedAt?.toISOString() ?? null,
           itemsIndexed: source.itemsIndexed,
         }
       : null;
 
-    const history = [
-      ...(syntheticCurrent ? [syntheticCurrent] : []),
-      ...historyFromActivities,
-    ].slice(0, 20);
+    const history = lastSync ? [lastSync] : [];
 
     return successResponse({
       source: {
@@ -108,6 +81,7 @@ export async function GET(
       })),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("GET /api/sources/[sourceId]/history error:", error);
     return errorResponse("Internal Server Error", 500);

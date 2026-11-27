@@ -117,7 +117,7 @@ export function AddMemoryModal({
               aria-label="Data source"
               value={newSource}
               onChange={(v) => setNewSource(v)}
-              options={["Notion", "Slack", "Google Drive", "Corely AI", "HR System"].map((v) => ({
+              options={["Added manually", "Notion", "Slack", "Google Drive", "Corely AI", "HR System"].map((v) => ({
                 value: v,
                 label: v,
                 icon: <SourceLogo type={v} size={14} tile={false} />,

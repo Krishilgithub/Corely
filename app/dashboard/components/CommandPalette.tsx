@@ -32,7 +32,7 @@ export function CommandPalette() {
     <div className="cmdk-overlay" onClick={() => setOpen(false)}>
       <div onClick={(e) => e.stopPropagation()}>
         <Command.Dialog open={open} onOpenChange={setOpen} label="Global Command Menu" className="cmdk-dialog">
-          <Command.Input placeholder="Type a command or search..." className="cmdk-input" autoFocus />
+          <Command.Input placeholder="Jump to a page..." className="cmdk-input" autoFocus />
           <Command.List className="cmdk-list">
             <Command.Empty className="cmdk-empty">No results found.</Command.Empty>
             

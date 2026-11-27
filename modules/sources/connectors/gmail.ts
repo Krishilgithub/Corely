@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { supabaseAdmin } from "@/lib/supabase";
-import { generateEmbedding } from "@/lib/openai";
+import { generateEmbedding } from "@/lib/embeddings";
 import { chunkText } from "@/modules/ai/chunker";
 import { buildGmailThreadDocument } from "@/modules/sources/connectors/gmail-utils";
 

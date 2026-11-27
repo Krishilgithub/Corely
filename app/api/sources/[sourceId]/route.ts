@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
+import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +14,17 @@ export async function DELETE(
   const { sourceId } = await params;
 
   try {
-    // Verify source exists
-    const source = await prisma.source.findUnique({
-      where: { id: sourceId },
+    // Only signed-in users who can change sources may delete one.
+    const user = await requirePermission(Permissions.SOURCES_WRITE);
+
+    // The source must belong to the caller's workspace. Otherwise act as if it does not exist.
+    const source = await prisma.source.findFirst({
+      where: { id: sourceId, workspaceId: user.workspaceId },
       select: { id: true, name: true },
     });
 
     if (!source) {
-      return NextResponse.json({ error: "Source not found" }, { status: 404 });
+      return errorResponse("Source not found", 404);
     }
 
     // 1. Delete source from database (triggers cascade delete on documents/chunks)
@@ -32,11 +38,12 @@ export async function DELETE(
       .delete()
       .eq("source_id", sourceId);
 
-    console.log(`[DELETE /api/sources/${sourceId}] ✅ Disconnected and cleared "${source.name}" successfully.`);
-    return NextResponse.json({ message: "Source disconnected successfully", sourceId });
-  } catch (err) {
-    const msg = (err as Error)?.message || "Failed to delete source";
-    console.error(`[DELETE /api/sources/${sourceId}] ❌ Error:`, err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.log(`[DELETE /api/sources/${sourceId}] Disconnected and cleared "${source.name}".`);
+    return successResponse({ message: "Source disconnected successfully", sourceId });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error(`[DELETE /api/sources/${sourceId}] Error:`, error);
+    return errorResponse("Failed to delete source", 500);
   }
 }

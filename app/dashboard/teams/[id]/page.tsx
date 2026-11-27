@@ -10,9 +10,6 @@ import {
   Info,
   Mail,
   Shield,
-  Activity,
-  GraduationCap,
-  Zap,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import "../teams.css";
@@ -24,13 +21,6 @@ const initialsOf = (name?: string) => {
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 };
-
-/** Thin progress bar in the brand colour. */
-const Bar = ({ value }: { value: number }) => (
-  <span className="tm-bar tm-bar--md">
-    <span className="tm-bar__fill" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-  </span>
-);
 
 export default function TeamDetailsPage() {
   const { id } = useParams() as { id: string };
@@ -93,7 +83,7 @@ export default function TeamDetailsPage() {
           ...prev,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           users: prev.users.filter((u: any) => u.id !== memberId),
-          members: Math.max(1, prev.members - 1)
+          members: Math.max(0, prev.members - 1)
         }));
       } else {
         alert("Failed to remove member");
@@ -135,7 +125,7 @@ export default function TeamDetailsPage() {
             <div className="tm-identity__meta">
               <span className="ui-badge ui-badge--neutral">{team.focus || "General"}</span>
               <span className="tm-identity__sep" aria-hidden="true">•</span>
-              <span className="type-subtitle">{team.users?.length || team.members} members</span>
+              <span className="type-subtitle">{team.users?.length ?? 0} member{team.users?.length === 1 ? "" : "s"}</span>
             </div>
           </div>
         </div>
@@ -227,42 +217,15 @@ export default function TeamDetailsPage() {
 
         {/* Sidebar Stats */}
         <div className="tm-sidebar">
-          <div className="ui-card tm-side-card">
-            <h3 className="type-heading" style={{ marginBottom: 20 }}>Team metrics</h3>
-
-            <div className="tm-metrics-list">
-              <div className="tm-stat-row">
-                <div className="tm-stat-row__top">
-                  <span className="tm-stat-row__label"><Activity size={16} /> Health score</span>
-                  <span className="tm-stat-row__val">{team.health}/100</span>
-                </div>
-                <Bar value={team.health} />
-              </div>
-
-              <div className="tm-stat-row">
-                <div className="tm-stat-row__top">
-                  <span className="tm-stat-row__label"><GraduationCap size={16} /> Knowledge coverage</span>
-                  <span className="tm-stat-row__val">{team.know}%</span>
-                </div>
-                <Bar value={team.know} />
-              </div>
-
-              <div className="tm-stat-row">
-                <div className="tm-stat-row__top">
-                  <span className="tm-stat-row__label"><Zap size={16} /> Actions (30D)</span>
-                  <span className="tm-stat-row__val">{team.actions}</span>
-                </div>
-                <Bar value={Math.min(100, team.actions / 5)} />
-              </div>
-            </div>
-          </div>
-
+          {/* Health, knowledge and activity are not measured, so no scores are shown. */}
           <div className="tm-note">
             <Info size={16} />
             <div>
-              <div className="tm-note__title">Note on team metrics</div>
+              <div className="tm-note__title">
+                Team metrics <span className="ui-badge ui-badge--neutral">Not measured yet</span>
+              </div>
               <div className="tm-note__text">
-                Metrics like health score, knowledge coverage, and actions are currently derived from historical data points. Dynamic tracking will be fully enabled in the next platform update.
+                Health score, knowledge coverage and activity are not measured yet, so they are not shown here.
               </div>
             </div>
           </div>

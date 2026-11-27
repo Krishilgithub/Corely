@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
-import WorkflowsMain from "./WorkflowsMain";
-import WorkflowsRightSidebar from "./WorkflowsRightSidebar";
+import WorkflowsMain, { ownerInitials } from "./WorkflowsMain";
+import WorkflowsRightSidebar, { WorkflowTemplate } from "./WorkflowsRightSidebar";
+import { useAuth } from "../../../lib/auth-context";
 import "../workflows.css";
 
 // ── Types and Interfaces ────────────────────────────────────────────────────
@@ -31,13 +32,15 @@ export interface ActivityItem {
   id: string;
   workflowId: string;
   workflowTitle: string;
-  status: "success" | "running" | "failed";
+  // "recorded" = a manual run was recorded. No actions were executed.
+  status: "success" | "running" | "failed" | "recorded";
   timestamp: string; // ISO date string
 }
 
 
 
 export default function WorkflowsLayout() {
+  const { user } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -164,44 +167,28 @@ export default function WorkflowsLayout() {
           setActivityLogs((prev) => [data.activity, ...prev]);
         }
 
-        triggerToast(`Triggered execution run for: "${wfTitle}"`);
+        triggerToast(`Run recorded for "${wfTitle}". Actions are not executed yet.`);
       }
     } catch (err) {
       console.error("Failed to run workflow:", err);
     }
   };
 
-  const handleUseTemplate = async (title: string, desc: string, icon: string, bg: string, col: string) => {
+  // A template becomes a Draft owned by the signed-in user, with the template's own trigger.
+  const handleUseTemplate = async (tpl: WorkflowTemplate) => {
     await handleAddWorkflow({
-      icon,
-      iconBg: bg,
-      iconCol: col,
-      title,
-      desc,
-      triggerType: "Event",
-      triggerIcon: "Zap",
-      triggerDesc: "Template Created",
+      icon: tpl.icon,
+      iconBg: tpl.bg,
+      iconCol: tpl.col,
+      title: tpl.title,
+      desc: tpl.desc,
+      triggerType: tpl.triggerType,
+      triggerIcon: tpl.triggerType === "Schedule" ? "Clock" : "Zap",
+      triggerDesc: tpl.triggerDesc,
       status: "Draft",
-      owner: "KS",
+      owner: ownerInitials(user?.name),
       ownerBg: "#0ea5e9",
-      ownerName: "User"
-    });
-  };
-
-  const handleImportWorkflow = async () => {
-    await handleAddWorkflow({
-      icon: "Cloud",
-      iconBg: "#dcfce7",
-      iconCol: "#16a34a",
-      title: "Imported Analytics Sync",
-      desc: "Synchronizes usage metadata logs and generates metric alerts",
-      triggerType: "Schedule",
-      triggerIcon: "Clock",
-      triggerDesc: "Hourly at :00",
-      status: "Draft",
-      owner: "KS",
-      ownerBg: "#0ea5e9",
-      ownerName: "User"
+      ownerName: user?.name || "User"
     });
   };
 
@@ -229,7 +216,6 @@ export default function WorkflowsLayout() {
             onDelete={handleDeleteWorkflow}
             onAdd={handleAddWorkflow}
             onEdit={handleEditWorkflow}
-            onImport={handleImportWorkflow}
           />
           <WorkflowsRightSidebar
             activityLogs={activityLogs}

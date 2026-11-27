@@ -12,7 +12,7 @@ import { google } from "googleapis";
 import { prisma } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { supabaseAdmin } from "@/lib/supabase";
-import { generateEmbedding } from "@/lib/openai";
+import { generateEmbedding } from "@/lib/embeddings";
 import { chunkText } from "@/modules/ai/chunker";
 import crypto from "crypto";
 import { scopeMetadata, ensureDocumentMetadata } from "@/lib/document-scope";

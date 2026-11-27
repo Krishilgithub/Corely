@@ -37,7 +37,15 @@ export async function GET(
       return errorResponse("Team not found", 404);
     }
 
-    return successResponse(team);
+    // Only real fields. Health, knowledge and actions are not measured, so they are left out.
+    return successResponse({
+      id: team.id,
+      name: team.name,
+      focus: team.focus,
+      createdAt: team.createdAt,
+      users: team.users,
+      members: team.users.length, // The real number of people in the team
+    });
   } catch (error) {
     console.error("GET /api/teams/[id] error:", error);
     if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") {

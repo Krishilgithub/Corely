@@ -16,6 +16,20 @@ export const Permissions = {
 
 export type Permission = typeof Permissions[keyof typeof Permissions];
 
+// Workflows reuse the project permissions instead of having their own.
+// Why: each role keeps its permission list in the database (workspace_roles).
+// A brand-new permission would be missing from every existing role, so every
+// current user, admins too, would lose access to workflows until someone
+// edited the roles by hand. The project permissions already give the right
+// split: every default role can view, and Admin, Developer and Product Manager
+// can create, edit, delete and run. Viewer can only look.
+// To give workflows their own permissions later, change these two lines and
+// add the new values to the stored roles at the same time.
+export const WorkflowPermissions = {
+  READ: Permissions.PROJECTS_READ,
+  MANAGE: Permissions.PROJECTS_MANAGE,
+} as const;
+
 export const DefaultRoles = {
   ADMIN: {
     name: "Admin",

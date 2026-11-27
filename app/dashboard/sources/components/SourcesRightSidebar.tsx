@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import Link from "next/link";
-import { BookOpen } from "lucide-react";
 import { SourceLogo } from "@/components/ui/source-logo";
 
 import { useAuth } from "../../../lib/auth-context";
@@ -16,6 +14,17 @@ interface Source {
   lastSyncedAt: string | null;
   errorMessage: string | null;
   createdAt: string;
+}
+
+/** Documents indexed on one day (UTC), from GET /api/sources/ingestion. */
+interface IngestionDay {
+  date: string; // YYYY-MM-DD
+  documents: number;
+}
+
+/** Short weekday name for a YYYY-MM-DD date, e.g. "Mon". */
+function weekdayLabel(date: string) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString([], { weekday: "short", timeZone: "UTC" });
 }
 
 /** Readable name for a source type, e.g. "manual_upload" becomes "Manual upload". */
@@ -57,14 +66,36 @@ export default function SourcesRightSidebar() {
     return () => clearInterval(interval);
   }, [fetchSources]);
 
+  // ── Fetch real documents-indexed-per-day for the last 7 days ───────────────
+  const [ingestion, setIngestion] = useState<IngestionDay[] | null>(null);
+  const [ingestionError, setIngestionError] = useState(false);
+
+  const fetchIngestion = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sources/ingestion");
+      if (!res.ok) throw new Error("Failed to load ingestion");
+      const json = await res.json();
+      setIngestion(json.data?.days ?? []);
+      setIngestionError(false);
+    } catch (err) {
+      console.error("Sidebar failed to fetch ingestion:", err);
+      setIngestionError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchIngestion();
+    // Counts change slowly, so refresh once a minute.
+    const interval = setInterval(fetchIngestion, 60000);
+    return () => clearInterval(interval);
+  }, [fetchIngestion]);
+
   // ── Stats Calculations ─────────────────────────────────────────────────────
   const totalCount = sources.length;
   const syncedCount = sources.filter((s) => s.status === "synced").length;
   const syncingCount = sources.filter((s) => s.status === "syncing").length;
   const errorCount = sources.filter((s) => s.status === "error").length;
   const idleCount = sources.filter((s) => s.status === "idle").length;
-
-  const totalIndexed = sources.reduce((sum, s) => sum + s.itemsIndexed, 0);
 
   // Donut chart circumferences based on radius = 40 (circumference ≈ 251.2)
   const calculateStroke = () => {
@@ -105,38 +136,22 @@ export default function SourcesRightSidebar() {
 
   const chartInfo = calculateStroke();
 
-  // ── Dynamic Chart Path Generation ──────────────────────────────────────────
-  // Generate a realistic looking sparkline based on the total items indexed.
-  const chartPath = useMemo(() => {
-    if (totalIndexed === 0) return "M 0,90 L 250,90";
-    
-    // Seed a pseudo-random generator with the totalIndexed so it stays stable
-    let seed = totalIndexed;
-    const random = () => {
-      const x = Math.sin(seed++) * 10000;
-      return x - Math.floor(x);
-    };
+  // ── Chart path from the real daily counts ──────────────────────────────────
+  const ingestionTotal = (ingestion ?? []).reduce((sum, d) => sum + d.documents, 0);
+  const ingestionMax = Math.max(1, ...(ingestion ?? []).map((d) => d.documents));
 
-    const numPoints = 10;
-    const width = 250;
-    const height = 100;
-    const padding = 10;
-    const maxVal = height - padding * 2;
-    
-    let path = `M 0,${height - padding}`;
-    
-    for (let i = 1; i <= numPoints; i++) {
-      const x = (i / numPoints) * width;
-      const baseHeight = (i / numPoints) * maxVal;
-      const noise = (random() * 30) - 15;
-      const y = height - padding - baseHeight + noise;
-      // Clamp Y to stay inside SVG boundaries
-      const clampedY = Math.max(padding, Math.min(height - padding, y));
-      path += ` L ${x},${clampedY}`;
-    }
-    
-    return path;
-  }, [totalIndexed]);
+  const chartPath = useMemo(() => {
+    const days = ingestion ?? [];
+    if (days.length < 2) return "M 0,90 L 250,90";
+    // Plot area runs from y=90 (0 documents) up to y=10 (the busiest day).
+    return days
+      .map((d, i) => {
+        const x = (i / (days.length - 1)) * 250;
+        const y = 90 - (d.documents / ingestionMax) * 80;
+        return `${i === 0 ? "M" : "L"} ${x},${y}`;
+      })
+      .join(" ");
+  }, [ingestion, ingestionMax]);
 
   // Area under the line, for a faint wash below the series.
   const areaPath = `${chartPath} L 250,100 L 0,100 Z`;
@@ -232,26 +247,31 @@ export default function SourcesRightSidebar() {
       {/* Data Ingestion (Line Chart) */}
       <div className="ui-card src-rail-card">
         <div className="ui-card-header">
-          <div className="type-heading">Data ingestion <span className="type-caption">(aggregated)</span></div>
+          <div className="type-heading">Data ingestion <span className="type-caption">(last 7 days)</span></div>
         </div>
         <div className="ui-card-body">
           <div className="src-chart-head">
             <div className="src-chart-value">
-              <span className="type-metric">{totalIndexed.toLocaleString()}</span>
-              <span className="type-caption">files</span>
+              <span className="type-metric">{ingestion ? ingestionTotal.toLocaleString() : "—"}</span>
+              <span className="type-caption">documents</span>
             </div>
-            <div className="type-caption">Total documents indexed</div>
-            <div className="src-chart-trend">
-              <ArrowUpRightIcon size={12} strokeWidth={3} />
-              Active ingestion operational
+            <div className="type-caption">
+              {ingestionError ? "Could not load ingestion data." : "Indexed per day (UTC), by each document's latest index time"}
             </div>
+            {/* Real status from the sources list, not a fixed message */}
+            {(syncingCount > 0 || errorCount > 0) && (
+              <div className={`src-kpi__hint src-kpi__hint--${errorCount > 0 ? "error" : "warning"}`}>
+                <span className="ui-dot" aria-hidden="true" />
+                {errorCount > 0
+                  ? `${errorCount} source${errorCount !== 1 ? "s" : ""} need${errorCount === 1 ? "s" : ""} attention`
+                  : `${syncingCount} syncing now`}
+              </div>
+            )}
           </div>
 
           <div className="src-chart">
             <div className="src-chart__y" aria-hidden="true">
-              <span style={{ top: "10%" }}>Peak</span>
-              <span style={{ top: "36.67%" }}>Mid</span>
-              <span style={{ top: "63.33%" }}>Low</span>
+              <span style={{ top: "10%" }}>{ingestionMax.toLocaleString()}</span>
               <span style={{ top: "90%" }}>0</span>
             </div>
             <svg className="src-chart__plot" viewBox="0 0 250 100" preserveAspectRatio="none">
@@ -280,10 +300,10 @@ export default function SourcesRightSidebar() {
               />
             </svg>
             <div className="src-chart__x" aria-hidden="true">
-              <span>Mon</span>
-              <span>Wed</span>
-              <span>Fri</span>
-              <span>Sun</span>
+              {/* Every second day, so the 4 labels line up with points 1, 3, 5 and 7 */}
+              {(ingestion ?? []).filter((_, i) => i % 2 === 0).map((d) => (
+                <span key={d.date}>{weekdayLabel(d.date)}</span>
+              ))}
             </div>
           </div>
         </div>
@@ -331,33 +351,6 @@ export default function SourcesRightSidebar() {
           </div>
         </div>
       </div>
-
-      {/* Help Card */}
-      <div className="src-help-card">
-        <span className="src-glyph-tile src-glyph-tile--sm">
-          <BookOpen size={16} />
-        </span>
-        <div className="src-help-text">
-          <div className="type-body" style={{ fontWeight: 600 }}>Need help connecting a source?</div>
-          <Link href="#" className="src-help-link">
-            View our integration guide
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </Link>
-        </div>
-      </div>
     </div>
-  );
-}
-
-// Inline custom icon for arrow up right
-function ArrowUpRightIcon({ size = 24, strokeWidth = 2, color = "currentColor" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 17l9.2-9.2M17 17V7H7" />
-    </svg>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,8 @@ export async function POST(
   { params }: { params: Promise<{ sourceId: string }> }
 ) {
   try {
-    const { workspace } = await auth();
+    // Starting a sync changes the source, so it needs write access.
+    const user = await requirePermission(Permissions.SOURCES_WRITE);
     const { sourceId } = await params;
 
     const source = await prisma.source.findUnique({
@@ -18,7 +20,7 @@ export async function POST(
       select: { id: true, workspaceId: true, type: true, status: true, updatedAt: true },
     });
 
-    if (!source || source.workspaceId !== workspace.id) {
+    if (!source || source.workspaceId !== user.workspaceId) {
       return errorResponse("Source not found", 404);
     }
 
@@ -36,9 +38,6 @@ export async function POST(
       where: { id: sourceId },
       data: { status: "syncing", errorMessage: null },
     });
-
-    // Generate a unique sync ID for polling
-    const syncJobId = `sync_${Date.now()}_${sourceId}`;
 
     // After a sync, re-check which documents belong to which project.
     const afterSync = () =>
@@ -120,8 +119,10 @@ export async function POST(
       });
     }
 
-    return successResponse({ message: "Sync started", sourceId, jobId: syncJobId });
+    // No job id: there is no job API to poll. The client polls GET /api/sources for the status instead.
+    return successResponse({ message: "Sync started", sourceId });
   } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
     console.error("POST /api/sources/sync error:", error);
     return errorResponse("Internal Server Error", 500);

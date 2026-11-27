@@ -10,10 +10,6 @@ import {
   Eye,
   Search,
   ChevronDown,
-  Calendar,
-  ChevronRight,
-  MoreHorizontal,
-  TrendingUp,
   Activity,
   Code2,
   DollarSign,
@@ -130,11 +126,13 @@ export default function InsightsPage() {
   const stats = useMemo(() => {
     const critical = insights.filter((i) => i.priority === "Critical").length;
     const high = insights.filter((i) => i.priority === "High").length;
+    // Real counts only. Insights are rebuilt on each load, so there is no
+    // history for "vs last month" or an "actioned" rate.
     return {
       critical,
       high,
-      newThisMonth: insights.length,
-      actionedRate: Math.max(70, Math.min(99, 70 + critical * 2)),
+      total: insights.length,
+      risks: insights.filter((i) => i.category === "Risk").length,
     };
   }, [insights]);
 
@@ -173,20 +171,18 @@ export default function InsightsPage() {
 
   const maxCategoryValue = Math.max(...dynamicCategoryProgress.map((c) => c.value), 1);
 
-  // ── Dynamic Line Data ─────────────────────────────────────────────────────
-  const dynamicLineData = useMemo(() => {
-    if (timeline.length > 0) return timeline;
-    // Fallback if API hasn't returned timeline yet
-    const base = insights.length > 0 ? insights.length : 1;
-    return [
-      { date: "May 1", val: 20 + base * 2 },
-      { date: "May 8", val: 28 + base },
-      { date: "May 15", val: 24 + base * 1.5 },
-      { date: "May 22", val: 40 + base * 2.5 },
-      { date: "May 29", val: 38 + base },
-      { date: "May 30", val: 50 + base * 3 },
-    ];
-  }, [insights, timeline]);
+  // ── Line Data ─────────────────────────────────────────────────────────────
+  // Real points from the API only. An all-zero line means there is nothing to show yet.
+  const hasTimelineData = timeline.some((p) => Number(p.val) > 0);
+
+  // Source filter options come from the sources the loaded insights really use.
+  const sourceOptions = useMemo(() => {
+    const names = new Set<string>();
+    insights.forEach((i) => {
+      if (i.source) names.add(i.source);
+    });
+    return Array.from(names).sort();
+  }, [insights]);
 
   // ── Filtering Logic ───────────────────────────────────────────────────────
   const filteredInsights = useMemo(() => {
@@ -262,9 +258,8 @@ export default function InsightsPage() {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div className="in-impact">
-            {item.impact} <span className="in-impact-arrow">{item.trend === "up" ? "↑" : "↓"}</span>
-          </div>
+          // Impact is a fixed rating per rule, not a measured trend, so no arrow.
+          <div className="in-impact">{item.impact}</div>
         );
       },
       size: 100,
@@ -288,18 +283,6 @@ export default function InsightsPage() {
         );
       },
       size: 140,
-    },
-    {
-      id: "actions",
-      header: "",
-      cell: () => (
-        <div className="in-actions-cell">
-          <button type="button" className="ui-icon-btn ui-icon-btn--sm in-actions-btn" aria-label="More actions">
-            <MoreHorizontal size={16} />
-          </button>
-        </div>
-      ),
-      size: 60,
     },
   ], []);
 
@@ -347,25 +330,21 @@ export default function InsightsPage() {
           icon={<Zap />}
           value={stats.critical}
           label="Critical insights"
-          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 20% vs last month</span>}
         />
         <KpiTile
           icon={<AlertTriangle />}
           value={stats.high}
           label="High priority"
-          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 12% vs last month</span>}
         />
         <KpiTile
           icon={<CheckCircle />}
-          value={stats.newThisMonth}
-          label="New this month"
-          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 34% vs last month</span>}
+          value={stats.total}
+          label="Total insights"
         />
         <KpiTile
           icon={<Eye />}
-          value={`${stats.actionedRate}%`}
-          label="Actioned rate"
-          delta={<span className="type-caption in-kpi-trend"><TrendingUp size={12} /> 18% vs last month</span>}
+          value={stats.risks}
+          label="Risks flagged"
         />
       </div>
 
@@ -405,7 +384,7 @@ export default function InsightsPage() {
             {
               id: "source",
               label: "Source",
-              options: ["Salesforce", "GitHub", "Google Drive", "Slack", "Corely AI"].map(v => ({
+              options: sourceOptions.map(v => ({
                 value: v,
                 label: v,
                 icon: <SourceLogo type={v} size={14} tile={false} />,
@@ -415,11 +394,6 @@ export default function InsightsPage() {
               emptyValue: "All Sources",
             },
           ]}
-          actions={
-            <div className="ui-btn ui-btn--secondary in-filter-btn">
-              <Calendar /> This Month <ChevronDown />
-            </div>
-          }
         />
       </div>
 
@@ -496,9 +470,6 @@ export default function InsightsPage() {
           <div className="ui-card in-side-card">
             <div className="in-side-header">
               <h3 className="type-heading">Insights overview</h3>
-              <a href="#" className="in-side-link">
-                View all <ChevronRight size={14} />
-              </a>
             </div>
             <div className="in-donut-row">
               <div className="in-donut">
@@ -540,17 +511,16 @@ export default function InsightsPage() {
           {/* Line Chart */}
           <div className="ui-card in-side-card">
             <div className="in-side-header">
-              <h3 className="type-heading">Insights trend</h3>
-              <a href="#" className="in-side-link">
-                View analytics <ChevronRight size={14} />
-              </a>
+              {/* Named for what the line really counts */}
+              <h3 className="type-heading">Knowledge growth</h3>
             </div>
-            <div className="ui-btn ui-btn--secondary ui-btn--sm in-chart-chip">
-              This Month <ChevronDown />
-            </div>
+            <p className="type-caption">Running total of indexed documents and chats, last 6 weeks.</p>
+            {!hasTimelineData ? (
+              <p className="type-caption">{loading ? "Loading..." : "No documents or chats yet."}</p>
+            ) : (
             <div className="in-chart">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dynamicLineData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <LineChart data={timeline} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--divider)" />
                   <XAxis
                     dataKey="date"
@@ -578,15 +548,13 @@ export default function InsightsPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            )}
           </div>
 
           {/* Progress Bars */}
           <div className="ui-card in-side-card">
             <div className="in-side-header">
               <h3 className="type-heading">Top insight categories</h3>
-              <a href="#" className="in-side-link">
-                View all <ChevronRight size={14} />
-              </a>
             </div>
             <div className="in-progress-list">
               {dynamicCategoryProgress.map((cat) => (
@@ -627,9 +595,9 @@ export default function InsightsPage() {
                 <span className="type-caption">Ask Corely anything about these insights</span>
               </div>
             </div>
-            <button type="button" className="ui-btn ui-btn--secondary ui-btn--sm">
+            <Link href="/dashboard/ask-corely?q=Analyze+my+recent+insights" className="ui-btn ui-btn--secondary ui-btn--sm">
               Ask Corely <ArrowRight />
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Book, MessageCircle, ExternalLink, Keyboard, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { X, Book, MessageCircle, Keyboard, Sparkles } from "lucide-react";
 
 export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [mounted, setMounted] = useState(false);
@@ -44,7 +45,7 @@ export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </span>
                 <div className="db-help-brand-text">
                   <h2 id="help-modal-title" className="type-heading">Help &amp; resources</h2>
-                  <p className="type-caption">Everything you need to master Corely.</p>
+                  <p className="type-caption">Shortcuts and ways to get help.</p>
                 </div>
               </div>
               <button type="button" className="ui-icon-btn ui-icon-btn--sm" onClick={onClose} aria-label="Close">
@@ -60,9 +61,9 @@ export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </div>
                 <div className="db-help-list">
                   <div className="db-help-row">
-                    <span className="type-body">Global search / command palette</span>
+                    <span className="type-body">Open the quick menu to jump to a page</span>
                     <div className="db-help-keys">
-                      <kbd className="ui-kbd">Cmd</kbd>
+                      <kbd className="ui-kbd">Cmd/Ctrl</kbd>
                       <kbd className="ui-kbd">K</kbd>
                     </div>
                   </div>
@@ -78,26 +79,26 @@ export default function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClos
               <section className="db-help-section">
                 <div className="db-help-section-title type-label">Resources</div>
                 <div className="db-help-resources">
-                  <a href="#" className="db-help-resource">
+                  {/* No documentation site exists yet, so this is not a link */}
+                  <div className="db-help-resource" aria-disabled="true" title="Not available yet" style={{ opacity: 0.6, cursor: "not-allowed" }}>
                     <div className="db-help-resource-top">
                       <span className="db-row-icon" aria-hidden="true"><Book /></span>
-                      <ExternalLink aria-hidden="true" />
+                      <span className="ui-badge ui-badge--neutral">Coming soon</span>
                     </div>
                     <div>
                       <div className="db-help-resource-title">Documentation</div>
-                      <div className="type-caption">Read our guides and API references.</div>
+                      <div className="type-caption">Guides are not available yet.</div>
                     </div>
-                  </a>
-                  <a href="#" className="db-help-resource">
+                  </div>
+                  <Link href="/contact" className="db-help-resource" onClick={onClose}>
                     <div className="db-help-resource-top">
                       <span className="db-row-icon" aria-hidden="true"><MessageCircle /></span>
-                      <ExternalLink aria-hidden="true" />
                     </div>
                     <div>
                       <div className="db-help-resource-title">Contact support</div>
-                      <div className="type-caption">Get help from our support team.</div>
+                      <div className="type-caption">Open the contact page to reach our team.</div>
                     </div>
-                  </a>
+                  </Link>
                 </div>
               </section>
             </div>

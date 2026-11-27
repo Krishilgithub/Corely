@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { auth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { z } from "zod";
 
@@ -12,16 +13,17 @@ const snapshotSchema = z.object({
 
 export async function GET() {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_READ);
 
     const snapshots = await prisma.memorySnapshot.findMany({
-      where: { workspaceId: workspace.id },
+      where: { workspaceId: user.workspaceId },
       orderBy: { createdAt: 'desc' }
     });
 
     return successResponse({ snapshots });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     console.error("GET /api/memory/snapshots error:", error);
     return errorResponse("Internal Server Error", 500);
   }
@@ -29,7 +31,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_WRITE);
 
     const body = await request.json();
     const result = snapshotSchema.safeParse(body);
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const snapshot = await prisma.memorySnapshot.create({
       data: {
-        workspaceId: workspace.id,
+        workspaceId: user.workspaceId,
         title,
       }
     });
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest) {
     return successResponse({ snapshot });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     console.error("POST /api/memory/snapshots error:", error);
     return errorResponse("Internal Server Error", 500);
   }
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { workspace } = await auth();
+    const user = await requirePermission(Permissions.MEMORY_WRITE);
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -68,13 +71,14 @@ export async function DELETE(request: NextRequest) {
     await prisma.memorySnapshot.deleteMany({
       where: {
         id: id,
-        workspaceId: workspace.id
+        workspaceId: user.workspaceId
       }
     });
 
     return successResponse({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
     console.error("DELETE /api/memory/snapshots error:", error);
     return errorResponse("Internal Server Error", 500);
   }

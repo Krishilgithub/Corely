@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Zap, PieChart, ShieldAlert, ChevronRight, type LucideIcon } from "lucide-react";
+import { Brain, Zap, FilePlus, ShieldAlert, ChevronRight, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -9,6 +9,7 @@ interface StatCard {
   value: number;
   suffix?: string;
   label: string;
+  // Plain sub-label: the real time window or a real status. Never a made-up trend.
   trend: string;
   delay: number;
   href?: string;
@@ -36,20 +37,36 @@ function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: stri
     </>
   );
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function StatsCards({ data }: { data?: any }) {
+interface StatsData {
+  documentsIndexed: number;
+  documentsInRange: number;
+  sourcesConnected: number;
+  sourcesWithErrors: number;
+  recentChats: number;
+}
+
+// dateWindow says which real window the date filter applies, e.g. "Last 7 days".
+export default function StatsCards({ data, dateWindow }: { data?: StatsData; dateWindow: string }) {
   const [statsData, setStatsData] = useState<StatCard[]>([]);
 
   useEffect(() => {
     if (data) {
       setStatsData([
-        { icon: Brain, value: data.documentsIndexed, label: "Total Indexed Documents", trend: "↑ Increasing", delay: 0.05, href: "/dashboard/memory" },
-        { icon: Zap, value: data.recentChats, label: "Recent Interactions", trend: "↑ Activity", delay: 0.1, href: "/dashboard/ask-corely" },
-        { icon: PieChart, value: data.coverage, suffix: "%", label: "Knowledge Coverage", trend: "↑ Growing", delay: 0.15, href: "/dashboard/insights" },
-        { icon: ShieldAlert, value: data.sourcesConnected, label: "Connected Sources", trend: "Active Syncs", delay: 0.2, href: "/dashboard/sources" },
+        { icon: Brain, value: data.documentsIndexed, label: "Total Indexed Documents", trend: "All time", delay: 0.05, href: "/dashboard/memory" },
+        // The two tiles below follow the date filter.
+        { icon: Zap, value: data.recentChats, label: "Chats Started", trend: dateWindow, delay: 0.1, href: "/dashboard/ask-corely" },
+        { icon: FilePlus, value: data.documentsInRange, label: "Documents Indexed", trend: dateWindow, delay: 0.15, href: "/dashboard/memory" },
+        {
+          icon: ShieldAlert,
+          value: data.sourcesConnected,
+          label: "Connected Sources",
+          trend: data.sourcesWithErrors > 0 ? `${data.sourcesWithErrors} with sync errors` : "No sync errors",
+          delay: 0.2,
+          href: "/dashboard/sources",
+        },
       ]);
     }
-  }, [data]);
+  }, [data, dateWindow]);
 
   if (!data || statsData.length === 0) {
     // Neutral placeholder tiles while the numbers load.
@@ -78,7 +95,7 @@ export default function StatsCards({ data }: { data?: any }) {
               <span className="type-metric">
                 <AnimatedNumber target={stat.value} suffix={stat.suffix} />
               </span>
-              {/* The trend text is a fixed label, not a measured change, so it stays neutral. */}
+              {/* Sub-label is a real window or status, so it stays neutral. */}
               <span className="type-caption">{stat.trend}</span>
             </div>
             <span className="db-stat-label">{stat.label}</span>

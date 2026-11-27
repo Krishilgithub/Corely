@@ -7,8 +7,6 @@ import ReactMarkdown from "react-markdown";
 import {
   Sparkles,
   Paperclip,
-  Globe,
-  BookOpen,
   ArrowUp,
   TrendingUp,
   AlertTriangle,
@@ -53,6 +51,8 @@ interface ChatMessage {
   text: string;
   sources?: SourceInfo[];
   isStreaming?: boolean;
+  /** True once the server has sent the "sources" event (the search step is over). */
+  sourcesReceived?: boolean;
   timestamp: string;
   feedback?: "positive" | "negative" | null;
 }
@@ -77,6 +77,13 @@ const PRESET_PROMPTS = [
     text: "How did we decide on the new API design?",
   },
 ];
+
+// Plain-text files the composer can read in the browser.
+const TEXT_FILE_EXTENSIONS = ["txt", "md", "csv", "json"];
+const MAX_ATTACHMENT_CHARS = 8000;
+
+// Client-side ids start with this until the server sends the saved message id.
+const TEMP_ID_PREFIX = "temp-";
 
 // ─── Display helpers (visual only) ────────────────────────────────────────────
 
@@ -112,56 +119,37 @@ function StepIcon({ state }: { state: StepState }) {
   );
 }
 
-function ThinkingState({ sources }: { sources?: SourceInfo[] }) {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setStep(1), 800),
-      setTimeout(() => setStep(2), 1800),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  const hasSources = sources && sources.length > 0;
-
-  const step1: StepState = step >= 1 ? "done" : "active";
-  const step2: StepState = hasSources ? "done" : step >= 1 ? "active" : "pending";
-  const step3: StepState = hasSources ? "active" : "pending";
+// Steps follow real stream events: "searching" until the sources event
+// arrives, then "writing" until the first words of the answer arrive.
+function ThinkingState({ sources, sourcesReceived }: { sources?: SourceInfo[]; sourcesReceived?: boolean }) {
+  const count = sources?.length ?? 0;
+  const searchStep: StepState = sourcesReceived ? "done" : "active";
+  const writeStep: StepState = sourcesReceived ? "active" : "pending";
+  const searchDoneLabel = count > 0 ? `Found ${count} source${count === 1 ? "" : "s"}` : "Searched your knowledge";
 
   return (
     <div className="ac-thinking">
       <div className="ac-steps">
         <motion.div
-          className={`ac-step is-${step1}`}
+          className={`ac-step is-${searchStep}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.15 }}
         >
-          <StepIcon state={step1} />
-          {step1 === "active" ? <TextShimmer>Analyzing query scope...</TextShimmer> : <span>Analyzing query scope...</span>}
+          <StepIcon state={searchStep} />
+          {searchStep === "active"
+            ? <TextShimmer>Searching your knowledge…</TextShimmer>
+            : <span>{searchDoneLabel}</span>}
         </motion.div>
 
         <motion.div
-          className={`ac-step is-${step2}`}
+          className={`ac-step is-${writeStep}`}
           initial={{ opacity: 0 }}
-          animate={{ opacity: step >= 1 ? 1 : 0.5 }}
+          animate={{ opacity: sourcesReceived ? 1 : 0.5 }}
           transition={{ duration: 0.15 }}
         >
-          <StepIcon state={step2} />
-          {step2 === "active"
-            ? <TextShimmer>Scanning workspace semantic vectors...</TextShimmer>
-            : <span>{hasSources ? `Retrieved ${sources.length} document references` : "Scanning workspace semantic vectors..."}</span>}
-        </motion.div>
-
-        <motion.div
-          className={`ac-step is-${step3}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: hasSources ? 1 : 0.5 }}
-          transition={{ duration: 0.15 }}
-        >
-          <StepIcon state={step3} />
-          {step3 === "active" ? <TextShimmer>Synthesizing intelligence response...</TextShimmer> : <span>Synthesizing intelligence response...</span>}
+          <StepIcon state={writeStep} />
+          {writeStep === "active" ? <TextShimmer>Writing the answer…</TextShimmer> : <span>Writing the answer…</span>}
         </motion.div>
       </div>
 
@@ -203,10 +191,6 @@ export default function AskMain({
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState<string | null>(null);
 
-  // ── Tool toggles ────────────────────────────────────────────────────────────
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [knowledgeOnlyEnabled, setKnowledgeOnlyEnabled] = useState(false);
-
   // ── File attachment ──────────────────────────────────────────────────────────
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -240,6 +224,12 @@ export default function AskMain({
       setLoading(true);
       try {
         const response = await fetch(`/api/chats/${activeSessionId}`);
+        if (response.status === 404) {
+          // For example a shared link to a conversation from another workspace.
+          toast("That conversation could not be found.");
+          setActiveSessionId(null);
+          return;
+        }
         if (!response.ok) throw new Error("Failed to load conversation history");
 
         const data = (await response.json()) as {
@@ -286,7 +276,7 @@ export default function AskMain({
     };
 
     void fetchSessionMessages();
-  }, [activeSessionId]);
+  }, [activeSessionId, setActiveSessionId, toast]);
 
   // ─── Auto scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -306,11 +296,22 @@ export default function AskMain({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // readAsText only works for plain-text files. PDF and Word files go through Sources.
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!TEXT_FILE_EXTENSIONS.includes(ext)) {
+      toast("Only .txt, .md, .csv or .json files can be attached. Upload PDF or Word files in Sources.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const content = ev.target?.result as string;
-      // Truncate to 8000 chars to avoid token overflow
-      setAttachedFile({ name: file.name, content: content.slice(0, 8000) });
+      // Truncate to avoid token overflow, and say so
+      setAttachedFile({ name: file.name, content: content.slice(0, MAX_ATTACHMENT_CHARS) });
+      if (content.length > MAX_ATTACHMENT_CHARS) {
+        toast(`Only the first ${MAX_ATTACHMENT_CHARS.toLocaleString()} characters of ${file.name} will be used.`);
+      }
     };
     reader.readAsText(file);
     // Reset input so same file can be reselected
@@ -328,11 +329,18 @@ export default function AskMain({
   };
 
   // ─── Share ────────────────────────────────────────────────────────────────────
+  // The link opens this conversation for anyone signed in to the same workspace.
   const handleShare = () => {
-    if (typeof window !== "undefined") {
-      void navigator.clipboard.writeText(window.location.href);
-      toast("Conversation link copied to clipboard.");
+    if (typeof window === "undefined") return;
+    if (!activeSessionId) {
+      toast("Nothing to share yet.");
+      return;
     }
+    const link = `${window.location.origin}/dashboard/ask-corely?session=${encodeURIComponent(activeSessionId)}`;
+    navigator.clipboard.writeText(link).then(
+      () => toast("Link copied. People in your workspace can open this conversation."),
+      () => toast("Could not copy the link."),
+    );
   };
 
   // ─── Export conversation as Markdown ──────────────────────────────────────────
@@ -377,6 +385,36 @@ export default function AskMain({
     toast("Conversation exported as Markdown.");
   };
 
+  // ─── Export one answer (question, answer and sources) as Markdown ────────────
+  const handleExportMessage = (msg: ChatMessage) => {
+    const lines: string[] = [
+      `# Corely answer`,
+      `_Exported: ${new Date().toLocaleString()}_`,
+      "",
+    ];
+    if (msg.query) {
+      lines.push("## Question", msg.query, "");
+    }
+    lines.push(`## Answer (${msg.timestamp})`, msg.text, "");
+    if (msg.sources && msg.sources.length > 0) {
+      lines.push("## Sources");
+      msg.sources.forEach((src, i) => {
+        const freshness = src.confidenceLabel ? ` — ${src.confidenceLabel} (${src.confidenceScore ?? ""}%)` : "";
+        lines.push(`${i + 1}. ${src.url ? `[${src.title}](${src.url})` : src.title}${freshness}`);
+      });
+      lines.push("");
+    }
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `corely-answer-${Date.now()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Answer exported as Markdown.");
+  };
+
   // ─── Save to Memory ──────────────────────────────────────────────────────────
   const handleSaveToMemory = async (msg: ChatMessage) => {
     try {
@@ -406,23 +444,18 @@ export default function AskMain({
 
   // ─── Feedback ─────────────────────────────────────────────────────────────────
   const handleFeedback = async (messageId: string, feedbackType: "positive" | "negative") => {
-    if (!activeSessionId) return;
+    if (!activeSessionId || messageId.startsWith(TEMP_ID_PREFIX)) return;
+
+    const targetMsg = messages.find((m) => m.id === messageId);
+    const previousFeedback = targetMsg?.feedback ?? null;
+    const newFeedback = previousFeedback === feedbackType ? null : feedbackType;
 
     // Optimistic update
     setMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id === messageId) {
-          const nextFeedback = msg.feedback === feedbackType ? null : feedbackType;
-          return { ...msg, feedback: nextFeedback };
-        }
-        return msg;
-      })
+      prev.map((msg) => (msg.id === messageId ? { ...msg, feedback: newFeedback } : msg))
     );
 
     try {
-      const targetMsg = messages.find((m) => m.id === messageId);
-      const newFeedback = targetMsg?.feedback === feedbackType ? null : feedbackType;
-
       const res = await fetch(
         `/api/chats/${activeSessionId}/messages/${messageId}/feedback`,
         {
@@ -438,6 +471,10 @@ export default function AskMain({
       else if (newFeedback === "negative") toast("Thanks. We'll keep improving.");
     } catch (err) {
       console.error("Error recording feedback:", err);
+      // Put the thumbs back the way they were, since nothing was saved.
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, feedback: previousFeedback } : msg))
+      );
       toast("Could not save feedback. Try again.");
     }
   };
@@ -468,13 +505,14 @@ export default function AskMain({
     }
 
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `${TEMP_ID_PREFIX}user-${Date.now()}`,
       sender: "user",
       text: promptText, // Show clean text in UI
       timestamp,
     };
 
-    const corelyMsgId = `corely-${Date.now()}`;
+    // Swapped for the saved message id when the server sends "message_id".
+    let corelyMsgId = `${TEMP_ID_PREFIX}corely-${Date.now()}`;
     const corelyMsg: ChatMessage = {
       id: corelyMsgId,
       sender: "corely",
@@ -517,8 +555,6 @@ export default function AskMain({
           question: finalQuestion,
           workspaceId,
           sessionId: currentSessionId,
-          webSearch: webSearchEnabled,
-          knowledgeOnly: knowledgeOnlyEnabled,
         }),
       });
 
@@ -541,27 +577,55 @@ export default function AskMain({
           if (line.startsWith("data: ")) {
             const dataStr = line.slice(6).trim();
             if (dataStr === "[DONE]") {
+              const doneId = corelyMsgId;
               setMessages((prev) =>
-                prev.map((msg) => (msg.id === corelyMsgId ? { ...msg, isStreaming: false } : msg))
+                prev.map((msg) =>
+                  msg.id === doneId
+                    ? { ...msg, isStreaming: false, text: msg.text || "No answer was returned. Try asking again." }
+                    : msg
+                )
               );
               onNewMessage();
             } else {
               try {
                 const parsed = JSON.parse(dataStr) as {
-                  type: "sources" | "text";
+                  type: "sources" | "text" | "no_knowledge" | "error" | "message_id";
                   sources?: SourceInfo[];
                   text?: string;
+                  message?: string;
+                  id?: string;
                 };
+                const targetId = corelyMsgId;
                 if (parsed.type === "sources") {
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === corelyMsgId ? { ...msg, sources: parsed.sources } : msg
+                      msg.id === targetId ? { ...msg, sources: parsed.sources, sourcesReceived: true } : msg
+                    )
+                  );
+                } else if (parsed.type === "message_id" && parsed.id) {
+                  // Use the saved id so feedback reaches the real message.
+                  const savedId = parsed.id;
+                  setMessages((prev) =>
+                    prev.map((msg) => (msg.id === targetId ? { ...msg, id: savedId } : msg))
+                  );
+                  corelyMsgId = savedId;
+                } else if (parsed.type === "no_knowledge") {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === targetId ? { ...msg, text: parsed.text ?? "" } : msg
+                    )
+                  );
+                } else if (parsed.type === "error") {
+                  const reason = parsed.message ?? "Corely could not answer.";
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === targetId ? { ...msg, text: msg.text ? `${msg.text}\n\n_${reason}_` : reason } : msg
                     )
                   );
                 } else if (parsed.type === "text") {
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === corelyMsgId
+                      msg.id === targetId
                         ? { ...msg, text: msg.text + (parsed.text ?? "") }
                         : msg
                     )
@@ -577,9 +641,10 @@ export default function AskMain({
     } catch (err) {
       console.error("RAG Query failed:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
+      const failedId = corelyMsgId;
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === corelyMsgId
+          msg.id === failedId
             ? { ...msg, text: `Corely was unable to answer your query. Reason: ${errMsg}`, isStreaming: false }
             : msg
         )
@@ -609,7 +674,7 @@ export default function AskMain({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+        accept=".txt,.md,.csv,.json"
         style={{ display: "none" }}
         onChange={handleFileSelect}
       />
@@ -746,7 +811,7 @@ export default function AskMain({
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <ThinkingState sources={msg.sources} />
+                        <ThinkingState sources={msg.sources} sourcesReceived={msg.sourcesReceived} />
                       )}
                     </div>
 
@@ -825,11 +890,12 @@ export default function AskMain({
                             <BookmarkPlus size={16} /> Save to memory
                           </button>
 
-                          {/* Export this message */}
+                          {/* Export this answer only */}
                           <button
                             type="button"
                             className="ui-btn ui-btn--ghost ui-btn--sm ac-action-btn"
-                            onClick={handleExport}
+                            onClick={() => handleExportMessage(msg)}
+                            title="Export this question, answer and sources as Markdown"
                           >
                             <Download size={16} /> Export
                           </button>
@@ -842,6 +908,8 @@ export default function AskMain({
                             className="ui-icon-btn ui-icon-btn--sm ac-feedback-btn"
                             aria-label="Thumbs up"
                             aria-pressed={msg.feedback === "positive"}
+                            disabled={msg.id.startsWith(TEMP_ID_PREFIX)}
+                            title={msg.id.startsWith(TEMP_ID_PREFIX) ? "Feedback works once the answer is saved" : undefined}
                             onClick={() => void handleFeedback(msg.id, "positive")}
                           >
                             <ThumbsUp size={16} fill={msg.feedback === "positive" ? "currentColor" : "none"} />
@@ -851,6 +919,8 @@ export default function AskMain({
                             className="ui-icon-btn ui-icon-btn--sm ac-feedback-btn"
                             aria-label="Thumbs down"
                             aria-pressed={msg.feedback === "negative"}
+                            disabled={msg.id.startsWith(TEMP_ID_PREFIX)}
+                            title={msg.id.startsWith(TEMP_ID_PREFIX) ? "Feedback works once the answer is saved" : undefined}
                             onClick={() => void handleFeedback(msg.id, "negative")}
                           >
                             <ThumbsDown size={16} fill={msg.feedback === "negative" ? "currentColor" : "none"} />
@@ -909,9 +979,9 @@ export default function AskMain({
       {/* Input Box */}
       <form onSubmit={handleSubmit} className="ac-composer-form">
         <div className="ac-input-wrapper">
-          {/* Active tool chips */}
+          {/* Attached file chip */}
           <AnimatePresence>
-            {(webSearchEnabled || knowledgeOnlyEnabled || attachedFile) && (
+            {attachedFile && (
               <motion.div
                 className="ac-input-chips"
                 initial={{ opacity: 0, height: 0 }}
@@ -920,48 +990,18 @@ export default function AskMain({
                 transition={{ duration: 0.15 }}
               >
                 <div className="ac-input-chips-inner">
-                  {webSearchEnabled && (
-                    <span className="ac-chip">
-                      <Globe size={12} />
-                      <span className="ac-chip-label">Web search on</span>
-                      <button
-                        type="button"
-                        className="ac-chip-remove"
-                        aria-label="Turn off web search"
-                        onClick={() => setWebSearchEnabled(false)}
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {knowledgeOnlyEnabled && (
-                    <span className="ac-chip">
-                      <BookOpen size={12} />
-                      <span className="ac-chip-label">Knowledge only</span>
-                      <button
-                        type="button"
-                        className="ac-chip-remove"
-                        aria-label="Turn off knowledge-only mode"
-                        onClick={() => setKnowledgeOnlyEnabled(false)}
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
-                  {attachedFile && (
-                    <span className="ac-chip">
-                      <FileText size={12} />
-                      <span className="ac-chip-label">{attachedFile.name}</span>
-                      <button
-                        type="button"
-                        className="ac-chip-remove"
-                        aria-label="Remove attached file"
-                        onClick={handleRemoveFile}
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  )}
+                  <span className="ac-chip">
+                    <FileText size={12} />
+                    <span className="ac-chip-label">{attachedFile.name}</span>
+                    <button
+                      type="button"
+                      className="ac-chip-remove"
+                      aria-label="Remove attached file"
+                      onClick={handleRemoveFile}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
                 </div>
               </motion.div>
             )}
@@ -984,34 +1024,10 @@ export default function AskMain({
                 type="button"
                 className={`ui-btn ui-btn--ghost ac-tool-btn${attachedFile ? " is-active" : ""}`}
                 aria-label="Attach file"
-                title="Attach a text file as context"
+                title="Attach a text file (.txt, .md, .csv, .json) as context. Upload PDF or Word files in Sources."
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={16} />
-              </button>
-
-              {/* Web Search Toggle */}
-              <button
-                type="button"
-                className="ui-btn ui-btn--ghost ac-tool-btn"
-                aria-label="Toggle web search"
-                aria-pressed={webSearchEnabled}
-                title={webSearchEnabled ? "Web search on. Click to turn off" : "Enable web search context"}
-                onClick={() => setWebSearchEnabled((v) => !v)}
-              >
-                <Globe size={16} />
-              </button>
-
-              {/* Knowledge Only Toggle */}
-              <button
-                type="button"
-                className="ui-btn ui-btn--ghost ac-tool-btn"
-                aria-label="Toggle knowledge base only"
-                aria-pressed={knowledgeOnlyEnabled}
-                title={knowledgeOnlyEnabled ? "Knowledge-only mode on. Click to turn off" : "Enable knowledge-base-only mode"}
-                onClick={() => setKnowledgeOnlyEnabled((v) => !v)}
-              >
-                <BookOpen size={16} />
               </button>
             </div>
 

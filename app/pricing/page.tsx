@@ -15,7 +15,7 @@ const FAQS = [
   },
   {
     question: "Is my data used to train your AI models?",
-    answer: "Never. Your organizational data is strictly isolated within your workspace. We do not use customer data to train our foundational models, and all interactions with third-party LLMs (like OpenAI) are done via zero-retention enterprise APIs."
+    answer: "Never. Your organizational data is strictly isolated within your workspace. We do not use customer data to train our foundational models, and third-party AI providers (Anthropic for answers, OpenAI for search) receive only the text needed for each request through their business APIs, which do not use that data to train their models."
   },
   {
     question: "How long does it take to connect my tools?",
@@ -121,7 +121,7 @@ export default function PricingPage() {
               <PlanItem>Unlimited team members</PlanItem>
               <PlanItem>All integrations included</PlanItem>
               <PlanItem>50,000 indexed documents/user</PlanItem>
-              <PlanItem>Premium LLMs (GPT-4o, Claude 3.5)</PlanItem>
+              <PlanItem>Claude Opus 5.5 and Claude Haiku 5.5</PlanItem>
               <PlanItem>Custom autonomous workflows</PlanItem>
               <PlanItem>Priority email support</PlanItem>
             </ul>

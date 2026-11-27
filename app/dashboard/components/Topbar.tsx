@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, Sparkles, Bell, ChevronDown, Command, Search, X,
+  Building2, Sparkles, Bell, ChevronDown, Search, X,
   Menu, Sun, Moon, CheckCircle2, Cpu, AlertTriangle, UserPlus, Database,
   ExternalLink, Loader2, Settings, HelpCircle, LogOut, User
 } from "lucide-react";
@@ -339,12 +339,15 @@ export default function Topbar() {
           <Menu size={18} />
         </button>
 
-        {/* Workspace Switcher */}
-        <button className="db-ws-btn" aria-label="Switch workspace">
-          <Building2 size={16} />
+        {/* Workspace name. Each user has one workspace, so this is a label, not a switcher. */}
+        <div
+          className="db-ws-btn"
+          title={workspace?.name || "Workspace"}
+          style={{ cursor: "default", background: "var(--surface)", borderColor: "var(--hairline)" }}
+        >
+          <Building2 size={16} aria-hidden="true" />
           <span>{workspace?.name || "Workspace"}</span>
-          <ChevronDown size={14} />
-        </button>
+        </div>
 
         {/* Search */}
         <button
@@ -355,10 +358,6 @@ export default function Topbar() {
           <span className="db-search-inner">
             <Search size={16} />
             <span className="db-search-text">Search your knowledge...</span>
-          </span>
-          <span className="db-search-kbd">
-            <Command size={10} />
-            <span>K</span>
           </span>
         </button>
       </div>

@@ -1,12 +1,16 @@
 /**
  * GET /api/sources/[sourceId]/folders
  * Fetches the list of folders from the connected Google Drive source to let the user select a specific folder.
+ * It only ever returns real Drive folders. When Drive cannot be reached it returns an error, never sample data.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 import { google } from "googleapis";
+import { requirePermission } from "@/lib/auth-server";
+import { Permissions } from "@/lib/rbac";
+import { successResponse, errorResponse } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -14,42 +18,37 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ sourceId: string }> }
 ) {
+  let user;
+  try {
+    user = await requirePermission(Permissions.SOURCES_READ);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden: Insufficient permissions") return errorResponse("Forbidden", 403);
+    if (error instanceof Error && error.message === "Unauthorized") return errorResponse("Unauthorized", 401);
+    console.error("[Get Folders] Auth error:", error);
+    return errorResponse("Internal Server Error", 500);
+  }
+
   const { sourceId } = await params;
 
+  // The source must belong to the caller's workspace. Otherwise act as if it does not exist.
+  const source = await prisma.source.findFirst({
+    where: { id: sourceId, workspaceId: user.workspaceId },
+  });
+
+  if (!source) {
+    return errorResponse("Source not found", 404);
+  }
+
+  if (source.type !== "google_drive") {
+    return errorResponse("Folder selection is only supported for Google Drive sources", 400);
+  }
+
+  // Without a refresh token we cannot read Drive. The user must connect again.
+  if (!source.refreshToken) {
+    return errorResponse("Reconnect Google Drive to load your folders", 409);
+  }
+
   try {
-    const source = await prisma.source.findUnique({
-      where: { id: sourceId },
-    });
-
-    if (!source) {
-      return NextResponse.json({ error: "Source not found" }, { status: 404 });
-    }
-
-    if (source.type !== "google_drive") {
-      return NextResponse.json(
-        { error: "Folder selection is only supported for Google Drive sources" },
-        { status: 400 }
-      );
-    }
-
-    // Mock folders to fall back to if authentication or API fails
-    const MOCK_FOLDERS = [
-      { id: "mock_1", name: "Wednesday", parents: [] },
-      { id: "mock_2", name: "Screenshots", parents: [] },
-      { id: "mock_3", name: "Tuesday", parents: [] },
-      { id: "mock_4", name: "Monday", parents: [] },
-      { id: "mock_5", name: "Company Brain", parents: [] },
-      { id: "mock_6", name: "Day 2", parents: [] },
-      { id: "mock_7", name: "SAPUTARA", parents: [] },
-      { id: "mock_8", name: "Day 1", parents: [] },
-      { id: "mock_9", name: "Classroom", parents: [] }
-    ];
-
-    if (!source.refreshToken) {
-      console.warn("[Get Folders] Missing refreshToken, returning mock folders");
-      return NextResponse.json({ folders: MOCK_FOLDERS });
-    }
-
     // Build oauth client
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -71,22 +70,10 @@ export async function GET(
       fields: "files(id, name, parents)",
     });
 
-    const folders = response.data.files ?? [];
-    return NextResponse.json({ folders: folders.length > 0 ? folders : MOCK_FOLDERS });
+    // An empty list is a real answer: this Drive has no folders.
+    return successResponse({ folders: response.data.files ?? [] });
   } catch (err) {
-    console.error("[Get Folders] Failed to fetch Google Drive folders, returning mock folders as fallback:", err);
-    // Return mock folders if the API fails (e.g., invalid/mock credentials)
-    const MOCK_FOLDERS = [
-      { id: "mock_1", name: "Wednesday", parents: [] },
-      { id: "mock_2", name: "Screenshots", parents: [] },
-      { id: "mock_3", name: "Tuesday", parents: [] },
-      { id: "mock_4", name: "Monday", parents: [] },
-      { id: "mock_5", name: "Company Brain", parents: [] },
-      { id: "mock_6", name: "Day 2", parents: [] },
-      { id: "mock_7", name: "SAPUTARA", parents: [] },
-      { id: "mock_8", name: "Day 1", parents: [] },
-      { id: "mock_9", name: "Classroom", parents: [] }
-    ];
-    return NextResponse.json({ folders: MOCK_FOLDERS });
+    console.error("[Get Folders] Failed to fetch Google Drive folders:", err);
+    return errorResponse("Could not load folders from Google Drive. Try again, or reconnect Google Drive.", 502);
   }
 }
