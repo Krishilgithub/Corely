@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../../../lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+// GitHub-style Markdown: tables, strikethrough, task lists and plain URLs.
+import remarkGfm from "remark-gfm";
 import {
   Sparkles,
   Paperclip,
@@ -778,7 +780,12 @@ export default function AskMain({
                       {msg.text ? (
                         <div className="ac-md">
                           <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
                             components={{
+                              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                              table: ({ node: _node, ...props }) => (
+                                <div className="ac-table-wrap"><table {...props} /></div>
+                              ),
                               // eslint-disable-next-line @typescript-eslint/no-unused-vars
                               a: ({ node: _node, ...props }) => {
                                 const href = props.href || "";

@@ -1,0 +1,27 @@
+<section id="datamodel" class="alt" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">Data model</p>
+<h2 class="rise" style="--i:1">The six tables behind <span class="red">every</span> answer</h2>
+<!-- SOURCE 0,0,480,190  DOCUMENT 592,0,480,190  CHUNK 1184,0,480,190 | PROJECT 0,380,480,190  DOCPROJECT 592,380,480,190  MEMORY 1184,380,480,190 -->
+<div class="host fade" style="--i:2">
+<div class="node" style="left:0; top:0; width:480px; height:190px"><p class="node-title">Source</p><p class="node-text">A connected tool: type, status, encrypted OAuth tokens, last sync</p></div>
+<div class="node" style="left:592px; top:0; width:480px; height:190px"><p class="node-title">Document</p><p class="node-text">One item: title, link, content hash, and where it lives (channel, page, folder, repo)</p></div>
+<div class="node key" style="left:1184px; top:0; width:480px; height:190px"><p class="node-title">DocumentChunk</p><p class="node-text">About 400 words of text plus a vector(1536) for cosine search</p></div>
+<div class="node" style="left:0; top:380px; width:480px; height:190px"><p class="node-title">Project</p><p class="node-text">Name, short key, other names, status and phase</p></div>
+<div class="node" style="left:592px; top:380px; width:480px; height:190px"><p class="node-title">DocumentProject</p><p class="node-text">How a document joined: linked, name rule, AI or manual. Manual choices win.</p></div>
+<div class="node" style="left:1184px; top:380px; width:480px; height:190px"><p class="node-title">OrgMemory</p><p class="node-text">Decision, risk, milestone, question or fact, linked to its project and source</p></div>
+<x-connector x1="480" y1="95" x2="592" y2="95"></x-connector>
+<x-connector x1="1072" y1="95" x2="1184" y2="95"></x-connector>
+<x-connector x1="832" y1="190" x2="832" y2="380"></x-connector>
+<x-connector x1="480" y1="475" x2="592" y2="475"></x-connector>
+<x-connector x1="240" y1="570" x2="240" y2="590" head="none"></x-connector>
+<x-connector x1="240" y1="590" x2="1424" y2="590" head="none"></x-connector>
+<x-connector x1="1424" y1="590" x2="1424" y2="570"></x-connector>
+<p class="edge-label" style="left:496px; top:44px; width:80px">1 : N</p>
+<p class="edge-label" style="left:1088px; top:44px; width:80px">1 : N</p>
+<p class="edge-label" style="left:852px; top:262px; width:80px">1 : N</p>
+<p class="edge-label" style="left:496px; top:424px; width:80px">1 : N</p>
+</div>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>These are the six tables that matter most; there are more for users, roles, teams and chats. A source is one connected tool, and its OAuth tokens are stored encrypted with AES. Each source has many documents; a content hash lets a sync skip anything that has not changed. Each document is split into chunks of about 400 words, and each chunk stores a vector of 1536 numbers that pgvector searches by cosine similarity, which is why it is highlighted. Projects link to documents through DocumentProject, which records how the match was made: a linked source first, then a name rule, then AI, then a person. A person’s choice is never overwritten. Finally, OrgMemory holds the decisions, risks, milestones, questions and facts, each linked to its project and to the document it came from. Every table also has a workspace id, which keeps each company’s data apart.</aside>
+</section>

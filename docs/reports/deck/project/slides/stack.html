@@ -1,0 +1,15 @@
+<section id="stack" class="alt" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">Tech stack</p>
+<h2 class="rise" style="--i:1">What Corely is <span class="red">built</span> with</h2>
+<div class="stack">
+<div class="stack-item rise" style="--i:2"><p class="stack-label">Frontend</p><p class="stack-value">Next.js 15 · React 19 · TypeScript</p></div>
+<div class="stack-item key rise" style="--i:3"><p class="stack-label">AI answers</p><p class="stack-value">Claude Opus 5.5 · Claude Haiku 5.5</p></div>
+<div class="stack-item rise" style="--i:4"><p class="stack-label">Database</p><p class="stack-value">Supabase PostgreSQL · pgvector</p></div>
+<div class="stack-item rise" style="--i:5"><p class="stack-label">Search embeddings</p><p class="stack-value">OpenAI text-embedding-3-small</p></div>
+<div class="stack-item rise" style="--i:6"><p class="stack-label">Security</p><p class="stack-value">JWT sessions · bcrypt · AES tokens</p></div>
+<div class="stack-item rise" style="--i:7"><p class="stack-label">Data access and packaging</p><p class="stack-value">Prisma 7 · Docker</p></div>
+</div>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>The frontend and the API live in one Next.js 15 project written in TypeScript. Data is stored in Supabase PostgreSQL; the pgvector extension lets the same database do meaning-based search. Answers come from Anthropic’s Claude: Opus 5.5 by default, and Haiku 5.5 for the faster memory extraction. Search embeddings still come from OpenAI, because Anthropic does not offer an embeddings API. Prisma handles database access, Zod checks request data, and security uses signed JWT sessions, bcrypt password hashes and AES-encrypted connector tokens. The app is packaged with Docker.</aside>
+</section>

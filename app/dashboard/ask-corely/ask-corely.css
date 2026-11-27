@@ -187,6 +187,34 @@
   border-top: 1px solid var(--hairline);
 }
 
+/* Tables (GitHub-style Markdown via remark-gfm). The wrapper scrolls sideways
+   on narrow screens so wide tables never push the page wider. */
+.ac-md .ac-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+.ac-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ac-md th, .ac-md td {
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.ac-md th {
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+  white-space: nowrap;
+}
+.ac-md tr:last-child td { border-bottom: none; }
+.ac-md td + td, .ac-md th + th { border-left: 1px solid var(--hairline); }
+
 /* Inline citation number, like [2], that jumps to its source card */
 .ac-md a.ac-cite {
   display: inline-flex;

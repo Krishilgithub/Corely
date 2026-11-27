@@ -1,0 +1,13 @@
+<section id="challenges" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">Challenges</p>
+<h2 class="rise" style="--i:1">Hard problems we <span class="red">solved</span></h2>
+<div class="pairs">
+<div class="pair fragment"><p class="pair-q">AI answers that sound right but are made up</p><p class="pair-a">Strict prompt rules, a 0.55 match threshold, and a clear “I don’t know” when nothing matches.</p></div>
+<div class="pair fragment"><p class="pair-q">Information that is out of date</p><p class="pair-a">A freshness score that drops every day, faster for chat and slower for documents.</p></div>
+<div class="pair fragment"><p class="pair-q">Pages failing at random</p><p class="pair-a">Traced it to the database pooler’s 15-connection limit and switched to the transaction pooler.</p></div>
+<div class="pair fragment" style="border-bottom:1px solid var(--line)"><p class="pair-q">Fake numbers and open API routes</p><p class="pair-a">Replaced invented stats with real data, and put a login and workspace check on every route.</p></div>
+</div>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>Click to reveal each challenge. First, language models can give answers that sound right but are invented; strict rules, a similarity threshold and an honest “I don’t know” fixed that. Second, a correct answer from an old chat may no longer be true, so every source gets a freshness score. Third, pages were failing at random; the server log showed the database pooler allows only 15 connections, so testing moved to the transaction pooler. Fourth, an audit found screens with invented numbers and some API routes anyone could call; we replaced the fake numbers with real data or a clear “coming soon”, and every route now checks the login and workspace.</aside>
+</section>

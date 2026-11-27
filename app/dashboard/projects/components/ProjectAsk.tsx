@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+// GitHub-style Markdown: tables, strikethrough, task lists and plain URLs.
+import remarkGfm from "remark-gfm";
 import { ArrowUp, ExternalLink, Loader2, MessageSquare } from "lucide-react";
 import CorelyLogo from "@/components/icons/corely-logo";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -111,7 +113,19 @@ export default function ProjectAsk({ projectId, projectName }: { projectId: stri
                       <div className="ui-skeleton" style={{ height: 12, width: "45%" }} />
                     </div>
                   ) : (
-                    <div className={`ac-md ${t.notice ? "pj-ask__notice" : ""}`}><ReactMarkdown>{t.text}</ReactMarkdown></div>
+                    <div className={`ac-md ${t.notice ? "pj-ask__notice" : ""}`}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                          table: ({ node: _node, ...props }) => (
+                            <div className="ac-table-wrap"><table {...props} /></div>
+                          ),
+                        }}
+                      >
+                        {t.text}
+                      </ReactMarkdown>
+                    </div>
                   )}
                   {t.sources && t.sources.length > 0 && !t.pending && (
                     <div className="pj-ask__sources">

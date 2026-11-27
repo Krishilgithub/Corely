@@ -1,0 +1,15 @@
+<section id="how" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">How it works</p>
+<h2 class="rise" style="--i:1; max-width:1500px">From a question to a <span class="red">cited</span> answer, in five steps.</h2>
+<div class="pipe">
+<div class="pipe-step fragment"><div class="card"><p class="card-num">01</p><h3>Connect and sync</h3><p class="card-text">OAuth to 6 tools, plus PDF and Word upload</p></div></div>
+<div class="pipe-step fragment"><x-connector head="end"></x-connector><div class="card"><p class="card-num">02</p><h3>Chunk</h3><p class="card-text">Split into 400-word pieces with a 50-word overlap</p></div></div>
+<div class="pipe-step fragment"><x-connector head="end"></x-connector><div class="card"><p class="card-num">03</p><h3>Embed</h3><p class="card-text">Each piece becomes 1536 numbers stored in pgvector</p></div></div>
+<div class="pipe-step fragment"><x-connector head="end"></x-connector><div class="card"><p class="card-num">04</p><h3>Retrieve</h3><p class="card-text">Find the 8 closest pieces scoring above 0.55</p></div></div>
+<div class="pipe-step fragment"><x-connector head="end"></x-connector><div class="card key"><p class="card-num">05</p><h3>Answer</h3><p class="card-text">Claude writes the answer and cites every source</p></div></div>
+</div>
+<p class="small rise" style="--i:2; margin-top:auto">This method is called Retrieval-Augmented Generation (RAG): search first, then let the model answer only from what was found.</p>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>Click through the five steps. One: Corely connects to the tools with OAuth and syncs their content; files can also be uploaded. Two: each document is split into pieces of about 400 words, with a 50-word overlap so meaning is not lost at the edges. Three: each piece is turned into a list of 1536 numbers that captures its meaning, stored in PostgreSQL with pgvector. Four: when someone asks a question, Corely finds the 8 closest pieces and keeps only those scoring above 0.55. Five: Claude writes the answer only from those pieces and cites each one. If nothing scores high enough, Corely says it does not know instead of guessing.</aside>
+</section>

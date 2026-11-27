@@ -1,0 +1,17 @@
+{
+  "v": 5,
+  "createdOnFiles": { "v": 1, "at": "2026-11-23T06:15:00Z" },
+  "lists": "css",
+  "format": { "v": 1, "shared": ["project/deck.css"] },
+  "title": "Corely – CSE315 Project-V",
+  "order": ["cover", "problem", "solution", "architecture", "askflow", "product", "stack", "challenges", "next"],
+  "sections": {
+    "intro": { "description": "The project, the team and the problem Corely solves.", "start": "cover" },
+    "build": { "description": "What Corely does and how it works: architecture and one request.", "start": "solution" },
+    "close": { "description": "The working app, the stack, the hard parts and what comes next.", "start": "product" }
+  },
+  "faces": {
+    "roboto": { "family": "Roboto", "href": "https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" }
+  },
+  "designSystems": []
+}

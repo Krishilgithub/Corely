@@ -1,0 +1,27 @@
+<section id="askflow" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">One question, step by step</p>
+<h2 class="rise" style="--i:1">What happens when you <span class="red">ask</span></h2>
+<div class="flow">
+<div class="steps">
+<div class="step fragment"><p class="step-num">1</p><p class="step-text"><b>Check access.</b> Valid session, the user’s workspace, and a limit of 20 questions a minute.</p></div>
+<div class="step fragment"><p class="step-num">2</p><p class="step-text"><b>Embed the question</b> into 1536 numbers with the same model used for documents.</p></div>
+<div class="step fragment"><p class="step-num">3</p><p class="step-text"><b>Search pgvector</b> for the 8 closest chunks above 0.55, only from sources this user may see.</p></div>
+<div class="step fragment"><p class="step-num">4</p><p class="step-text"><b>Score freshness</b> for each source: chat loses 2 points a day, documents 0.2.</p></div>
+<div class="step key fragment"><p class="step-num">5</p><p class="step-text"><b>Claude streams the answer</b> with [1], [2] citations, written only from those chunks.</p></div>
+<div class="step fragment"><p class="step-num">6</p><p class="step-text"><b>Save and confirm.</b> The answer is stored, and its id is sent so feedback works.</p></div>
+</div>
+<div class="panels rise" style="--i:2">
+<div class="panel">
+<p class="eyebrow" style="margin-bottom:0">Vector search (simplified)</p>
+<p class="code">SELECT content, metadata,<br>&#160;&#160;1 - (embedding &lt;=&gt; $q) AS score<br>FROM document_chunks<br>WHERE source_id = ANY($allowed)<br>&#160;&#160;AND 1 - (embedding &lt;=&gt; $q) &gt; 0.55<br>ORDER BY embedding &lt;=&gt; $q<br>LIMIT 8;</p>
+</div>
+<div class="panel">
+<p class="eyebrow" style="margin-bottom:0">Streamed to the browser</p>
+<p class="code">data: {type: "sources", …}<br>data: {type: "text", text: "…"}<br>data: {type: "message_id", id}<br>data: [DONE]</p>
+</div>
+</div>
+</div>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>Click through the six steps of one question. One: the server checks the session and workspace, and limits each user to 20 questions a minute. Two: the question is turned into 1536 numbers with the same embedding model used for the documents, so they can be compared. Three: pgvector finds the 8 closest chunks; the score is one minus the cosine distance, and anything at or below 0.55 is dropped. Only sources the user is allowed to see are searched. Four: each source gets a freshness score; chat goes stale fastest. Five: Claude writes the answer only from those chunks, with numbered citations, and it streams to the browser as Server-Sent Events: first the sources, then the text, then the saved message id, then done. Six: the answer is saved to the chat history. If no chunk passes 0.55, Corely replies that it does not know, without calling the model at all.</aside>
+</section>

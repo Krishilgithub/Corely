@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "cw-omni-agents-extension": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "c:\\Users\\KrishilAgrawal(DataA\\.vscode\\extensions\\amazonwebservices.amazon-cloudwatch-omni-1.1.3\\out\\mcp-server\\mcp-proxy.js",
+        "--workspace",
+        "c:\\dev\\Corely"
+      ],
+      "env": {
+        "OMNI_MCP_TOKEN": "d6a8206574b1be14492081eb65edd01a442ba3cc3a1d01d7ac98be50e8c6b53f"
+      }
+    }
+  }
+}

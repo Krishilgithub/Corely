@@ -1,0 +1,30 @@
+<section id="architecture" class="alt" data-transition="fade">
+<p class="eyebrow rise" style="--i:0">Architecture</p>
+<h2 class="rise" style="--i:1">How the pieces <span class="red">fit</span> together</h2>
+<!-- USER 592,0,480,110 | AUTH 0,210,480,120  API 592,210,480,120  INGEST 1184,210,480,120 | DB 0,440,380,150  CLAUDE 428,440,380,150  OPENAI 856,440,380,150  TOOLS 1284,440,380,150 -->
+<div class="host fade" style="--i:2">
+<div class="node" style="left:592px; top:0; width:480px; height:110px"><p class="node-title">Users in the browser</p><p class="node-text">React 19 · light and dark mode</p></div>
+<div class="node" style="left:0; top:210px; width:480px; height:120px"><p class="node-title">Login and roles</p><p class="node-text">JWT cookie · bcrypt · permissions</p></div>
+<div class="node key" style="left:592px; top:210px; width:480px; height:120px"><p class="node-title">Next.js API routes</p><p class="node-text">/ask · /sources · /projects · /memory</p></div>
+<div class="node" style="left:1184px; top:210px; width:480px; height:120px"><p class="node-title">Ingestion pipeline</p><p class="node-text">Fetch · chunk · embed · tag projects</p></div>
+<div class="node" style="left:0; top:440px; width:380px; height:150px"><p class="node-title">Supabase PostgreSQL</p><p class="node-text">Documents, memory and pgvector vectors</p></div>
+<div class="node" style="left:428px; top:440px; width:380px; height:150px"><p class="node-title">Claude (Anthropic)</p><p class="node-text">Opus 5.5 answers · Haiku 5.5 memory</p></div>
+<div class="node" style="left:856px; top:440px; width:380px; height:150px"><p class="node-title">OpenAI embeddings</p><p class="node-text">text-embedding-3-small, 1536 numbers</p></div>
+<div class="node" style="left:1284px; top:440px; width:380px; height:150px"><p class="node-title">Six connected tools</p><p class="node-text">Slack, Notion, Drive, Gmail, GitHub, Linear</p></div>
+<x-connector x1="832" y1="110" x2="832" y2="210"></x-connector>
+<x-connector x1="592" y1="270" x2="480" y2="270"></x-connector>
+<x-connector x1="1072" y1="270" x2="1184" y2="270"></x-connector>
+<x-connector x1="832" y1="330" x2="832" y2="400" head="none"></x-connector>
+<x-connector x1="190" y1="400" x2="832" y2="400" head="none"></x-connector>
+<x-connector x1="190" y1="400" x2="190" y2="440"></x-connector>
+<x-connector x1="618" y1="400" x2="618" y2="440"></x-connector>
+<x-connector x1="1424" y1="330" x2="1424" y2="380" head="none"></x-connector>
+<x-connector x1="1046" y1="380" x2="1474" y2="380" head="none"></x-connector>
+<x-connector x1="1046" y1="380" x2="1046" y2="440"></x-connector>
+<x-connector x1="1474" y1="380" x2="1474" y2="440"></x-connector>
+<p class="edge-label" style="left:852px; top:138px; width:520px">HTTPS · answers stream back (SSE)</p>
+</div>
+<img class="mark" src="/_blob/f13eb7b84cc901b659b8d3bf6e684188" alt="DEPSTAR logo">
+<div class="band"><p class="band-side"></p><p class="band-text">Department of Computer Science &amp; Engineering,<br>Devang Patel Institute of Advance Technology and Research (DEPSTAR)</p><p class="band-side pg"></p></div>
+<aside>This is the system in three tiers. At the top, users work in the browser. In the middle is one Next.js server: every request first passes the login and role check, which uses a signed JWT cookie and the role’s permissions. The API routes, highlighted in blue, handle asking, sources, projects and memory. When a source syncs, the ingestion pipeline fetches items from the six connected tools, splits them into chunks, turns them into vectors and tags their projects. At the bottom are the services: Supabase PostgreSQL with pgvector stores everything, including the vectors; Claude writes the answers and extracts memory; and OpenAI makes the search vectors, because Anthropic has no embeddings API. Every table carries a workspace id, so one company never sees another’s data.</aside>
+</section>

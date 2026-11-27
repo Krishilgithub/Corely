@@ -1,0 +1,198 @@
+/* College project template (DEPSTAR / CHARUSAT): white slides, Roboto,
+   CHARUSAT blue for the key item, orange highlight word, and the orange
+   department band with the page number at the bottom of every slide. */
+:root {
+  --paper: #ffffff;
+  --paper-alt: #f4f6f9;
+  --card: #f6f7f9;
+  --ink: #1e2329;
+  --body: #4a5260;
+  --muted: #646b78;
+  --line: #dde1e7;
+  --blue: #1b4f9c;
+  --deep-blue: #133b76;
+  --orange: #b44f23;
+  --connector: #8a93a0;
+  --ease: cubic-bezier(.2, .6, .2, 1);
+}
+
+body { font-family: 'Roboto', Arial, sans-serif; color: var(--ink); }
+
+section {
+  padding: 128px 128px 140px;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  counter-increment: page;
+  box-sizing: border-box;
+}
+section.alt { background: var(--paper-alt); }
+section.statement { background: var(--blue); }
+
+/* Type scale: 88 / 64 / 40 / 32 / 24 */
+.eyebrow {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 20px;
+}
+h1.title { font-size: 88px; font-weight: 400; line-height: 1.15; color: var(--ink); text-align: center; }
+h2 { font-size: 64px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink); }
+h3 { font-size: 40px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+p { font-size: 32px; line-height: 1.4; color: var(--body); }
+.lead { font-size: 40px; line-height: 1.35; color: var(--body); font-weight: 400; }
+.small { font-size: 24px; line-height: 1.4; color: var(--muted); }
+.red { color: var(--orange); }
+
+/* DEPSTAR mark, top right of content slides */
+.mark { position: absolute; left: 1688px; top: 44px; width: 104px; height: 101px; object-fit: contain; }
+
+/* Department band: full width at the bottom of every slide */
+.band {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1920px;
+  height: 104px;
+  box-sizing: border-box;
+  padding: 0 64px;
+  background: var(--orange);
+  display: flex;
+  align-items: center;
+}
+.band .band-side { width: 160px; font-size: 24px; color: #ffffff; text-align: right; }
+.band .band-text { flex: 1; font-size: 26px; font-weight: 500; line-height: 1.3; color: #ffffff; text-align: center; }
+.pg::after { content: counter(page); }
+
+/* Cards */
+.row { display: flex; gap: 32px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+section.alt .card { background: var(--paper); }
+.card.key, section.alt .card.key { background: var(--blue); border-color: var(--blue); }
+.card.key h3 { color: #ffffff; }
+.card.key .card-text { color: #ffffff; }
+.card-text { font-size: 28px; line-height: 1.4; color: var(--body); }
+.card-list { padding-left: 32px; display: flex; flex-direction: column; gap: 10px; font-size: 26px; line-height: 1.35; color: var(--body); }
+.card.key .card-list { color: #ffffff; }
+.card-num { font-size: 24px; font-weight: 700; letter-spacing: 0.12em; color: var(--orange); }
+.card.key .card-num { color: #ffffff; }
+.card x-icon { width: 48px; height: 48px; color: var(--blue); }
+.card.key x-icon { color: #ffffff; }
+
+/* Pills */
+.pills { display: flex; flex-wrap: wrap; gap: 16px; }
+.pill {
+  font-size: 28px;
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+.pill.key { background: var(--blue); border-color: var(--blue); color: #ffffff; }
+
+/* Arrival motion: calm, staged, done within a second */
+.rise { animation: rise 520ms var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+.fade { animation: fadein 600ms var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@keyframes fadein { from { opacity: 0; } }
+
+/* Click-to-reveal steps */
+.fragment { opacity: 0.15; transition: opacity 320ms var(--ease); }
+.fragment.visible { opacity: 1; }
+
+/* Cover, laid out like the college template */
+section.cover { padding: 56px 128px 140px; align-items: center; }
+.cover .depstar { position: absolute; left: 112px; top: 48px; width: 150px; height: 146px; object-fit: contain; }
+.cover .charusat { width: 700px; height: 135px; object-fit: contain; }
+.cover .course { font-size: 56px; font-weight: 500; color: var(--ink); text-align: center; margin-top: 36px; }
+.cover .tagline { font-size: 32px; color: var(--body); text-align: center; margin-top: 20px; }
+.cover-rule { width: 1664px; height: 2px; background: #b9bec7; margin-top: 20px; }
+.cover-meta { width: 1664px; display: flex; justify-content: space-between; align-items: flex-start; margin-top: auto; }
+.cover-meta .meta { font-size: 32px; color: var(--ink); }
+.team { display: flex; gap: 12px; }
+.team-names { display: flex; flex-direction: column; gap: 4px; }
+
+/* Pipeline (how it works) */
+.pipe { display: flex; align-items: stretch; gap: 0; margin-top: 64px; }
+.pipe-step { display: flex; align-items: center; flex: 1; }
+.pipe-step .card { flex: 1; align-self: stretch; padding: 32px; gap: 12px; }
+.pipe-step x-connector { width: 40px; height: 0; color: var(--connector); border-width: 2px; }
+.pipe-step .card h3 { font-size: 32px; }
+.pipe-step .card-text { font-size: 24px; }
+
+/* Product screenshots */
+.shots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; margin-top: auto; margin-bottom: auto; }
+.shot { display: flex; flex-direction: column; gap: 20px; }
+.shot img { width: 532px; height: 340px; object-fit: contain; background: #0e1116; border: 1px solid var(--line); border-radius: 8px; }
+.shot h3 { font-size: 32px; }
+
+/* Stack table-like rows */
+.stack { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 64px; margin-top: 56px; }
+.stack-item { display: flex; flex-direction: column; gap: 6px; padding-top: 20px; border-top: 1px solid var(--line); }
+.stack-label { font-size: 24px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.stack-value { font-size: 36px; font-weight: 500; color: var(--ink); }
+.stack-item.key { border-top: 4px solid var(--blue); }
+
+/* Challenges list */
+.pairs { display: flex; flex-direction: column; margin-top: 48px; }
+.pair { display: grid; grid-template-columns: 560px 1fr; gap: 48px; padding: 22px 0; border-top: 1px solid var(--line); }
+.pair-q { font-size: 32px; font-weight: 700; color: var(--ink); }
+.pair-a { font-size: 28px; line-height: 1.4; color: var(--body); }
+
+/* Pinned diagrams (architecture, data model) */
+.host { position: relative; width: 1664px; height: 600px; margin-top: 40px; }
+.node {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+section.alt .node { background: var(--paper); }
+.node.key, section.alt .node.key { background: var(--blue); border-color: var(--blue); }
+.node-title { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.node.key .node-title { color: #ffffff; }
+.node .node-text { font-size: 24px; line-height: 1.35; color: var(--body); }
+.node.key .node-text { color: #ffffff; }
+.host x-connector { color: var(--connector); border-width: 2px; }
+.edge-label { position: absolute; font-size: 24px; line-height: 1.4; color: var(--muted); }
+
+/* Request flow: steps beside code */
+.flow { display: flex; gap: 48px; margin-top: 40px; }
+.steps { display: flex; flex-direction: column; gap: 14px; width: 940px; }
+.step { display: flex; gap: 20px; align-items: flex-start; }
+.step .step-num {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+  font-size: 24px; font-weight: 700; line-height: 50px; text-align: center; color: var(--ink);
+}
+.step.key .step-num { background: var(--blue); border-color: var(--blue); color: #ffffff; }
+.step .step-text { font-size: 26px; line-height: 1.4; color: var(--body); padding-top: 8px; }
+.step .step-text b { color: var(--ink); }
+.panels { display: flex; flex-direction: column; gap: 24px; flex: 1; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
+.panel .code { font-family: 'Courier New', monospace; font-size: 24px; line-height: 1.5; color: var(--ink); }
+
+/* Closing */
+.statement h2 { font-size: 96px; font-weight: 700; color: #ffffff; }
+.statement .lead { color: #ffffff; }
+.statement .eyebrow { color: #ffffff; }
+.statement .pill { background: var(--deep-blue); border-color: var(--deep-blue); color: #ffffff; }
